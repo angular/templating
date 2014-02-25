@@ -16,7 +16,7 @@
     "assert": "git://github.com/vojtajina/assert#dist"
   },
   "devDependencies": {
-    "pipe": "git://github.com/angular/pipe",
+    "pipe": "git://github.com/angular/pipe#assert",
     "gulp-connect": "~1.0.5"
   },
   "scripts": {
