@@ -8,6 +8,7 @@ module.exports = function(config) {
     files: [
       'test-main.js',
       {pattern: 'node_modules/jquery/dist/jquery.js', included: true},
+      {pattern: 'node_modules/weakmap/weakmap.js', included: true},
       {pattern: 'src/**/*.js', included: false},
       {pattern: 'test/**/*.js', included: false},
       {pattern: 'node_modules/di/dist/amd/**/*.js', included: false},
