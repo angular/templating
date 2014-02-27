@@ -1,8 +1,8 @@
-import {ArrayLike} from './types';
+import {ArrayLikeOfNodes} from './types';
 
 export class NodeCursor {
 
-  constructor(elements:ArrayLike) {
+  constructor(elements:ArrayLikeOfNodes) {
     this.index = 0;
     this.stack = [];
     this.elements = elements;
