@@ -2,6 +2,11 @@ import {ArrayLikeOfNodes} from './types';
 import {LinkedList} from './linked_list';
 import {LinkedListItem} from './linked_list';
 
+/*
+ * View represents a DOM with bound Directives. 
+ * Views are added to the ViewPort by the template directives 
+ * such as ng-if and ng-repeat.
+ */
 export class View extends LinkedListItem {
   constructor(elements:ArrayLikeOfNodes) {
     super();
@@ -9,7 +14,7 @@ export class View extends LinkedListItem {
   }
 }
 
-export class ViewHole  {
+export class ViewPort  {
   constructor(anchor:Comment) {
     this.anchor = anchor;
     this.list = new LinkedList();
