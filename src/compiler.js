@@ -25,7 +25,7 @@ export class Compiler {
   _compile(nodes:ArrayLikeOfNodes, selector:Selector):ArrayOfElementBinder {
     // Always create a root elememtBinder for text nodes directly
     // on the root of the template
-    var binders = [new ElementBinder({})];
+    var binders = [new ElementBinder(null)];
     this._compileRecurse(nodes, selector, binders, binders[0]);
     return binders;
   }
@@ -68,7 +68,7 @@ export class Compiler {
     function addNonElementBinder(binder) {
       binder.indexInParent = nodeIndex;
       if (!parentElementBinder) {
-        parentElementBinder = new ElementBinder({});
+        parentElementBinder = new ElementBinder(null);
         addElementBinder(node.parentNode, parentElementBinder);
       }
       parentElementBinder.addNonElementBinder(binder);
@@ -85,7 +85,7 @@ export class Compiler {
     function compileTemplateDirective(templateDirective:DirectiveClass,
       currentBinder:ElementBinder):ViewFactory {
       var viewFactory;
-      var templateBinders = [new ElementBinder({})];
+      var templateBinders = [new ElementBinder(null)];
 
       if (node.nodeName === 'TEMPLATE') {
         var childNodes = node.content ? node.content.childNodes : node.childNodes;
@@ -102,7 +102,7 @@ export class Compiler {
         }
         self._compileRecurse(node.childNodes, selector, 
           templateBinders, templateBinders[templateBinders.length-1]);
-        viewFactory = new ViewFactory(node, templateBinders);
+        viewFactory = new ViewFactory([node], templateBinders);
       }
       var parent = node.parentNode;
       var comment = document.createComment('template anchor');

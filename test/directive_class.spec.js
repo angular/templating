@@ -12,6 +12,6 @@ describe('DirectiveClass', ()=>{
 
 describe('DirectiveClassSet', ()=> {
   it('should be instantiable', ()=> {
-    new DirectiveClassSet(null);
+    new DirectiveClassSet(null, []);
   });
 });

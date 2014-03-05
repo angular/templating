@@ -7,10 +7,8 @@ describe('ElementBinder', ()=>{
     function Test() {}
     var dc = new DirectiveClass(new DecoratorDirective(), Test);
     new ElementBinder({
-      decorators: [], 
-      template: dc, 
-      component: dc, 
-      onEvents: [], 
+      directives: [], 
+      onEvents: [],
       bindAttrs:[], 
       attrs:[]
     });

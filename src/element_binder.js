@@ -59,20 +59,22 @@ export class ElementBinder {
   constructor(data:ElementBinderConstructorArgs) {
     var self = this;
     this.decorators = [];
-    if (data.directives) {      
-      data.directives.forEach(function(directive) {
-        if (directive.annotation instanceof TemplateDirective) {
-          self.template = directive;
-        } else if (directive.annotation instanceof ComponentDirective) {
-          self.component = directive;
-        } else if (directive.annotation instanceof DecoratorDirective) {
-          self.decorators.push(directive);
-        }
-      });
+    if (data) {
+      if (data.directives) {      
+        data.directives.forEach(function(directive) {
+          if (directive.annotation instanceof TemplateDirective) {
+            self.template = directive;
+          } else if (directive.annotation instanceof ComponentDirective) {
+            self.component = directive;
+          } else if (directive.annotation instanceof DecoratorDirective) {
+            self.decorators.push(directive);
+          }
+        });
+      }      
+      this.onEvents = data.onEvents;
+      this.bindAttrs = data.bindAttrs;
+      this.attrs = data.attrs;
     }
-    this.onEvents = data.onEvents;
-    this.bindAttrs = data.bindAttrs;
-    this.attrs = data.attrs;
     // will be set by the compiler
     this.nonElementBinders = null;
   }

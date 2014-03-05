@@ -182,9 +182,17 @@ describe('Compiler', ()=>{
       }
       if (directives.length) {
         return new ElementBinder({
-          directives: directives
+          directives: directives,
+          onEvents:[],
+          // List of bind-* attributes found
+          // Attributes containing {{}} get translated as
+          // src="{{img}}.png" => bind-src="'' + img + '.png'"
+          bindAttrs:[],
+          // List of all attributes
+          attrs:[]          
         });
       }
+      return null;
     });
     spyOn(selector, 'matchText');
     selector.matchText.and.callFake(function(node) {
