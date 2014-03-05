@@ -7,7 +7,10 @@
  * Different injector branches may have different instance of this class.
  */
 export class Selector {
-	match(node:Node):ElementBinder {
+	matchElement(node:HTMLElement):ElementBinder {
+    // TODO
+  }
+  matchText(node:Text):TextBinder {
     // TODO
   }
 }

@@ -2,6 +2,26 @@ import {DirectiveClass} from './directive_class';
 import {ArrayOfDirectiveClass} from './directive_class';
 import {ArrayOfNameValueString} from './types';
 import {ArrayOfString} from './types';
+import {assert} from 'assert';
+import {TemplateDirective} from '../src/annotations';
+import {ComponentDirective} from '../src/annotations';
+import {DecoratorDirective} from '../src/annotations';
+
+export class NonElementBinder {
+  constructor(indexInParent:number) {
+    this.indexInParent = indexInParent;
+  }
+}
+
+export class TextBinder extends NonElementBinder {
+  constructor() {
+    // will be set by the compiler
+    this.indexInParent = null;
+  }  
+  bind() {
+    // TODO
+  }
+}
 
 /**
  * This class contains the list of directives, 
@@ -18,12 +38,8 @@ import {ArrayOfString} from './types';
 class ElementBinderConstructorArgs {
   static assert(obj) {
     assert(obj).is(assert.structure({
-      // List of directives which matched the template element.
-      decorators:ArrayOfDirectiveClass,
-      // A template directive if found
-      template:DirectiveClass,
-      // A component directive if found
-      component:DirectiveClass,
+      // List of found directives on the element
+      directives:ArrayOfDirectiveClass,
       // List of on-* attributes found
       onEvents:ArrayOfString,
       // List of bind-* attributes found
@@ -31,22 +47,62 @@ class ElementBinderConstructorArgs {
       // src="{{img}}.png" => bind-src="'' + img + '.png'"
       bindAttrs:ArrayOfNameValueString,
       // List of all attributes
-      attrs:ArrayOfNameValueString
+      attrs:ArrayOfNameValueString      
     }));
   }
   constructor() {
     assert.fail('type is not instantiable');
-  }  
+  }
 }
 
 export class ElementBinder {
   constructor(data:ElementBinderConstructorArgs) {
-    this.decorators = data.decorators;
-    this.template = data.template;
-    this.component = data.component;
+    var self = this;
+    this.decorators = [];
+    if (data.directives) {      
+      data.directives.forEach(function(directive) {
+        if (directive.annotation instanceof TemplateDirective) {
+          self.template = directive;
+        } else if (directive.annotation instanceof ComponentDirective) {
+          self.component = directive;
+        } else if (directive.annotation instanceof DecoratorDirective) {
+          self.decorators.push(directive);
+        }
+      });
+    }
     this.onEvents = data.onEvents;
     this.bindAttrs = data.bindAttrs;
     this.attrs = data.attrs;
+    // will be set by the compiler
+    this.nonElementBinders = null;
   }
-	
+  addNonElementBinder(binder:NonElementBinder) {
+    if (!this.nonElementBinders) {
+      this.nonElementBinders = [];
+    }
+    this.nonElementBinders.push(binder);
+  }
+  isEmpty() {
+    return colEmpty(this.onEvents) && colEmpty(this.bindAttrs) && colEmpty(this.nonElementBinders)
+      && !this.template && !this.component && colEmpty(this.decorators);
+
+    function colEmpty(col) {
+      return !col || col.length === 0;
+    }  
+  }
+  bind() {
+    // TODO
+    if (this.directNonElememtBinders) {
+      // TODO: recurse
+    }
+  }
+}
+
+export class ArrayOfElementBinder {
+  static assert(obj) {
+    assert(obj).is(assert.arrayOf(ElementBinder));
+  }
+  constructor() {
+    assert.fail('type is not instantiable');
+  }  
 }
