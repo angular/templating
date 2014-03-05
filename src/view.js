@@ -8,9 +8,20 @@ import {LinkedListItem} from './linked_list';
  * such as ng-if and ng-repeat.
  */
 export class View extends LinkedListItem {
-  constructor(elements:ArrayLikeOfNodes) {
+  constructor(nodes:ArrayLikeOfNodes) {
     super();
-    this.elements = elements;
+    this.nodes = nodes;
+  }
+  insertBefore(refNode:Node) {
+    var parent = refNode.parentNode;
+    for(var i=0, ii=this.nodes.length; i<ii; i++) {
+      parent.insertBefore(this.nodes[i], refNode);
+    }
+  }
+  appendTo(el:HTMLElement) {
+    for(var i=0, ii=this.nodes.length; i<ii; i++) {
+      el.appendChild(this.nodes[i]);
+    }    
   }
 }
 
@@ -20,20 +31,13 @@ export class ViewPort  {
     this.list = new LinkedList();
   }
 
-  _insertBeforeElements(elements:ArrayLikeOfNodes, beforeNode:Node) {
-    var parent = this.anchor.parentNode;
-    for(var i=0, ii=elements.length; i<ii; i++) {
-      parent.insertBefore(elements[i], beforeNode);
-    }
-  }
-
   append(view:View) {
-    this._insertBeforeElements(view.elements, this.anchor);
+    view.insertBefore(this.anchor);
     this.list.append(view);
   }
 
   insertBefore(view:View, referenceView:View) {
-    this._insertBeforeElements(view.elements, referenceView.elements[0]);
+    view.insertBefore(referenceView.nodes[0]);
     this.list.insertBefore(view, referenceView);
   }
 
@@ -55,10 +59,10 @@ export class ViewPort  {
 
   remove(view:View) {
     this.list.remove(view);
-    var elements = view.elements;
+    var nodes = view.nodes;
     var parent = this.anchor.parentNode;
-    for(var i=0, ii=elements.length; i<ii; i++) {
-      parent.removeChild(elements[i]);
+    for(var i=0, ii=nodes.length; i<ii; i++) {
+      parent.removeChild(nodes[i]);
     }
   }
 }

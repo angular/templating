@@ -1,6 +1,6 @@
 import {DirectiveClass} from '../directive_class';
 import {ArrayOfSelectorPart} from './selector_part';
-import {ElementBinder} from '../element_binder';
+import {ElementBinder} from '../types';
 import {SelectorPart, ArrayOfSelectorPart} from './selector_part';
 
 var SELECTOR_REGEXP = /^(?:([\w\-]+)|(?:\.([\w\-]+))|(?:\[([\w\-\*]+)(?:=([^\]]*))?\]))/;

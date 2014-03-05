@@ -1,5 +1,6 @@
 import {assert} from 'assert';
-import {TextBinder, ElementBinder} from '../element_binder';
+import {ElementBinder} from '../types';
+import {TextBinder} from '../element_binder';
 
 export class InterpolationMarkers {
   static assert(obj) {

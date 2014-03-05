@@ -1,8 +1,9 @@
 import {Directive} from '../annotations';
 import {ArrayOfDirectiveClass} from '../directive_class';
 import {DirectiveClass} from '../directive_class';
-import {ElementBinder, TextBinder} from '../element_binder';
+import {ElementBinderImpl, TextBinder} from '../element_binder';
 import {ElementSelector} from './element_selector';
+import {ElementBinder} from '../types';
 import {assert} from 'assert';
 import {InterpolationMarkers, NonElementSelector} from './non_element_selector';
 
@@ -39,7 +40,7 @@ export class Selector {
   }
 
   matchElement(element:HTMLElement):ElementBinder {
-    var builder = new ElementBinder(),
+    var builder = new ElementBinderImpl(),
         nodeName = element.tagName.toLowerCase(),
         attributeList = element.attributes,
         attrs = {},

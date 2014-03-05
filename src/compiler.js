@@ -1,12 +1,13 @@
 import {ArrayLikeOfNodes} from './types';
-import {ArrayOfElementBinder} from './element_binder';
-import {ElementBinder} from './element_binder';
-import {NonElementBinder} from './element_binder';
-import {DirectiveClassSet} from './directive_class';
+import {ArrayOfElementBinder} from './types';
+import {ElementBinder} from './types';
+import {ElementBinderImpl} from './element_binder';
+import {NonElementBinder} from './types';
 import {DirectiveClass} from './directive_class';
 import {ViewFactory} from './view_factory';
 import {Selector} from './selector/selector';
 import {TemplateDirective} from './annotations';
+import {ViewPortBinder} from './element_binder';
 
 /*
  * Compiler walks the DOM and calls Selector.match on each node in the tree. 
@@ -17,17 +18,12 @@ import {TemplateDirective} from './annotations';
  * Lifetime: immutable for the duration of application.
  */
 export class Compiler {
-  compile(nodes:ArrayLikeOfNodes, directives:DirectiveClassSet):ViewFactory {
-    var binders = this._compile(fragment.childNodes, directives.selector());
-    // TODO: Convert the nodes into a document fragment if needed
-    return new ViewFactory(nodes, binders);
-  }
-  _compile(nodes:ArrayLikeOfNodes, selector:Selector):ArrayOfElementBinder {
+  compile(nodes:ArrayLikeOfNodes, selector:Selector):ViewFactory {
     // Always create a root elememtBinder for text nodes directly
     // on the root of the template
-    var binders = [new ElementBinder(null)];
+    var binders = [new ElementBinderImpl(null)];
     this._compileRecurse(nodes, selector, binders, binders[0]);
-    return binders;
+    return new ViewFactory(nodes, binders);
   }
   _compileRecurse(nodes:ArrayLikeOfNodes, selector:Selector, binders:ArrayOfElementBinder, parentElementBinder:ElementBinder) {
     // variables that are used inside of the inner functions
@@ -44,10 +40,14 @@ export class Compiler {
         var binder = selector.matchElement(node);
         if (binder) {          
           var templateDirective = binder.template;
+          var componentDirective = binder.component;
           if (templateDirective) {
-            var viewPortBinder = new ViewPortBinder(compileTemplateDirective(templateDirective, binder));
+            var viewPortBinder = compileTemplateDirective(templateDirective, binder);
             addNonElementBinder(viewPortBinder);
           } else {
+            if (componentDirective) {
+              compileComponentDirective(componentDirective, binder);
+            }
             addElementBinder(node, binder);
           }
         }
@@ -66,12 +66,11 @@ export class Compiler {
     }
 
     function addNonElementBinder(binder) {
-      binder.indexInParent = nodeIndex;
       if (!parentElementBinder) {
-        parentElementBinder = new ElementBinder(null);
+        parentElementBinder = new ElementBinderImpl(null);
         addElementBinder(node.parentNode, parentElementBinder);
       }
-      parentElementBinder.addNonElementBinder(binder);
+      parentElementBinder.addNonElementBinder(binder, nodeIndex);
     }
 
     function markBinderElement(element) {
@@ -83,9 +82,9 @@ export class Compiler {
     }
 
     function compileTemplateDirective(templateDirective:DirectiveClass,
-      currentBinder:ElementBinder):ViewFactory {
+      currentBinder:ElementBinder):ViewPortBinder {
       var viewFactory;
-      var templateBinders = [new ElementBinder(null)];
+      var templateBinders = [new ElementBinderImpl(null)];
 
       if (node.nodeName === 'TEMPLATE') {
         var childNodes = node.content ? node.content.childNodes : node.childNodes;
@@ -96,7 +95,7 @@ export class Compiler {
         currentBinder.template = null;
         if (!currentBinder.isEmpty()) {
           // if there are other directives on the element,
-          // start the recursing with an already parsed first binder
+          // start recursing with an already parsed first binder
           markBinderElement(node);
           templateBinders.push(currentBinder);
         }
@@ -109,19 +108,24 @@ export class Compiler {
       parent.insertBefore(comment, node);
       parent.removeChild(node);
       node = comment;
-      return viewFactory;
+      return new ViewPortBinder(templateDirective, viewFactory);
+    }
+
+    function compileComponentDirective(componentDirective:DirectiveClass, 
+      currentBinder:ElementBinder) {
+      var template = componentDirective.annotation.template;
+      var viewFactory;
+      if (template instanceof ViewFactory) {
+        viewFactory = template;
+      } else {
+        var templateContainer = document.createElement('div');
+        templateContainer.innerHTML = template;
+        viewFactory = self.compile(templateContainer.childNodes, selector);
+      }
+      currentBinder.setComponentViewFactory(viewFactory);
     }
 
   }
 }
 
-// Public so this can be used in a precompiled template
-export class ViewPortBinder extends NonElementBinder {
-  constructor(viewFactory:ViewFactory) {
-    this.viewFactory = viewFactory;
-  }
-  bind() {
-    // TODO
-  }
-}
 

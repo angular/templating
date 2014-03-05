@@ -1,27 +1,23 @@
 import {use, inject} from 'di/testing';
 import {Compiler} from '../src/compiler';
 import {Selector} from '../src/selector/selector';
-import {ElementBinder} from '../src/element_binder';
+import {ElementBinderImpl} from '../src/element_binder';
 import {TextBinder} from '../src/element_binder';
 import {DirectiveClass} from '../src/directive_class';
 import {TemplateDirective} from '../src/annotations';
 import {DecoratorDirective} from '../src/annotations';
+import {ComponentDirective} from '../src/annotations';
+import {ViewFactory} from '../src/view_factory';
 
 describe('Compiler', ()=>{
   var selector:Selector,
       container,
       binders,
-      decoratorDirectiveAttribute,
-      templateDirectiveAttribute,
-      textInterpolationMarker;
-
-  beforeEach(()=>{
-    mockSelector('name', 'tpl', '$');
-  });
+      attrDirectiveAnnotations;
 
   describe('mark nodes with directives and collect binders', ()=> {
     it('should work for one element', function() {
-      mockSelector('name', 'tpl', '$');
+      createSelector([ new DecoratorDirective({selector: '[name]'}) ]);
 
       // all possible combinations of elements with decorators and elements
       // without decorators
@@ -30,7 +26,7 @@ describe('Compiler', ()=>{
     });
 
     it('should work for two sibling elements', function() {
-      mockSelector('name', 'tpl', '$');
+      createSelector([ new DecoratorDirective({selector: '[name]'}) ]);
 
       // all possible combinations of elements with decorators and elements
       // without decorators
@@ -41,7 +37,7 @@ describe('Compiler', ()=>{
     });
 
     it('should work for nested elements', function() {
-      mockSelector('name', 'tpl', '$');
+      createSelector([ new DecoratorDirective({selector: '[name]'}) ]);
 
       // all possible combinations of elements with decorators and elements
       // without decorators
@@ -57,25 +53,62 @@ describe('Compiler', ()=>{
 
   describe('compile text nodes', ()=>{
     it('should create TextBinders for text nodes', ()=>{
-      mockSelector('name', 'tpl', '$');
+      createSelector();
 
       // different combinations of where interpolated text nodes can be
       compileAndVerifyBinders('', '()');
       compileAndVerifyBinders('a', '()');
-      compileAndVerifyBinders('$a', '($a)');
+      compileAndVerifyBinders('{{a}}', '({{a}})');
       compileAndVerifyBinders('<span>a</span>', '()');
-      compileAndVerifyBinders('$a<span>$b</span>$c', '($a,$c),($b)');
-      compileAndVerifyBinders('<span>$a</span>', '(),($a)');
-      compileAndVerifyBinders('<span><div></div>$a</span>', '(),($a)');
-      compileAndVerifyBinders('<span>$a<div></div>$b</span>', '(),($a,$b)');
-      compileAndVerifyBinders('<span>$a<div>$b</div>$c</span>', '(),($a,$c),($b)');
+      compileAndVerifyBinders('{{a}}<span>{{b}}</span>{{c}}', '({{a}},{{c}}),({{b}})');
+      compileAndVerifyBinders('<span>{{a}}</span>', '(),({{a}})');
+      compileAndVerifyBinders('<span><div></div>{{a}}</span>', '(),({{a}})');
+      compileAndVerifyBinders('<span>{{a}}<div></div>{{b}}</span>', '(),({{a}},{{b}})');
+      compileAndVerifyBinders('<span>{{a}}<div>{{b}}</div>{{c}}</span>', '(),({{a}},{{c}}),({{b}})');
     });
+  });
+
+  describe('compile the template of component directives', () => {
+
+    it('should compile inline templates', ()=>{
+      var template = '{{a}}<span name="1">{{b}}</span>';
+      createSelector([ 
+          new DecoratorDirective({selector: '[name]'}),
+          new ComponentDirective({selector: '[comp]', template: template})
+      ]);
+      compile('<div comp></div>');
+      switchToComponentDirective();
+      expect(container.html()).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
+      verifyBinders('({{a}}),1({{b}})');
+    });
+
+    it('should compile with a given component viewFactory', ()=>{
+      createSelector([
+          new DecoratorDirective({selector: '[name]'})
+      ]);
+      compile('{{a}}<span name="1">{{b}}</span>');
+      var componentViewFactory = new ViewFactory(container[0].childNodes, binders);
+
+      createSelector([
+          new DecoratorDirective({selector: '[name]'}),
+          new ComponentDirective({selector: '[comp]', template: componentViewFactory})
+      ]);
+      compile('<div comp></div>');
+      switchToComponentDirective();
+
+      expect(container.html()).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
+      verifyBinders('({{a}}),1({{b}})');
+    });
+
   });
 
   describe('compile template directives', () => {
 
     it('should work for template directives on a non template element', ()=>{
-      mockSelector('name', 'tpl', '$');
+      createSelector([ 
+        new DecoratorDirective({selector: '[name]'}),
+        new TemplateDirective({selector: '[tpl]'}) 
+      ]);
 
       // template directive is on root node
       compile('<div tpl>a</div>');
@@ -119,7 +152,10 @@ describe('Compiler', ()=>{
     });
 
     it('should work for template directives on a template elements', ()=>{
-      mockSelector('name', 'tpl', '$');
+      createSelector([ 
+        new DecoratorDirective({selector: '[name]'}),
+        new TemplateDirective({selector: '[tpl]'}) 
+      ]);
 
       // template directive is on root node
       compile('<template tpl>a</tempate>');
@@ -163,33 +199,26 @@ describe('Compiler', ()=>{
     });
   });
 
-  function mockSelector(_decoratorDirectiveAttribute, _templateDirectiveAttribute, _textInterpolationMarker) {
-    decoratorDirectiveAttribute = _decoratorDirectiveAttribute;
-    templateDirectiveAttribute = _templateDirectiveAttribute;
-    textInterpolationMarker = _textInterpolationMarker;
+  function createSelector(directives = []) {    
+    attrDirectiveAnnotations = {};
+    directives.forEach(function(annotation) {
+      var attr = extractAttrSelector(annotation);
+      attrDirectiveAnnotations[attr] = annotation;
+    });      
+    selector = new Selector(directives.map((annotation) => {
+      return new DirectiveClass(annotation, function() {});
+    }), null);
 
-    selector = new Selector([], null);
-    spyOn(selector, 'matchElement');
-    selector.matchElement.and.callFake(function(node) {
-      var binder = new ElementBinder();
-      var decorator = node.getAttribute(decoratorDirectiveAttribute);
-      var tpl = node.hasAttribute(templateDirectiveAttribute);
-      if (tpl) {
-        binder.addDirective(new DirectiveClass(new TemplateDirective({selector:'tpl'}), function(){}));
+    function extractAttrSelector(directiveAnnotation) {
+      if (!directiveAnnotation) {
+        return null;
       }
-      if (decorator) {
-        binder.addDirective(new DirectiveClass(new DecoratorDirective({selector:'dec'}), function(){}));
+      var match = /\[(\w+)\]/.exec(directiveAnnotation.selector);
+      if (!match) {
+        throw new Error('mock selector only supports attribute names as selector!');
       }
-      return binder.isEmpty()?null:binder;
-    });
-    spyOn(selector, 'matchText');
-    selector.matchText.and.callFake(function(node) {
-      if (node.nodeValue.indexOf(textInterpolationMarker) !== -1) {          
-        return new TextBinder({
-          directives:[]
-        });
-      }
-    });
+      return match[1];
+    }
   }
 
   function compile(html) {
@@ -197,7 +226,7 @@ describe('Compiler', ()=>{
       container = $('<div></div>');
       container.html(html);
       var nodes = container.contents();
-      binders = compiler._compile(nodes, selector);
+      binders = compiler.compile(nodes, selector).elementBinders;
     });
   }
 
@@ -225,8 +254,14 @@ describe('Compiler', ()=>{
         }
         nonElementBindersAsString.push(nodeValue);
       });
-      var name = element.getAttribute(decoratorDirectiveAttribute) || '';
-      structureAsString.push(name + '(' + nonElementBindersAsString.join(',') + ')');
+      var annotationValues = '';
+      for (var attrName in attrDirectiveAnnotations) {
+        var attrValue = element.getAttribute(attrName);
+        if (attrValue) {
+          annotationValues+=attrValue;
+        }
+      }
+      structureAsString.push(annotationValues + '(' + nonElementBindersAsString.join(',') + ')');
     });
     return structureAsString.join(',');
   }
@@ -260,4 +295,17 @@ describe('Compiler', ()=>{
     binders = viewFactory.elementBinders;  
   }
 
+  function switchToComponentDirective() {
+    var viewFactory;
+    binders.forEach(function(binder) {
+      if (binder.component) {
+        viewFactory = binder.componentViewFactory;
+      }
+    });
+    expect(viewFactory).toBeTruthy();
+    // update the global variables
+    container.html('');
+    container.append(viewFactory.templateNodes);
+    binders = viewFactory.elementBinders;  
+  }
 });

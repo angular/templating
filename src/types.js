@@ -1,4 +1,5 @@
 import {assert} from 'assert';
+import {Injector} from 'di/injector';
 
 export class ArrayLikeOfNodes {
   static assert(obj) {
@@ -31,4 +32,29 @@ export class ArrayOfNameValueString {
   constructor() {
     assert.fail('type is not instantiable');
   }
+}
+
+/**
+ * interface for the class ElementBinderImpl
+ * to break cyclic type dependencies.
+ */
+export class ElementBinder {
+  constructor() {
+    throw new Error('type is not instantiable');
+  }
+}
+
+export class NonElementBinder {
+  constructor() {
+    throw new Error('type is not instantiable');
+  }
+}
+
+export class ArrayOfElementBinder {
+  static assert(obj) {
+    assert(obj).is(assert.arrayOf(ElementBinder));
+  }
+  constructor() {
+    assert.fail('type is not instantiable');
+  }  
 }
