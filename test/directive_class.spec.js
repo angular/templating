@@ -6,7 +6,7 @@ import {DirectiveClassSet} from '../src/directive_class_set';
 describe('DirectiveClass', ()=>{
   it('should be instantiable', ()=>{
     class TestDirective {}
-    new DirectiveClass(new DecoratorDirective(), TestDirective);
+    new DirectiveClass(new DecoratorDirective({selector:'test'}), TestDirective);
   });
 });
 

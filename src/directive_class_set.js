@@ -79,9 +79,9 @@ export class DirectiveClassSet {
       }
 
       if ((match = CONTAINS_REGEXP.exec(selector)) != null) {
-        textSelector.push(new ContainsSelector(annotation, match[1]));
+        textSelector.push(new ContainsSelector(directive, match[1]));
       } else if ((match = ATTR_CONTAINS_REGEXP.exec(selector)) != null) {
-        attrSelector.push(new ContainsSelector(annotation, match[1]));
+        attrSelector.push(new ContainsSelector(directive, match[1]));
       } else if ((selectorParts = splitCss(selector, type)) != null){
         elementSelector.addDirective(selectorParts, directive);
       } else {

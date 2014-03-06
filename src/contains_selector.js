@@ -1,9 +1,9 @@
-import {Directive} from './annotations';
+import {DirectiveClass} from './directive_class';
 import {assert} from 'assert';
 
 export class ContainsSelector {
-  constructor(annotation:Directive, regexp:string){
-    this.annotation = annotation;
+  constructor(directiveClass:DirectiveClass, regexp:string){
+    this.directiveClass = directiveClass;
     this.regexp = new RegExp(regexp);
   }
 }

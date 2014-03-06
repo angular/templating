@@ -64,6 +64,8 @@ export class Selector {
         var selectorRegExp = this.attrSelector[j];
 
         if (selectorRegExp.regexp.test(attrValue)) {
+          builder.addDirectiveClass(selectorRegExp.directiveClass, `${attrName}=${attrValue}`);
+
           // this directive is matched on any attribute name, and so
           // we need to pass the name to the directive by prefixing it to
           // the value. Yes it is a bit of a hack.
@@ -110,7 +112,7 @@ export class Selector {
       var selectorRegExp = this.textSelector[i];
 
       if (selectorRegExp.regexp.test(value)) {
-
+        builder.addDirectiveClass(selectorRegExp.directiveClass, value);
         //FIX
         //directives[selectorRegExp.annotation].forEach((type) => {
         //  directiveRefs.add(new DirectiveRef(node, type,
