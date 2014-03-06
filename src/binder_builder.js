@@ -4,15 +4,18 @@ import {ElementBinder, TextBinder} from './element_binder';
 export class BinderBuilder{
   constructor(){
     this.directives = [];
+    this.onEvents = [];
+    this.bindAttrs = [];
+    this.attrs = [];
   }
 
-  addDirectiveClasses(directiveClasses:ArrayOfDirectiveClass, value:string){
+  addDirectiveClasses(directiveClasses:ArrayOfDirectiveClass, value){
     for(var i = 0, length = directiveClasses.length; i < length; i++){
-      this.addDirective(directiveClasses[i], value);
+      this.addDirectiveClass(directiveClasses[i], value);
     }
   }
 
-  addDirectiveClass(directiveClass:DirectiveClass, value:string){
+  addDirectiveClass(directiveClass:DirectiveClass, value){
     this.directives.push(directiveClass);
   }
 

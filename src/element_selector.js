@@ -14,7 +14,7 @@ function putIfAbsent(obj, name, create){
   return val;
 }
 
-class ElementSelector{
+export class ElementSelector{
   constructor(name:string){
     this.name = name;
     this.elementMap = {};

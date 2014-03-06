@@ -26,12 +26,12 @@ export class Selector {
     this.textSelector = textSelector;
   }
 
-	matchElement(node:HTMLElement):ElementBinder {
+	matchElement(element:HTMLElement):ElementBinder {
     var builder = new BinderBuilder(),
-        nodeName = node.tagName.toLowerCase(),
-        attributeList = node.attributes,
+        nodeName = element.tagName.toLowerCase(),
+        attributeList = element.attributes,
         attrs = {},
-        classList = node.classList,
+        classList = element.classList,
         classes = {}, 
         i, length, j, jlength, partialSelection;
 
@@ -76,7 +76,7 @@ export class Selector {
       }
 
       partialSelection = this.elementSelector.selectAttr(builder,
-          partialSelection, node, attrName, attrValue);
+          partialSelection, element, attrName, attrValue);
     }
 
     while(partialSelection != null) {
@@ -88,12 +88,12 @@ export class Selector {
 
         for(var className in classes){
           partialSelection = elementSelector.selectClass(builder,
-              partialSelection, node, className);
+              partialSelection, element, className);
         }
 
         for(var attrName in attrs){
           partialSelection = elementSelector.selectAttr(builder,
-              partialSelection, node, attrName, attrs[attrName]);
+              partialSelection, element, attrName, attrs[attrName]);
         }
       }
     }

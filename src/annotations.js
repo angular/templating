@@ -1,5 +1,7 @@
 export class Directive {
-
+  constructor({selector}){
+    this.selector = selector;
+  }
 }
 
 export class DecoratorDirective extends Directive {

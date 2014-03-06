@@ -12,33 +12,33 @@ describe('Selector', () => {
   });
 
   it('should match directive on element', () => {
-    expect(selector.match(e('<b></b>')))
+    expect(selector.matchElement(e('<b></b>')))
       .toEqualsDirectiveInfos([
         {"selector": 'b', "value": null}
       ]);
   });
 
   it('should match directive on class', () => {
-    expect(selector.match(e('<div class="a b c"></div>')))
+    expect(selector.matchElement(e('<div class="a b c"></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '.b', "value": null }
       ]);
   });
 
   it('should match directive on [attribute]', () => {
-    expect(selector.match(e('<div directive=abc></div>')))
+    expect(selector.matchElement(e('<div directive=abc></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[directive]', "value": 'abc', "name": 'directive'}
       ]);
 
-    expect(selector.match(e('<div directive></div>')))
+    expect(selector.matchElement(e('<div directive></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[directive]', "value": '', "name": 'directive' 
       }]);
   });
 
   it('should match directive on element[attribute]', () => {
-    expect(selector.match(e('<b directive=abc></b>')))
+    expect(selector.matchElement(e('<b directive=abc></b>')))
       .toEqualsDirectiveInfos([
         { "selector": 'b', "value": null},
         { "selector": '[directive]', "value": 'abc'},
@@ -47,7 +47,7 @@ describe('Selector', () => {
   });
 
   it('should match directive on [attribute=value]', () => {
-    expect(selector.match(e('<div directive=value></div>')))
+    expect(selector.matchElement(e('<div directive=value></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[directive]', "value": 'value'},
         { "selector": '[directive=value]', "value": 'value'}
@@ -55,7 +55,7 @@ describe('Selector', () => {
   });
 
   it('should match directive on element[attribute=value]', () => {
-    expect(selector.match(e('<b directive=value></div>')))
+    expect(selector.matchElement(e('<b directive=value></div>')))
       .toEqualsDirectiveInfos([
         { "selector": 'b', "value": null, "name": null},
         { "selector": '[directive]', "value": 'value'},
@@ -66,28 +66,28 @@ describe('Selector', () => {
   });
 
   it('should match attributes', () => {
-    expect(selector.match(e('<div attr="before-xyz-after"></div>')))
+    expect(selector.matchElement(e('<div attr="before-xyz-after"></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[*=/xyz/]', "value": 'attr=before-xyz-after',"name": 'attr'}
       ]);
   });
 
   it('should match attribute names', () => {
-    expect(selector.match(e('<div wildcard-match=ignored></div>')))
+    expect(selector.matchElement(e('<div wildcard-match=ignored></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[wildcard-*]', "value": 'ignored', "name": 'wildcard-match'}
       ]);
   });
 
   it('should match text', () => {
-    expect(selector.match(e('before-abc-after')))
+    expect(selector.matchElement(e('before-abc-after')))
       .toEqualsDirectiveInfos([
         { "selector": ':contains(/abc/)', "value": 'before-abc-after',"name": '#text'}
       ]);
   });
 
   it('should sort by priority', () => {
-    expect(selector.match(e(
+    expect(selector.matchElement(e(
       '<component attribute ignore-children structural></component>')))
       .toEqualsDirectiveInfos([
         { "selector": "[structural]", "value": ""},
@@ -98,7 +98,7 @@ describe('Selector', () => {
   });
 
   it('should match on multiple directives', () => {
-    expect(selector.match(e('<div directive="d" foo="f"></div>')))
+    expect(selector.matchElement(e('<div directive="d" foo="f"></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[directive]', "value": 'd'},
         { "selector": '[directive=d][foo=f]', "value": 'f'}
@@ -107,7 +107,7 @@ describe('Selector', () => {
 
   it('should match ng-model + required on the same element', () => {
     expect(
-      selector.match(e('<input type="text" ng-model="val" probe="i" required="true" />')))
+      selector.matchElement(e('<input type="text" ng-model="val" probe="i" required="true" />')))
         .toEqualsDirectiveInfos([
           { "selector": '[ng-model]',                 "value": 'val'},
           { "selector": '[probe]',                    "value": 'i'},
@@ -118,7 +118,7 @@ describe('Selector', () => {
 
   it('should match two directives', () => {
     expect(
-      selector.match(e('<input type="text" my-model="val" required my-required />')))
+      selector.matchElement(e('<input type="text" my-model="val" required my-required />')))
         .toEqualsDirectiveInfos([
           { "selector": '[my-model][required]',    "value": ''},
           { "selector": '[my-model][my-required]', "value": ''}
@@ -126,7 +126,7 @@ describe('Selector', () => {
   });
 
   it('should match an two directives with the same selector', () => {
-    expect(selector.match(e('<div two-directives></div>')))
+    expect(selector.matchElement(e('<div two-directives></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[two-directives]', "value": ''},
         { "selector": '[two-directives]', "value": ''}
@@ -143,8 +143,7 @@ function addCustomMatcher(){
 
           if (pass) {
             for (var i = 0, ii = expected.length; i < ii; i++) {
-              var binder = actual.decorators[i];
-              var directiveClass = binder.directiveClass;
+              var directiveClass = actual.decorators[i];
               var expectedMap = expected[i];
 
               pass = pass &&
@@ -182,7 +181,7 @@ function createSelector(){
     createDirectiveClass(_TwoOfTwoDirectives)
   ];
 
-  var directiveClassSet = DirectiveClassSet(null, directives);
+  var directiveClassSet = new DirectiveClassSet(null, directives);
 
   return directiveClassSet.selector();
 }

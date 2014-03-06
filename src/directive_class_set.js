@@ -75,7 +75,7 @@ export class DirectiveClassSet {
       var match;
 
       if (!selector) {
-        throw new ArgumentError(`Missing selector annotation for ${type}`);
+        throw new Error(`Missing selector annotation for ${type}`);
       }
 
       if ((match = CONTAINS_REGEXP.exec(selector)) != null) {
@@ -85,7 +85,7 @@ export class DirectiveClassSet {
       } else if ((selectorParts = splitCss(selector, type)) != null){
         elementSelector.addDirective(selectorParts, directive);
       } else {
-        throw new ArgumentError(`Unsupported Selector: ${selector}`);
+        throw new Error(`Unsupported Selector: ${selector}`);
       }
     }
 
