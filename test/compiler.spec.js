@@ -1,6 +1,6 @@
 import {use, inject} from 'di/testing';
 import {Compiler} from '../src/compiler';
-import {Selector} from '../src/selector';
+import {Selector} from '../src/selector/selector';
 import {ElementBinder} from '../src/element_binder';
 import {TextBinder} from '../src/element_binder';
 import {DirectiveClass} from '../src/directive_class';
@@ -168,36 +168,26 @@ describe('Compiler', ()=>{
     templateDirectiveAttribute = _templateDirectiveAttribute;
     textInterpolationMarker = _textInterpolationMarker;
 
-    selector = new Selector();
+    selector = new Selector([], null);
     spyOn(selector, 'matchElement');
     selector.matchElement.and.callFake(function(node) {
+      var binder = new ElementBinder();
       var decorator = node.getAttribute(decoratorDirectiveAttribute);
       var tpl = node.hasAttribute(templateDirectiveAttribute);
-      var directives = [];
       if (tpl) {
-        directives.push(new DirectiveClass(new TemplateDirective(), function(){}));
+        binder.addDirective(new DirectiveClass(new TemplateDirective({selector:'tpl'}), function(){}));
       }
       if (decorator) {
-        directives.push(new DirectiveClass(new DecoratorDirective(), function(){}));
+        binder.addDirective(new DirectiveClass(new DecoratorDirective({selector:'dec'}), function(){}));
       }
-      if (directives.length) {
-        return new ElementBinder({
-          directives: directives,
-          onEvents:[],
-          // List of bind-* attributes found
-          // Attributes containing {{}} get translated as
-          // src="{{img}}.png" => bind-src="'' + img + '.png'"
-          bindAttrs:[],
-          // List of all attributes
-          attrs:[]          
-        });
-      }
-      return null;
+      return binder.isEmpty()?null:binder;
     });
     spyOn(selector, 'matchText');
     selector.matchText.and.callFake(function(node) {
       if (node.nodeValue.indexOf(textInterpolationMarker) !== -1) {          
-        return new TextBinder();
+        return new TextBinder({
+          directives:[]
+        });
       }
     });
   }
@@ -222,21 +212,19 @@ describe('Compiler', ()=>{
       var element = binderIndex > 0 ? elements[binderIndex-1]: container[0];
               
       var nonElementBindersAsString = [];
-      if (elementBinder.nonElementBinders) {
-        elementBinder.nonElementBinders.forEach(function(textBinder, textIndex) {
-          // Note: It's important to select the text/comment node
-          // only by the index in the binders array and the indexInParent 
-          // of NonElementBinders, as this is what the ViewFactory
-          // also does.
-          textBinder = elementBinder.nonElementBinders[textIndex];
-          var node = element.childNodes[textBinder.indexInParent];
-          var nodeValue = node.nodeValue;
-          if (node.nodeType === Node.COMMENT_NODE) {
-            nodeValue = '<!--'+nodeValue+'-->';
-          }
-          nonElementBindersAsString.push(nodeValue);
-        });
-      }
+      elementBinder.nonElementBinders.forEach(function(textBinder, textIndex) {
+        // Note: It's important to select the text/comment node
+        // only by the index in the binders array and the indexInParent 
+        // of NonElementBinders, as this is what the ViewFactory
+        // also does.
+        textBinder = elementBinder.nonElementBinders[textIndex];
+        var node = element.childNodes[textBinder.indexInParent];
+        var nodeValue = node.nodeValue;
+        if (node.nodeType === Node.COMMENT_NODE) {
+          nodeValue = '<!--'+nodeValue+'-->';
+        }
+        nonElementBindersAsString.push(nodeValue);
+      });
       var name = element.getAttribute(decoratorDirectiveAttribute) || '';
       structureAsString.push(name + '(' + nonElementBindersAsString.join(',') + ')');
     });

@@ -5,7 +5,7 @@ import {NonElementBinder} from './element_binder';
 import {DirectiveClassSet} from './directive_class';
 import {DirectiveClass} from './directive_class';
 import {ViewFactory} from './view_factory';
-import {Selector} from './selector';
+import {Selector} from './selector/selector';
 import {TemplateDirective} from './annotations';
 
 /*
@@ -42,7 +42,7 @@ export class Compiler {
       nodeType = node.nodeType;
       if (nodeType == Node.ELEMENT_NODE) {
         var binder = selector.matchElement(node);
-        if (binder) {
+        if (binder) {          
           var templateDirective = binder.template;
           if (templateDirective) {
             var viewPortBinder = new ViewPortBinder(compileTemplateDirective(templateDirective, binder));

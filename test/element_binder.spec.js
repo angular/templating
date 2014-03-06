@@ -4,8 +4,6 @@ import {DecoratorDirective} from '../src/annotations';
 
 describe('ElementBinder', ()=>{
   it('should be instantiable', ()=>{
-    function Test() {}
-    var dc = new DirectiveClass(new DecoratorDirective(), Test);
     new ElementBinder({
       directives: [], 
       onEvents: [],

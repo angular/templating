@@ -17,7 +17,14 @@ export class TextBinder extends NonElementBinder {
   constructor() {
     // will be set by the compiler
     this.indexInParent = null;
-  }  
+    this.parts = [];
+  }
+  addPart(value:string, expression:boolean) {
+    this.parts.push({val: value, expr: expression});
+  }
+  isEmpty() {
+    return this.parts.length === 0;
+  }
   bind() {
     // TODO
   }
@@ -35,62 +42,49 @@ export class TextBinder extends NonElementBinder {
  * 
  * Lifetime: immutable for the duration of application.
  */
-class ElementBinderConstructorArgs {
-  static assert(obj) {
-    assert(obj).is(assert.structure({
-      // List of found directives on the element
-      directives:ArrayOfDirectiveClass,
-      // List of on-* attributes found
-      onEvents:ArrayOfString,
-      // List of bind-* attributes found
-      // Attributes containing {{}} get translated as
-      // src="{{img}}.png" => bind-src="'' + img + '.png'"
-      bindAttrs:ArrayOfNameValueString,
-      // List of all attributes
-      attrs:ArrayOfNameValueString      
-    }));
-  }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }
-}
-
 export class ElementBinder {
-  constructor(data:ElementBinderConstructorArgs) {
-    var self = this;
+  constructor() {
     this.decorators = [];
-    if (data) {
-      if (data.directives) {      
-        data.directives.forEach(function(directive) {
-          if (directive.annotation instanceof TemplateDirective) {
-            self.template = directive;
-          } else if (directive.annotation instanceof ComponentDirective) {
-            self.component = directive;
-          } else if (directive.annotation instanceof DecoratorDirective) {
-            self.decorators.push(directive);
-          }
-        });
-      }      
-      this.onEvents = data.onEvents;
-      this.bindAttrs = data.bindAttrs;
-      this.attrs = data.attrs;
-    }
+    this.component = null;
+    this.template = null;
+    this.onEventAttrs = [];
+    this.bindAttrs = [];
+    this.attrs = [];
     // will be set by the compiler
-    this.nonElementBinders = null;
+    this.nonElementBinders = [];
+  }
+
+  addBindAttr(name:string, value:string) {
+    this.bindAttrs.push({name:name, value: value});
+  }
+  addOnEventAttr(name:string, value:string) {
+    this.onEventAttrs.push({name:name, value: value});
+  }
+  addAttr(name:string, value:string) {
+    this.attrs.push({name:name, value: value});
+  }
+  addDirectives(directiveClasses:ArrayOfDirectiveClass){    
+    for(var i = 0, length = directiveClasses.length; i < length; i++){
+      this.addDirective(directiveClasses[i]);
+    }
+  }
+  addDirective(directive:DirectiveClass) {
+    if (directive.annotation instanceof TemplateDirective) {
+      this.template = directive;
+    } else if (directive.annotation instanceof ComponentDirective) {
+      this.component = directive;
+    } else if (directive.annotation instanceof DecoratorDirective) {
+      this.decorators.push(directive);
+    }    
   }
   addNonElementBinder(binder:NonElementBinder) {
-    if (!this.nonElementBinders) {
-      this.nonElementBinders = [];
-    }
     this.nonElementBinders.push(binder);
   }
   isEmpty() {
-    return colEmpty(this.onEvents) && colEmpty(this.bindAttrs) && colEmpty(this.nonElementBinders)
-      && !this.template && !this.component && colEmpty(this.decorators);
-
-    function colEmpty(col) {
-      return !col || col.length === 0;
-    }  
+    // Note: don't check this.attrs, as they don't define
+    // whether there is a binding for the element nor not!
+    return !this.onEventAttrs.length && !this.bindAttrs.length && !this.nonElementBinders.length
+      && !this.template && !this.component && !this.decorators.length;
   }
   bind() {
     // TODO
