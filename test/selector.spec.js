@@ -1,5 +1,5 @@
 import {Selector} from '../src/selector';
-import {Directive} from '../src/annotations';
+import {Directive, DecoratorDirective} from '../src/annotations';
 import {DirectiveClass} from '../src/directive_class';
 import {DirectiveClassSet} from '../src/directive_class_set';
 
@@ -83,17 +83,6 @@ describe('Selector', () => {
     expect(selector.matchElement(e('before-abc-after')))
       .toEqualsDirectiveInfos([
         { "selector": ':contains(/abc/)', "value": 'before-abc-after',"name": '#text'}
-      ]);
-  });
-
-  it('should sort by priority', () => {
-    expect(selector.matchElement(e(
-      '<component attribute ignore-children structural></component>')))
-      .toEqualsDirectiveInfos([
-        { "selector": "[structural]", "value": ""},
-        { "selector": "[attribute]", "value": "" },
-        { "selector": "[ignore-children]", "value": "" },
-        { "selector": "component", "value": null}
       ]);
   });
 
@@ -213,29 +202,29 @@ function e(html) {
   return nodes[0];
 }
 
-@Directive({selector:'b'})                        class _BElement{}
-@Directive({selector:'.b'})                       class _BClass{}
-@Directive({selector:'[directive]'})              class _DirectiveAttr{}
-@Directive({selector:'[wildcard-*]'})             class _WildcardDirectiveAttr{}
-@Directive({selector:'[directive=d][foo=f]'})     class _DirectiveFooAttr{}
-@Directive({selector:'b[directive]'})             class _BElementDirectiveAttr{}
-@Directive({selector:'[directive=value]'})        class _DirectiveValueAttr{}
-@Directive({selector:'b[directive=value]'})       class _BElementDirectiveValue{}
-@Directive({selector:':contains(/abc/)'})         class _ContainsAbc{}
-@Directive({selector:'[*=/xyz/]'})                class _AttributeContainsXyz{}
-@Directive({selector:'component'})                class _Component{}
-@Directive({selector:'[attribute]'})              class _Attribute{}
-@Directive({selector:'[structural]',
+@DecoratorDirective({selector:'b'})                        class _BElement{}
+@DecoratorDirective({selector:'.b'})                       class _BClass{}
+@DecoratorDirective({selector:'[directive]'})              class _DirectiveAttr{}
+@DecoratorDirective({selector:'[wildcard-*]'})             class _WildcardDirectiveAttr{}
+@DecoratorDirective({selector:'[directive=d][foo=f]'})     class _DirectiveFooAttr{}
+@DecoratorDirective({selector:'b[directive]'})             class _BElementDirectiveAttr{}
+@DecoratorDirective({selector:'[directive=value]'})        class _DirectiveValueAttr{}
+@DecoratorDirective({selector:'b[directive=value]'})       class _BElementDirectiveValue{}
+@DecoratorDirective({selector:':contains(/abc/)'})         class _ContainsAbc{}
+@DecoratorDirective({selector:'[*=/xyz/]'})                class _AttributeContainsXyz{}
+@DecoratorDirective({selector:'component'})                class _Component{}
+@DecoratorDirective({selector:'[attribute]'})              class _Attribute{}
+@DecoratorDirective({selector:'[structural]',
              //children: NgAnnotation.TRANSCLUDE_CHILDREN
            })
                                                   class _Structural{}
 
-@Directive({selector:'[ignore-children]',
+@DecoratorDirective({selector:'[ignore-children]',
              //children: NgAnnotation.IGNORE_CHILDREN
            })
                                                   class _IgnoreChildren{}
 
-@Directive({selector: '[my-model][required]'})
-@Directive({selector: '[my-model][my-required]'}) class _TwoDirectives {}
-@Directive({selector: '[two-directives]'})        class _OneOfTwoDirectives {}
-@Directive({selector: '[two-directives]'})        class _TwoOfTwoDirectives {}
+@DecoratorDirective({selector: '[my-model][required]'})
+@DecoratorDirective({selector: '[my-model][my-required]'}) class _TwoDirectives {}
+@DecoratorDirective({selector: '[two-directives]'})        class _OneOfTwoDirectives {}
+@DecoratorDirective({selector: '[two-directives]'})        class _TwoOfTwoDirectives {}

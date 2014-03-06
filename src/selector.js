@@ -63,7 +63,7 @@ export class Selector {
       for (j = 0, jlength = this.attrSelector.length; j < jlength; j++) {
         var selectorRegExp = this.attrSelector[j];
 
-        if (selectorRegExp.regexp.test(value)) {
+        if (selectorRegExp.regexp.test(attrValue)) {
           // this directive is matched on any attribute name, and so
           // we need to pass the name to the directive by prefixing it to
           // the value. Yes it is a bit of a hack.
