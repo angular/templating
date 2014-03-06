@@ -13,28 +13,45 @@ export class NonElementBinder {
   }
 }
 
-export class TextBinder extends NonElementBinder {
+class TextBinderConstructorArgs {
+  static assert(obj) {
+    assert(obj).is(assert.structure({
+      // List of found directives in the text
+      directives:ArrayOfDirectiveClass    
+    }));
+  }
   constructor() {
+    assert.fail('type is not instantiable');
+  }
+}
+
+export class TextBinder extends NonElementBinder {
+  constructor(data:TextBinderConstructorArgs) {
     // will be set by the compiler
     this.indexInParent = null;
+
+    var self = this;
+    this.decorators = [];
+
+    if (data) {
+      if (data.directives) {      
+        data.directives.forEach(function(directive) {
+          if (directive.annotation instanceof TemplateDirective) {
+            self.template = directive;
+          } else if (directive.annotation instanceof ComponentDirective) {
+            self.component = directive;
+          } else if (directive.annotation instanceof DecoratorDirective) {
+            self.decorators.push(directive);
+          }
+        });
+      }      
+    }
   }  
   bind() {
     // TODO
   }
 }
 
-/**
- * This class contains the list of directives, 
- * on-*, bind-* and {{}}. Given a DOM element and an injector 
- * it will create a module populated with directives, and createChild 
- * injector form it. It is also responsible for creating bindings from element to directives.
- * 1. create a module and install directives into it.
- * 2. create child injector and iterate over directive types to force instantiation of those directives
- * 3. notify EventService of onEvents for this element.
- * 4. return child injector
- * 
- * Lifetime: immutable for the duration of application.
- */
 class ElementBinderConstructorArgs {
   static assert(obj) {
     assert(obj).is(assert.structure({
@@ -55,6 +72,18 @@ class ElementBinderConstructorArgs {
   }
 }
 
+/**
+ * This class contains the list of directives, 
+ * on-*, bind-* and {{}}. Given a DOM element and an injector 
+ * it will create a module populated with directives, and createChild 
+ * injector form it. It is also responsible for creating bindings from element to directives.
+ * 1. create a module and install directives into it.
+ * 2. create child injector and iterate over directive types to force instantiation of those directives
+ * 3. notify EventService of onEvents for this element.
+ * 4. return child injector
+ * 
+ * Lifetime: immutable for the duration of application.
+ */
 export class ElementBinder {
   constructor(data:ElementBinderConstructorArgs) {
     var self = this;

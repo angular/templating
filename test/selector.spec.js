@@ -80,7 +80,7 @@ describe('Selector', () => {
   });
 
   it('should match text', () => {
-    expect(selector.matchElement(e('before-abc-after')))
+    expect(selector.matchText(e('before-abc-after')))
       .toEqualsDirectiveInfos([
         { "selector": ':contains(/abc/)', "value": 'before-abc-after',"name": '#text'}
       ]);
