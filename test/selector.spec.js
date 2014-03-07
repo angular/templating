@@ -72,7 +72,7 @@ describe('Selector', () => {
       ]);
   });
 
-  it('should match attribute names', () => {
+  it('should match whildcard attributes', () => {
     expect(selector.matchElement(e('<div wildcard-match=ignored></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[wildcard-*]', "value": 'ignored', "name": 'wildcard-match'}
@@ -114,7 +114,7 @@ describe('Selector', () => {
         ]);
   });
 
-  it('should match an two directives with the same selector', () => {
+  it('should match on two directives with the same selector', () => {
     expect(selector.matchElement(e('<div two-directives></div>')))
       .toEqualsDirectiveInfos([
         { "selector": '[two-directives]', "value": ''},
