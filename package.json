@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "di": "~2.0.0-pre-2",
-    "assert": "git://github.com/angular/assert#dist",
     "weakmap": "~0.0.6"
   },
   "devDependencies": {
