@@ -1,44 +1,10 @@
 import {Directive} from './annotations';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {Selector} from './selector';
-import {SelectorPart, ArrayOfSelectorPart} from './selector_part';
 import {ElementSelector} from './element_selector';
 import {ContainsSelector} from './contains_selector';
+import {CONTAINS_REGEXP, ATTR_CONTAINS_REGEXP, splitCss} from './selector_patterns';
 import {assert} from 'assert';
-
-var SELECTOR_REGEXP = /^(?:([\w\-]+)|(?:\.([\w\-]+))|(?:\[([\w\-\*]+)(?:=([^\]]*))?\]))/;
-var COMMENT_COMPONENT_REGEXP = /^\[([\w\-]+)(?:\=(.*))?\]$/;
-var CONTAINS_REGEXP = /^:contains\(\/(.+)\/\)$/;
-var ATTR_CONTAINS_REGEXP = /^\[\*=\/(.+)\/\]$/;
-
-function splitCss(selector:string, type:Function):ArrayOfSelectorPart {
-  var parts = [];
-  var remainder = selector;
-  var match;
-
-  while (remainder !== '') {
-    if ((match = SELECTOR_REGEXP.exec(remainder)) != null) {
-      if (match[1] != null) {
-        parts.push(SelectorPart.fromElement(match[1].toLowerCase()));
-      } else if (match[2] != null) {
-        parts.push(SelectorPart.fromClass(match[2].toLowerCase()));
-      } else if (match[3] != null) {
-        var attrValue = match[4] == null ? '' : match[4].toLowerCase();
-        parts.push(SelectorPart.fromAttribute(match[3].toLowerCase(), attrValue));
-      } else {
-        throw `Missmatched RegExp ${SELECTOR_REGEXP} on ${remainder}`;
-      }
-    } else {
-      throw new Error(`Unknown selector format '${selector}' for ${type}.`);
-    }
-
-    var end = match.index + match[0].length;
-    remainder = remainder.substring(end);
-  }
-
-  return parts;
-}
-
 
 /**
  * DirectiveClassSet represents the current set of registered directive types in the application. 

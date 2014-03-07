@@ -1,8 +1,7 @@
 import {Directive} from './annotations';
 import {ArrayOfSelectorPart} from './selector_part';
 import {BinderBuilder} from './binder_builder';
-
-var wildcard = new RegExp('\\*', 'g');
+import {matchingKey} from './selector_patterns';
 
 function putIfAbsent(obj, name, create){
   var val = obj[name];
@@ -98,11 +97,11 @@ export class ElementSelector{
   }
 
   selectAttr(builder:BinderBuilder, partialSelection, node:Node, attrName:string, attrValue:string) {
-    var matchingKey = this._matchingKey(this.attrValueMap, attrName);
+    var key = matchingKey(this.attrValueMap, attrName);
     var partial, lookup;
 
-    if (matchingKey) {
-      var valuesMap = this.attrValueMap[matchingKey];
+    if (key) {
+      var valuesMap = this.attrValueMap[key];
 
       if (lookup = valuesMap['']) {
         builder.addDirectiveClasses(lookup, attrValue);
@@ -134,17 +133,6 @@ export class ElementSelector{
     }
 
     return partialSelection;
-  }
-
-  _matchingKey(obj, attrName:string){
-    for(var key in obj){
-      var pattern = key.replace(wildcard, '[\w\-]+');
-      var exp = new RegExp(`^${pattern}\$`);
-
-      if(exp.test(attrName)){
-        return key;
-      }
-    }
   }
 
   toString() {
