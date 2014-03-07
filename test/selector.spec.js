@@ -150,32 +150,36 @@ function addCustomMatcher(){
 }
 
 function createSelector(){
-  var directives = [
-    createDirectiveClass(_BElement),
-    createDirectiveClass(_BClass),
-    createDirectiveClass(_DirectiveAttr),
-    createDirectiveClass(_WildcardDirectiveAttr),
-    createDirectiveClass(_DirectiveFooAttr),
-    createDirectiveClass(_BElementDirectiveAttr),
-    createDirectiveClass(_DirectiveValueAttr),
-    createDirectiveClass(_BElementDirectiveValue),
-    createDirectiveClass(_ContainsAbc),
-    createDirectiveClass(_AttributeContainsXyz),
-    createDirectiveClass(_Component),
-    createDirectiveClass(_Attribute),
-    createDirectiveClass(_Structural),
-    createDirectiveClass(_IgnoreChildren),
-    createDirectiveClass(_TwoDirectives),
-    createDirectiveClass(_OneOfTwoDirectives),
-    createDirectiveClass(_TwoOfTwoDirectives)
-  ];
+  var directives = [];
+
+  addDirectiveClasses(_BElement, directives);
+  addDirectiveClasses(_BClass, directives);
+  addDirectiveClasses(_DirectiveAttr, directives);
+  addDirectiveClasses(_WildcardDirectiveAttr, directives);
+  addDirectiveClasses(_DirectiveFooAttr, directives);
+  addDirectiveClasses(_BElementDirectiveAttr, directives);
+  addDirectiveClasses(_DirectiveValueAttr, directives);
+  addDirectiveClasses(_BElementDirectiveValue, directives);
+  addDirectiveClasses(_ContainsAbc, directives);
+  addDirectiveClasses(_AttributeContainsXyz, directives);
+  addDirectiveClasses(_Component, directives);
+  addDirectiveClasses(_Attribute, directives);
+  addDirectiveClasses(_Structural, directives);
+  addDirectiveClasses(_IgnoreChildren, directives);
+  addDirectiveClasses(_TwoDirectives, directives);
+  addDirectiveClasses(_OneOfTwoDirectives, directives);
+  addDirectiveClasses(_TwoOfTwoDirectives, directives);
+  addDirectiveClasses(_NgModel, directives);
+  addDirectiveClasses(_Probe, directives);
+  addDirectiveClasses(_NgModelRequired, directives);
+  addDirectiveClasses(_TextInputNgModel, directives);
 
   var directiveClassSet = new DirectiveClassSet(null, directives);
 
   return directiveClassSet.selector();
 }
 
-function createDirectiveClass(directive){
+function addDirectiveClasses(directive, directives){
   if (!directive.annotations || !directive.annotations.length) {
     throw new Error(`Missing directive annotation for ${directive}`);
   }
@@ -184,11 +188,9 @@ function createDirectiveClass(directive){
 
   for (var annotation of annotations) {
     if (annotation instanceof Directive) {
-      return new DirectiveClass(annotation, directive);
+      directives.push(new DirectiveClass(annotation, directive));
     }
   }
-
-  return null;
 }
 
 function es(html) {
@@ -225,6 +227,11 @@ function e(html) {
                                                   class _IgnoreChildren{}
 
 @DecoratorDirective({selector: '[my-model][required]'})
-@DecoratorDirective({selector: '[my-model][my-required]'}) class _TwoDirectives {}
-@DecoratorDirective({selector: '[two-directives]'})        class _OneOfTwoDirectives {}
-@DecoratorDirective({selector: '[two-directives]'})        class _TwoOfTwoDirectives {}
+@DecoratorDirective({selector: '[my-model][my-required]'})    class _TwoDirectives {}
+@DecoratorDirective({selector: '[two-directives]'})           class _OneOfTwoDirectives {}
+@DecoratorDirective({selector: '[two-directives]'})           class _TwoOfTwoDirectives {}
+
+@DecoratorDirective({selector: '[ng-model]'})                 class _NgModel{}
+@DecoratorDirective({selector: '[probe]'})                    class _Probe{}
+@DecoratorDirective({selector: '[ng-model][required]'})       class _NgModelRequired{}
+@DecoratorDirective({selector: 'input[type=text][ng-model]'}) class _TextInputNgModel{}

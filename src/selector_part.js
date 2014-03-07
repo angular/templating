@@ -6,7 +6,7 @@ export class SelectorPart {
       ? (this.className == null
          ? (this.attrValue == '' ? `[${this.attrName}]` : `[${this.attrName}=${this.attrValue}]`)
          : `.${this.className}`)
-      : element;
+      : this.element;
   }
 }
 
