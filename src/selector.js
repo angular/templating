@@ -26,7 +26,7 @@ export class Selector {
     this.textSelector = textSelector;
   }
 
-	matchElement(element:HTMLElement):ElementBinder {
+  matchElement(element:HTMLElement):ElementBinder {
     var builder = new BinderBuilder(),
         nodeName = element.tagName.toLowerCase(),
         attributeList = element.attributes,
