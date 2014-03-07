@@ -6,6 +6,7 @@ import {TextBinder} from '../src/element_binder';
 import {DirectiveClass} from '../src/directive_class';
 import {TemplateDirective} from '../src/annotations';
 import {DecoratorDirective} from '../src/annotations';
+import {ElementSelector} from '../src/element_selector';
 
 describe('Compiler', ()=>{
   var selector:Selector,
@@ -168,17 +169,17 @@ describe('Compiler', ()=>{
     templateDirectiveAttribute = _templateDirectiveAttribute;
     textInterpolationMarker = _textInterpolationMarker;
 
-    selector = new Selector();
+    selector = new Selector([], new ElementSelector(''), [], []);
     spyOn(selector, 'matchElement');
     selector.matchElement.and.callFake(function(node) {
       var decorator = node.getAttribute(decoratorDirectiveAttribute);
       var tpl = node.hasAttribute(templateDirectiveAttribute);
       var directives = [];
       if (tpl) {
-        directives.push(new DirectiveClass(new TemplateDirective(), function(){}));
+        directives.push(new DirectiveClass(new TemplateDirective({selector:'tpl'}), function(){}));
       }
       if (decorator) {
-        directives.push(new DirectiveClass(new DecoratorDirective(), function(){}));
+        directives.push(new DirectiveClass(new DecoratorDirective({selector:'dec'}), function(){}));
       }
       if (directives.length) {
         return new ElementBinder({
@@ -197,7 +198,9 @@ describe('Compiler', ()=>{
     spyOn(selector, 'matchText');
     selector.matchText.and.callFake(function(node) {
       if (node.nodeValue.indexOf(textInterpolationMarker) !== -1) {          
-        return new TextBinder();
+        return new TextBinder({
+          directives:[]
+        });
       }
     });
   }
