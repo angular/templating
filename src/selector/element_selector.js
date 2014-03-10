@@ -1,7 +1,7 @@
-import {DirectiveClass} from '../directive_class';
-import {ArrayOfSelectorPart} from './selector_part';
-import {ElementBinder} from '../types';
+import {TemplateDirective, ComponentDirective, DecoratorDirective} from '../annotations';
+import {DirectiveClass, ArrayOfDirectiveClass} from '../directive_class';
 import {SelectorPart, ArrayOfSelectorPart} from './selector_part';
+import {NodeAttrs} from '../types';
 
 var SELECTOR_REGEXP = /^(?:([\w\-]+)|(?:\.([\w\-]+))|(?:\[([\w\-\*]+)(?:=([^\]]*))?\]))/;
 var wildcard = new RegExp('\\*', 'g');
@@ -55,7 +55,30 @@ function splitCss(selector:string):ArrayOfSelectorPart {
   return parts;
 }
 
-export class ElementSelector{
+export class SelectedElementBindings {
+  constructor() {
+    this.decorators = [];
+    this.component = null;
+    this.template = null;
+    this.attrs = new NodeAttrs();
+  }
+  addDirectives(directiveClasses:ArrayOfDirectiveClass){    
+    for(var i = 0, length = directiveClasses.length; i < length; i++){
+      this.addDirective(directiveClasses[i]);
+    }
+  }
+  addDirective(directive:DirectiveClass) {
+    if (directive.annotation instanceof TemplateDirective) {
+      this.template = directive;
+    } else if (directive.annotation instanceof ComponentDirective) {
+      this.component = directive;
+    } else if (directive.annotation instanceof DecoratorDirective) {
+      this.decorators.push(directive);
+    }    
+  }
+}
+
+export class ElementSelector {
   constructor(name:string){
     this.name = name;
     this.elementMap = {};
@@ -111,7 +134,7 @@ export class ElementSelector{
     }
   }
 
-  selectNode(builder:ElementBinder, partialSelection, nodeName:string) {
+  selectNode(builder:SelectedElementBindings, partialSelection, nodeName:string) {
     var partial;
 
     if (this.elementMap[nodeName]) {
@@ -129,7 +152,7 @@ export class ElementSelector{
     return partialSelection;
   }
 
-  selectClass(builder:ElementBinder, partialSelection, className:string) {
+  selectClass(builder:SelectedElementBindings, partialSelection, className:string) {
     var partial;
 
     if (this.classMap[className]) {
@@ -147,7 +170,7 @@ export class ElementSelector{
     return partialSelection;
   }
 
-  selectAttr(builder:ElementBinder, partialSelection, attrName:string, attrValue:string) {
+  selectAttr(builder:SelectedElementBindings, partialSelection, attrName:string, attrValue:string) {
     var key = matchingKey(this.attrValueMap, attrName);
     var partial, lookup;
 

@@ -12,10 +12,6 @@ describe('Selector', () => {
   });
 
   describe('matchElement', () => {
-    it('should return null if no directives match', () => {
-      expect(selector.matchElement(e('<a></a>'))).toBe(null);
-    });
-
     it('should match directive on element', () => {
       expect(selector.matchElement(e('<b></b>')))
         .toEqualsDirectiveInfos([
@@ -115,30 +111,26 @@ describe('Selector', () => {
 
     describe('match bindings', function() {
       it('should convert attr interpolation into bind-...', () => {
-        expect(selector.matchElement(e('<div test="{{a}}"></div>')).bindAttrs)
-          .toEqual([{name: 'test', value: "''+a+''"}]);
+        expect(selector.matchElement(e('<div test="{{a}}"></div>')).attrs.bind)
+          .toEqual({'test': "''+a+''"});
 
-        expect(selector.matchElement(e('<div test="a{{b}}{{c}}d"></div>')).bindAttrs)
-          .toEqual([{name: 'test', value: "'a'+b+''+c+'d'"}]);
+        expect(selector.matchElement(e('<div test="a{{b}}{{c}}d"></div>')).attrs.bind)
+          .toEqual({'test': "'a'+b+''+c+'d'"});
       });
 
       it('should save bind-... attributes', () => {
-        expect(selector.matchElement(e('<div bind-test="a"></div>')).bindAttrs)
-          .toEqual([{name: 'test', value: 'a'}]);
+        expect(selector.matchElement(e('<div bind-test="a"></div>')).attrs.bind)
+          .toEqual({'test':'a'});
       });
 
       it('should save on-... attributes', () => {
-        expect(selector.matchElement(e('<div on-test="a"></div>')).onEventAttrs)
-          .toEqual([{name: 'test', value: 'a'}]);
-      });
-
-      it('should count elements with only normal attributes as without binding', () => {
-        expect(selector.matchElement(e('<div test="a"></div>'))).toBe(null);
+        expect(selector.matchElement(e('<div on-test="a"></div>')).attrs.event)
+          .toEqual({'test': 'a'});
       });
 
       it('should save normal attributes if there are other bindings', () => {
-        expect(selector.matchElement(e('<b test="a"></b>')).attrs)
-          .toEqual([{name: 'test', value: 'a'}]);
+        expect(selector.matchElement(e('<b test="a"></b>')).attrs.init)
+          .toEqual({'test': 'a'});
       });
 
     });
@@ -149,14 +141,9 @@ describe('Selector', () => {
     it('should not match text without interpolation', () => {
       expect(selector.matchText(e('a b c'))).toBeFalsy();
     });
-    it('should match interpolations', () => {
-      selector.matchText(e('before-abc-after'));
-      var binder = selector.matchText(e('a{{b}}{{c}}'));
-      expect(binder.parts).toEqual([
-        {val: 'a', expr: false},
-        {val: 'b', expr: true},
-        {val: 'c', expr: true}
-      ]);
+    it('should convert interpolation into expression strings', () => {
+      expect(selector.matchText(e('{{a}}'))).toBe("''+a+''");
+      expect(selector.matchText(e('a{{b}}{{c}}d'))).toBe("'a'+b+''+c+'d'");
     });
   });
 

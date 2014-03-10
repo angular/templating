@@ -1,20 +1,27 @@
 import {DirectiveClass} from '../src/directive_class';
-import {ElementBinderImpl} from '../src/element_binder';
-import {TextBinder} from '../src/element_binder';
-import {ViewPortBinder} from '../src/element_binder';
-import {DecoratorDirective} from '../src/annotations';
-import {TemplateDirective} from '../src/annotations';
-import {ComponentDirective} from '../src/annotations';
+import {DecoratorDirective, TemplateDirective, ComponentDirective} from '../src/annotations';
 import {ViewPort} from '../src/view';
-import {ViewFactory} from '../src/view_factory';
+import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory';
 import {Injector} from 'di/injector';
-import {Inject} from 'di/annotations';
+import {Inject, Provide} from 'di/annotations';
+import {EventHandler} from '../src/event_handler';
+import {ObjectObserver} from '../src/object_observer';
+import {NodeAttrs} from '../src/types';
 
 var injector,
   binder,
-  element;
+  executionContext;
 
 describe('ElementBinder', ()=>{
+  var element;
+
+  function createElementAndBinder(binderData) {
+    binder = new ElementBinder(binderData);
+    element = $('<div></div>')[0];
+    element.shadowRoot = document.createElement('div');
+    element.createShadowRoot = jasmine.createSpy('createShadowRoot').and.returnValue(element.shadowRoot);
+  }
+
   it('should create a child injector', ()=>{
     createInjector();
     createElementAndBinder();
@@ -22,134 +29,246 @@ describe('ElementBinder', ()=>{
     expect(childInjector.parent).toBe(injector);
   });
 
-  it('should create a new instance of decorator and component directives'+
-    ' and provide the element via DI', () => {
-    var createdInstance;
-    var injectedElement;
-
-    @DecoratorDirective
-    class SomeDecoratorDirective {
-      @Inject(HTMLElement)
-      constructor(element:HTMLElement) {
-        createdInstance = this;
-        injectedElement = element;
-      }
-    }
-    @ComponentDirective
-    class SomeComponentDirective {
-      @Inject(HTMLElement)
-      constructor(element:HTMLElement) {
-        createdInstance = this;
-        injectedElement = element;
-      }
-    }
-
-    test(SomeDecoratorDirective);
-    test(SomeComponentDirective);
-
-    function test(directiveClass) {
-      createdInstance = null;
+  describe('generic behavior', ()=>{
+    it('should provide the html element and attrs via DI', () => {
       createInjector();
-      createElementAndBinder(directiveClass);
+      var nodeAttrs = new NodeAttrs();
+      createElementAndBinder({
+        attrs: nodeAttrs
+      });
 
       var childInjector = binder.bind(injector, element);
+      expect(childInjector.get(Node)).toBe(element);
+      expect(childInjector.get(NodeAttrs)).toBe(nodeAttrs);
+    });
+
+    it('should initialize data binding handling', ()=>{
+      createInjector();
+      var nodeAttrs = new NodeAttrs({
+        bind: {
+          'value': 'someExpr'
+        }
+      });
+      createElementAndBinder({
+        attrs: nodeAttrs
+      });
+      spyOn(ObjectObserver.prototype, 'bindNode');
+
+      binder.bind(injector, element);
+      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', element, [], 'value')
+    });
+
+    it('should initialize event handling', ()=>{
+      createInjector();
+      var nodeAttrs = new NodeAttrs({
+        event: {
+          'click': 'someExpr'
+        }
+      });
+      createElementAndBinder({
+        attrs: nodeAttrs
+      });
+      spyOn(EventHandler.prototype, 'listen');
+
+      binder.bind(injector, element);
+      expect(EventHandler.prototype.listen).toHaveBeenCalledWith(element, 'click', 'someExpr');
+
+    });
+  });
+
+  describe('decorator directives', ()=>{
+
+    it('should create a new directive instance', () => {
+      var createdInstance;
+      class SomeDirective {
+        constructor() {
+          createdInstance = this;          
+        }
+      }
+      createInjector();
+      createElementAndBinder({
+        decorators: [
+          new DirectiveClass(new DecoratorDirective(), SomeDirective)
+        ]
+      });
+
+      binder.bind(injector, element);
       expect(createdInstance).toBeTruthy();
-      expect(injectedElement).toBe(element);
+    });
+  });
+
+  describe('component directives', ()=>{
+    var createdInstance,
+       templateContainer,
+       viewFactory;
+    class SomeDirective {
+      constructor() {
+        createdInstance = this;          
+      }
     }
+    beforeEach(()=>{
+      templateContainer = $('<div>a</div>')[0];
+      viewFactory = new ViewFactory(templateContainer.childNodes, null);
+      createInjector();
+    });
+
+    it('should create a new directive instance', () => {
+      createElementAndBinder({
+        component: {
+          directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
+          viewFactory: viewFactory
+        }
+      });
+
+      binder.bind(injector, element);
+      expect(createdInstance).toBeTruthy();
+    });
+
+    it('should append the template to the ShadowDOM', () => {
+      createElementAndBinder({
+        component: {
+          directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
+          viewFactory: viewFactory
+        }
+      });
+      var contentHtml = element.innerHTML = '<span id="outer"></span>';
+
+      binder.bind(injector, element);
+      expect(element.shadowRoot.innerHTML).toBe(templateContainer.innerHTML);
+      expect(element.innerHTML).toBe(contentHtml);        
+    });
+
+    it('should call the viewFactory with the component instance as execution context', () => {
+      spyOn(viewFactory, 'createView').and.callThrough();
+
+      createElementAndBinder({
+        component: {
+          directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
+          viewFactory: viewFactory
+        }
+      });
+      var childInjector = binder.bind(injector, element);
+
+      expect(viewFactory.createView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
+    });
+
   });
- 
-  it('component directives: it should append the template to the ShadowDOM', ()=>{
-    var templateContainer = $('<div>a</div>')[0];
 
-    var viewFactory = new ViewFactory(templateContainer.childNodes, null);
+});
 
-    @ComponentDirective
-    class SomeComponentDirective {}
+describe('NonElementBinder', () => {
+  var node;
 
-    createElementAndBinder(SomeComponentDirective);
-    binder.setComponentViewFactory(viewFactory);
+  function createCommentAndNonElementBinder(data) {
+    node = document.createComment('comment');
+    binder = new NonElementBinder(data);
+  }
 
-    var contentHtml = element.innerHTML = '<span id="outer"></span>';
+  describe('generic behavior', ()=>{
+    it('should create a child injector', ()=>{
+      createInjector();
+      createCommentAndNonElementBinder();
+      var childInjector = binder.bind(injector, node);
+      expect(childInjector.parent).toBe(injector);
+    });
 
-    createInjector();
-    binder.bind(injector, element);
-    expect(element.shadowRoot.innerHTML).toBe(templateContainer.innerHTML);
-    expect(element.innerHTML).toBe(contentHtml);        
+    it('should provide the html element and attrs via DI', () => {
+      createInjector();
+      var nodeAttrs = new NodeAttrs();
+      createCommentAndNonElementBinder({
+        attrs: nodeAttrs
+      });
+
+      var childInjector = binder.bind(injector, node);
+      expect(childInjector.get(Node)).toBe(node);
+      expect(childInjector.get(NodeAttrs)).toBe(nodeAttrs);
+    });
+
+    it('should initialize data binding handling', ()=>{
+      createInjector();
+      var nodeAttrs = new NodeAttrs({
+        bind: {
+          'value': 'someExpr'
+        }
+      });
+      createCommentAndNonElementBinder({
+        attrs: nodeAttrs
+      });
+      spyOn(ObjectObserver.prototype, 'bindNode');
+
+      binder.bind(injector, node);
+      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', node, [], 'value')
+    });
+
+    it('should initialize event handling', ()=>{
+      createInjector();
+      var nodeAttrs = new NodeAttrs({
+        event: {
+          'click': 'someExpr'
+        }
+      });
+      createCommentAndNonElementBinder({
+        attrs: nodeAttrs
+      });
+      spyOn(EventHandler.prototype, 'listen');
+
+      binder.bind(injector, node);
+      expect(EventHandler.prototype.listen).toHaveBeenCalledWith(node, 'click', 'someExpr');
+
+    });
   });
 
-  it('should call bind on TextBinder children', ()=>{
-    createInjector();
-    createElementAndBinder();
+  describe('tempate directives', () => {
+    var createdInstance,
+       templateContainer,
+       viewFactory;
+    class SomeDirective {
+      constructor() {
+        createdInstance = this;          
+      }
+    }
+    beforeEach(()=>{
+      templateContainer = $('<div>a</div>')[0];
+      viewFactory = new ViewFactory(templateContainer.childNodes, null);
+      createInjector();
+    });
 
-    var textBinder1 = new TextBinder();
-    var textBinder2 = new TextBinder();
-    spyOn(textBinder1, 'bind');
-    spyOn(textBinder2, 'bind');
-    $(element).append('a<span>b</span>c');
-    binder.addNonElementBinder(textBinder1, 0);
-    binder.addNonElementBinder(textBinder2, 2);
-    var childInjector = binder.bind(injector, element);
+    it('should create a new directive instance', () => {
+      createCommentAndNonElementBinder({
+        template: {
+          directive: new DirectiveClass(new TemplateDirective(), SomeDirective),
+          viewFactory: viewFactory
+        }
+      });
 
-    expect(textBinder1.bind).toHaveBeenCalledWith(childInjector, element.childNodes[0]);
-    expect(textBinder2.bind).toHaveBeenCalledWith(childInjector, element.childNodes[2]);
-  });
+      binder.bind(injector, node);
+      expect(createdInstance).toBeTruthy();
+    });
 
-  it('should call bind on ViewPortBinder children', ()=>{
-    createInjector();
-    createElementAndBinder();
+    it('should provide the ViewFactory and ViewPort via DI', () => {
+      createCommentAndNonElementBinder({
+        template: {
+          directive: new DirectiveClass(new TemplateDirective(), SomeDirective),
+          viewFactory: viewFactory
+        }
+      });
 
-    var viewPortBinder = new ViewPortBinder(null, null);
-    spyOn(viewPortBinder, 'bind');
-    $(element).append('a<span>b</span>c');
-    binder.addNonElementBinder(viewPortBinder, 2);
-    var childInjector = binder.bind(injector, element);
-
-    expect(viewPortBinder.bind).toHaveBeenCalledWith(childInjector, element.childNodes[2]);
+      var childBinder = binder.bind(injector, node);
+      expect(childBinder.get(ViewPort)).toEqual(new ViewPort(node));
+      expect(childBinder.get(ViewFactory)).toBe(viewFactory);
+    });
   });
 });
 
-describe('ViewPortBinder', ()=>{
-
-  it('should create a new instance of a template directive and '+ 
-    'pass in the ViewPort and ViewFactory to the constructor', ()=>{
-    var createdInstance,
-       injectedViewPort,
-       injectedViewFactory;
-    
-    @TemplateDirective
-    class SomeDirective {
-      @Inject(ViewPort, ViewFactory)
-      constructor(viewPort, viewFactory) {
-        createdInstance = this;
-        injectedViewPort = viewPort;
-        injectedViewFactory = viewFactory;
-      }
-    }
-
-    createInjector();
-    var node = document.createComment('someComment');
-    var viewFactory = new ViewFactory(null, null);    
-    var viewPortBinder = new ViewPortBinder(
-      new DirectiveClass(SomeDirective.annotations[0], SomeDirective),
-      viewFactory);
-
-    viewPortBinder.bind(injector, node);
-    expect(createdInstance).toBeTruthy();
-    expect(injectedViewPort.anchor).toEqual(node);
-    expect(injectedViewFactory).toBe(viewFactory);
-  });
-});  
-
 function createInjector() {
-  injector = new Injector();
+  executionContext = {};
+
+  @Provide('executionContext')
+  function executionContextProvider() {
+    return executionContext;
+  }
+
+  // TODO inject executionContext into the Injector
+  injector = new Injector([executionContextProvider]);
 }
 
-function createElementAndBinder(directive) {
-  binder = new ElementBinderImpl();
-  if (directive) {
-    binder.addDirective(new DirectiveClass(directive.annotations[0], directive));
-  }
-  element = $('<div></div>')[0];
-  element.shadowRoot = document.createElement('div');
-  element.createShadowRoot = jasmine.createSpy('createShadowRoot').and.returnValue(element.shadowRoot);
-}

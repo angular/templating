@@ -1,6 +1,5 @@
 import {assert} from 'assert';
-import {ElementBinder} from '../types';
-import {TextBinder} from '../element_binder';
+import {SelectedElementBindings} from './element_selector';
 
 export class InterpolationMarkers {
   static assert(obj) {
@@ -30,42 +29,38 @@ export class NonElementSelector {
     }
     this.regex = new RegExp(markers.start+'(.*?)'+markers.end, 'g');
   }
-  selectTextNode(binder:TextBinder, text:string) {
+  _convertInterpolationToExpression(text:string) {
     var interpolationParts = text.split(this.regex),
        part, isExpression;
     if (interpolationParts.length <= 1) {
       // no expression found
-      return;
+      return null;
     }
-    for (var i=0; i<interpolationParts.length; i++) {
-      part = interpolationParts[i];
-      // expressions are on the odd indices returned by the above split command!
-      isExpression = i%2 === 1;
-      if (part) {
-        binder.addPart(part, isExpression);
+    // we have at least one interpolation
+    interpolationParts.forEach(function(part, index) {
+      if (index % 2 === 0) {
+        // plain text parts
+        interpolationParts[index] = "'" + part + "'";
       }
-    }
+    });
+    return interpolationParts.join('+');
   }
-  selectBindAttr(binder:ElementBinder, attrName: string, attrValue: string) {
+  selectTextNode(text:string) {
+    return this._convertInterpolationToExpression(text);
+  }
+  selectBindAttr(binder:SelectedElementBindings, attrName: string, attrValue: string) {
     // replace {{}} with bind-...
-    var interpolationParts = attrValue.split(this.regex);
+    var interpolationExpr = this._convertInterpolationToExpression(attrValue);
     var match;
-    if (interpolationParts.length > 1) {
-      // we have at least one interpolation
-      interpolationParts.forEach(function(part, index) {
-        if (index % 2 === 0) {
-          // plain text parts
-          interpolationParts[index] = "'" + part + "'";
-        }
-      });
-      attrValue = interpolationParts.join('+');
-      binder.addBindAttr(attrName, attrValue);
+    if (interpolationExpr) {
+      attrValue = interpolationExpr;
+      binder.attrs.bind[attrName] = attrValue;
     } else if (match = /bind-(.*)/.exec(attrName)) {
-      binder.addBindAttr(match[1], attrValue);
+      binder.attrs.bind[match[1]] = attrValue;
     } else if (match = /on-(.*)/.exec(attrName)) {
-      binder.addOnEventAttr(match[1], attrValue);
+      binder.attrs.event[match[1]] = attrValue;
     } else {
-      binder.addAttr(attrName, attrValue);
+      binder.attrs.init[attrName] = attrValue;
     }
   }
 }

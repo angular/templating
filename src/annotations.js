@@ -38,6 +38,7 @@ class ComponentArgs {
       // Can't use this here as:
       // - importing ViewFactory into annotations would lead to cyclic type dependencies
       // - prettyPrint in assert.js get's into an infinite loop for instances of ViewFactory
+      //   test: use assert(obj).is(assert.string, Object)
       var type = typeof obj.template;
       if (type !== 'string' && type !== 'object') {
         assert.fail('expected either string of object');

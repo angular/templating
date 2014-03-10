@@ -57,6 +57,9 @@ export class ViewPort  {
     }
   }
 
+  // TODO: destroy the injector of the view as well here
+  // TODO: Provide a hook for DI objects (e.g. event_handler)
+  // to be notified about the destruction of the injector.
   remove(view:View) {
     this.list.remove(view);
     var nodes = view.nodes;

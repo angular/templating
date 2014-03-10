@@ -1,13 +1,9 @@
 import {use, inject} from 'di/testing';
 import {Compiler} from '../src/compiler';
 import {Selector} from '../src/selector/selector';
-import {ElementBinderImpl} from '../src/element_binder';
-import {TextBinder} from '../src/element_binder';
 import {DirectiveClass} from '../src/directive_class';
-import {TemplateDirective} from '../src/annotations';
-import {DecoratorDirective} from '../src/annotations';
-import {ComponentDirective} from '../src/annotations';
-import {ViewFactory} from '../src/view_factory';
+import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../src/annotations';
+import {ViewFactory, ElementBinder} from '../src/view_factory';
 
 describe('Compiler', ()=>{
   var selector:Selector,
@@ -47,6 +43,12 @@ describe('Compiler', ()=>{
       compileAndVerifyBinders('<div name="1"><span name="2"></span></div>', '(),1(),2()');
       compileAndVerifyBinders('<div><span name="1"></span><span></span></div>', '(),1()');
       compileAndVerifyBinders('<div><span></span><span name="1"></span></div>', '(),1()');
+    });
+
+    it('should set the correct tree levels in the element binders', ()=>{
+      createSelector([ new DecoratorDirective({selector: '[name]'}) ]);
+      compile('<a name="1"><b name="2"></b></a><a name="3"></a>');
+      expect(stringifyBinderLevels()).toBe('0,1,2,1');
     });
 
   });
@@ -109,7 +111,6 @@ describe('Compiler', ()=>{
         new DecoratorDirective({selector: '[name]'}),
         new TemplateDirective({selector: '[tpl]'}) 
       ]);
-
       // template directive is on root node
       compile('<div tpl>a</div>');
       verifyBinders('(<!--template anchor-->)');
@@ -241,13 +242,12 @@ describe('Compiler', ()=>{
       var element = binderIndex > 0 ? elements[binderIndex-1]: container[0];
               
       var nonElementBindersAsString = [];
-      elementBinder.nonElementBinders.forEach(function(textBinder, textIndex) {
+      elementBinder.nonElementBinders.forEach(function(nonElementBinder, textIndex) {
         // Note: It's important to select the text/comment node
         // only by the index in the binders array and the indexInParent 
         // of NonElementBinders, as this is what the ViewFactory
         // also does.
-        textBinder = elementBinder.nonElementBinders[textIndex];
-        var node = element.childNodes[textBinder.indexInParent];
+        var node = element.childNodes[nonElementBinder.indexInParent];
         var nodeValue = node.nodeValue;
         if (node.nodeType === Node.COMMENT_NODE) {
           nodeValue = '<!--'+nodeValue+'-->';
@@ -262,6 +262,17 @@ describe('Compiler', ()=>{
         }
       }
       structureAsString.push(annotationValues + '(' + nonElementBindersAsString.join(',') + ')');
+    });
+    return structureAsString.join(',');
+  }
+
+  function stringifyBinderLevels() {
+    var structureAsString = [];
+    var elements = container.find('.ng-binder');
+
+    binders.forEach(function(elementBinder, binderIndex) {
+      elementBinder = binders[binderIndex];
+      structureAsString.push(elementBinder.level);
     });
     return structureAsString.join(',');
   }
@@ -282,8 +293,8 @@ describe('Compiler', ()=>{
     binders.forEach(function(binder) {
       if (binder.nonElementBinders) {
         binder.nonElementBinders.forEach(function(nonElementBinder) {
-          if (nonElementBinder.viewFactory) {
-            viewFactory = nonElementBinder.viewFactory;
+          if (nonElementBinder.template) {
+            viewFactory = nonElementBinder.template.viewFactory;
           }
         });
       }
@@ -299,7 +310,7 @@ describe('Compiler', ()=>{
     var viewFactory;
     binders.forEach(function(binder) {
       if (binder.component) {
-        viewFactory = binder.componentViewFactory;
+        viewFactory = binder.component.viewFactory;
       }
     });
     expect(viewFactory).toBeTruthy();

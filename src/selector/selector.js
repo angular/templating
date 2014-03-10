@@ -1,11 +1,10 @@
 import {Directive} from '../annotations';
-import {ArrayOfDirectiveClass} from '../directive_class';
-import {DirectiveClass} from '../directive_class';
-import {ElementBinderImpl, TextBinder} from '../element_binder';
-import {ElementSelector} from './element_selector';
-import {ElementBinder} from '../types';
+import {ArrayOfDirectiveClass, DirectiveClass} from '../directive_class';
+import {ElementSelector, SelectedElementBindings} from './element_selector';
 import {assert} from 'assert';
 import {InterpolationMarkers, NonElementSelector} from './non_element_selector';
+
+export {SelectedElementBindings};
 
 /**
  * Selector has internal data structures which allow it to efficiently match DirectiveTypes 
@@ -39,8 +38,8 @@ export class Selector {
     this.elementSelector.addDirective(directive);
   }
 
-  matchElement(element:HTMLElement):ElementBinder {
-    var builder = new ElementBinderImpl(),
+  matchElement(element:HTMLElement):SelectedElementBindings {
+    var builder = new SelectedElementBindings(),
         nodeName = element.tagName.toLowerCase(),
         attributeList = element.attributes,
         attrs = {},
@@ -97,12 +96,10 @@ export class Selector {
       }
     }
 
-    return builder.isEmpty() ? null: builder;
+    return builder;
   }
 
-  matchText(node:Text):TextBinder {
-    var binder = new TextBinder();
-    this.nonElementSelector.selectTextNode(binder, node.nodeValue);
-    return binder.isEmpty() ? null: binder;
+  matchText(node:Text):string {
+    return this.nonElementSelector.selectTextNode(node.nodeValue);
   }
 }

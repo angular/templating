@@ -13,6 +13,15 @@ export class ArrayLikeOfNodes {
   }
 }
 
+export class ArrayOfObject {
+  static assert(obj) {
+    assert(obj).is(assert.arrayOf(assert.object));
+  }
+  constructor() {
+    assert.fail('type is not instantiable');
+  }  
+}
+
 export class ArrayOfString {
   static assert(obj) {
     assert(obj).is(assert.arrayOf(assert.string));
@@ -22,39 +31,10 @@ export class ArrayOfString {
   }
 }
 
-export class ArrayOfNameValueString {
-  static assert(obj) {
-    assert(obj).is(assert.arrayOf(assert.structure({
-          name: assert.string, 
-          value: assert.string
-        })));
+export class NodeAttrs {
+  constructor(data = {}) {
+    this.init = data.init || {};
+    this.bind = data.bind || {};
+    this.event = data.event || {};
   }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }
-}
-
-/**
- * interface for the class ElementBinderImpl
- * to break cyclic type dependencies.
- */
-export class ElementBinder {
-  constructor() {
-    throw new Error('type is not instantiable');
-  }
-}
-
-export class NonElementBinder {
-  constructor() {
-    throw new Error('type is not instantiable');
-  }
-}
-
-export class ArrayOfElementBinder {
-  static assert(obj) {
-    assert(obj).is(assert.arrayOf(ElementBinder));
-  }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }  
 }
