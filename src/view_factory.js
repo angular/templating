@@ -1,13 +1,14 @@
 import {ArrayLikeOfNodes, NodeAttrs} from './types';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {assert} from 'assert';
-import {TemplateDirective, ComponentDirective, DecoratorDirective} from './annotations';
+import {TemplateDirective, ComponentDirective, DecoratorDirective, EXECUTION_CONTEXT} from './annotations';
 import {Injector} from 'di/injector';
 import {Provide} from 'di/annotations';
 import {ViewPort, View} from './view';
 import {TreeArray} from './tree_array';
 import {ObjectObserver} from './object_observer';
 import {EventHandler} from './event_handler';
+import {reduceTree} from './tree_array';
 
 /*
  * A ViewFactory contains a nodes which need to be cloned for each new 
@@ -27,19 +28,44 @@ export class ViewFactory {
     this.elementBinders = elementBinders;
   }
   createView(injector:Injector, executionContext:Object):View {
-    // TODO: Create a new injector and store it on the View,
-    // save the executionContext on that created injector.
+    @Provide(EXECUTION_CONTEXT)
+    function executionContexteProvider() {
+      return executionContext;
+    }
+    var viewInjector = injector.createChild([executionContexteProvider]);
     var clonedNodes = [];
     for (var i=0, ii=this.templateNodes.length; i<ii; i++) {
       clonedNodes.push(this.templateNodes[i].cloneNode(true));
     }
-    // Add all nodes as children of a parent element
-    // that we can give to the root binder.
-    // This is needed so that the root binder can find direct text children
-    // 
+    var view = new View(clonedNodes, viewInjector);
+    var boundElements = view.fragment.querySelectorAll('.ng-binder');
+    reduceTree(this.elementBinders, bindBinder, viewInjector);
+    
+    return view;
 
-    // TODO: bind the element binders
-    return new View(clonedNodes);
+    function bindBinder(parentInjector, binder, index) {
+      var childInjector,
+        element;
+      if (index===0) {
+        // the first binder is only a container for NonElementBinders directly on the root 
+        // of the element.
+        // Don't call it's bind method!
+        element = view.fragment;
+        childInjector = parentInjector;
+      } else {
+        element = boundElements[index-1];
+        childInjector = binder.bind(parentInjector, element);
+      }
+      element.injector = childInjector;
+      binder.nonElementBinders.forEach((nonElementBinder) => {
+        var nonElementNode = element.childNodes[nonElementBinder.indexInParent];
+        var nonElInjector = nonElementBinder.bind(childInjector, nonElementNode);
+        nonElementNode.injector = nonElInjector;
+        // TODO: associate the injector with the nodes
+      });
+      // TODO: associate the injector with the nodes
+      return childInjector;
+    }
   }
 }
 
@@ -116,7 +142,7 @@ class BaseBinder {
     var attrName;
     var objectObserver = childInjector.get(ObjectObserver);
     for (attrName in this.attrs.bind) {
-      objectObserver.bindNode(this.attrs.bind[attrName], node, directiveInstances, attrName);
+      objectObserver.bindNode(this.attrs.bind[attrName], this.attrs.init[attrName], node, directiveInstances, attrName);
     }
 
     var eventHandler = childInjector.get(EventHandler);
@@ -133,12 +159,7 @@ class BaseBinder {
     function nodeProvider() {
       return node;
     }
-    @Provide(NodeAttrs)
-    function nodeAttrsProvider() {
-      return self.attrs;
-    }
     target.push(nodeProvider);
-    target.push(nodeAttrsProvider);
   }
 }
 

@@ -1,5 +1,10 @@
 import {assert} from 'assert';
 
+/**
+ * Constant under which the execution context is stored in the DI container
+ */
+export var EXECUTION_CONTEXT = 'executionContext';
+
 class DirectiveArgs {
   static assert(obj) {
     if (obj.selector) {

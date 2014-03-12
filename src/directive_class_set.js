@@ -14,7 +14,7 @@ import {assert} from 'assert';
  * Lifetime: immutable for the duration of application. 
  * Different injector branches may have different instance of this class.
  */
-export class DirectiveClassSet {  
+export class DirectiveClassSet {    
   constructor(
     parentDirectives:DirectiveClassSet=null,
     directives:ArrayOfDirectiveClass
@@ -24,6 +24,6 @@ export class DirectiveClassSet {
   }
 
   selector():Selector {
-    return new Selector(this.directives);
+    return new Selector(this.directives, null);
   }
 }

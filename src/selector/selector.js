@@ -2,7 +2,8 @@ import {Directive} from '../annotations';
 import {ArrayOfDirectiveClass, DirectiveClass} from '../directive_class';
 import {ElementSelector, SelectedElementBindings} from './element_selector';
 import {assert} from 'assert';
-import {InterpolationMarkers, NonElementSelector} from './non_element_selector';
+import {NonElementSelector} from './non_element_selector';
+import {CompilerConfig} from '../compiler_config';
 
 export {SelectedElementBindings};
 
@@ -17,9 +18,9 @@ export {SelectedElementBindings};
 export class Selector {
   constructor(
     directives:ArrayOfDirectiveClass,
-    interpolationMarkers:InterpolationMarkers){
+    compilerConfig:CompilerConfig){
     this.directives = directives;
-    this.nonElementSelector = new NonElementSelector(interpolationMarkers);
+    this.nonElementSelector = new NonElementSelector(compilerConfig);
     this.elementSelector = new ElementSelector('', this.nonElementSelector);
 
     this.directives.forEach(this.addDirective.bind(this));

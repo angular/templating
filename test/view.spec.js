@@ -15,16 +15,24 @@ describe('View', () => {
     $rootElement = $('<div>'+anchorHtml+'</div>');
     anchor = $rootElement.contents()[0];
     viewPort = new ViewPort(anchor);
-    a = new View($('<div>'+aHtml+'</div>').contents());
-    b = new View($('<div>'+bHtml+'</div>').contents());
-    c = new View($('<div>'+cHtml+'</div>').contents());
-    d = new View($('<div>'+dHtml+'</div>').contents());
+    a = new View($('<div>'+aHtml+'</div>').contents(), null);
+    b = new View($('<div>'+bHtml+'</div>').contents(), null);
+    c = new View($('<div>'+cHtml+'</div>').contents(), null);
+    d = new View($('<div>'+dHtml+'</div>').contents(), null);
   });
 
   function expectChildNodesToEqual(nodes) {
     var str = nodes.join('');
     expect($rootElement.html()).toEqual(nodes.join(''));
   }
+
+  it('should ignore changes to the original node list', () => {
+    var originalList = $('<div></div>');
+    var v = new View(originalList, null);
+    originalList.splice(0, 1);
+    expect(originalList.length).toBe(0);
+    expect(v.nodes.length).toBe(1);
+  });
 
   describe('append', () => {
     it('should append in empty hole', () => {

@@ -1,11 +1,11 @@
-import {NodeAttrs} from './types';
 import {Inject} from 'di/annotations';
+import {EXECUTION_CONTEXT} from './annotations';
 
 /**
  * This will be created once for every view instance.
  */
 export class EventHandler {
-  @Inject('executionContext')
+  @Inject(EXECUTION_CONTEXT)
   constructor(executionContext) {
     this.executionContext = executionContext;
   }

@@ -4,12 +4,21 @@ import {Selector} from '../src/selector/selector';
 import {DirectiveClass} from '../src/directive_class';
 import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../src/annotations';
 import {ViewFactory, ElementBinder} from '../src/view_factory';
+import {CompilerConfig} from '../src/compiler_config';
 
 describe('Compiler', ()=>{
   var selector:Selector,
       container,
       binders,
       attrDirectiveAnnotations;
+
+  it('should not reparent nodes', inject(Compiler, (compiler)=>{
+    createSelector();
+    container = $('<div>a</div>')[0];
+    var node = container.childNodes[0];
+    compiler._compile(container.childNodes, selector);
+    expect(node.parentNode).toBe(container);
+  }));
 
   describe('mark nodes with directives and collect binders', ()=> {
     it('should work for one element', function() {
@@ -208,7 +217,7 @@ describe('Compiler', ()=>{
     });      
     selector = new Selector(directives.map((annotation) => {
       return new DirectiveClass(annotation, function() {});
-    }), null);
+    }), new CompilerConfig());
 
     function extractAttrSelector(directiveAnnotation) {
       if (!directiveAnnotation) {
@@ -227,7 +236,7 @@ describe('Compiler', ()=>{
       container = $('<div></div>');
       container.html(html);
       var nodes = container.contents();
-      binders = compiler.compile(nodes, selector).elementBinders;
+      binders = compiler._compile(nodes, selector).elementBinders;
     });
   }
 

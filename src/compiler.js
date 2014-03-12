@@ -1,10 +1,12 @@
 import {ArrayLikeOfNodes, NodeAttrs} from './types';
-import {DirectiveClass} from './directive_class';
+import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {ViewFactory, ElementBinder, NonElementBinder, 
   DirectiveClassWithViewFactory} from './view_factory';
 import {Selector, SelectedElementBindings} from './selector/selector';
 import {TemplateDirective} from './annotations';
 import {TreeArray, reduceTree} from './tree_array';
+import {Inject} from 'di/annotations';
+import {CompilerConfig} from './compiler_config';
 
 /*
  * Compiler walks the DOM and calls Selector.match on each node in the tree. 
@@ -15,7 +17,14 @@ import {TreeArray, reduceTree} from './tree_array';
  * Lifetime: immutable for the duration of application.
  */
 export class Compiler {
-  compile(nodes:ArrayLikeOfNodes, selector:Selector):ViewFactory {
+  @Inject(CompilerConfig)
+  constructor(config:CompilerConfig) {
+    this.config = config;
+  }
+  compile(nodes:ArrayLikeOfNodes, directives:ArrayOfDirectiveClass):ViewFactory {
+    return this._compile(nodes, new Selector(directives, this.config));
+  }
+  _compile(nodes:ArrayLikeOfNodes, selector:Selector):ViewFactory {
     return new CompileRun(selector).compile(nodes).createViewFactory(nodes);
   }
 }

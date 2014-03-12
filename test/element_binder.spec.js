@@ -1,5 +1,5 @@
 import {DirectiveClass} from '../src/directive_class';
-import {DecoratorDirective, TemplateDirective, ComponentDirective} from '../src/annotations';
+import {DecoratorDirective, TemplateDirective, ComponentDirective, EXECUTION_CONTEXT} from '../src/annotations';
 import {ViewPort} from '../src/view';
 import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory';
 import {Injector} from 'di/injector';
@@ -30,16 +30,12 @@ describe('ElementBinder', ()=>{
   });
 
   describe('generic behavior', ()=>{
-    it('should provide the html element and attrs via DI', () => {
+    it('should provide the html element via DI', () => {
       createInjector();
-      var nodeAttrs = new NodeAttrs();
-      createElementAndBinder({
-        attrs: nodeAttrs
-      });
+      createElementAndBinder({});
 
       var childInjector = binder.bind(injector, element);
       expect(childInjector.get(Node)).toBe(element);
-      expect(childInjector.get(NodeAttrs)).toBe(nodeAttrs);
     });
 
     it('should initialize data binding handling', ()=>{
@@ -47,6 +43,9 @@ describe('ElementBinder', ()=>{
       var nodeAttrs = new NodeAttrs({
         bind: {
           'value': 'someExpr'
+        },
+        init: {
+          'value': 'someInit'
         }
       });
       createElementAndBinder({
@@ -55,7 +54,7 @@ describe('ElementBinder', ()=>{
       spyOn(ObjectObserver.prototype, 'bindNode');
 
       binder.bind(injector, element);
-      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', element, [], 'value')
+      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', 'someInit', element, [], 'value')
     });
 
     it('should initialize event handling', ()=>{
@@ -108,7 +107,7 @@ describe('ElementBinder', ()=>{
     }
     beforeEach(()=>{
       templateContainer = $('<div>a</div>')[0];
-      viewFactory = new ViewFactory(templateContainer.childNodes, null);
+      viewFactory = new ViewFactory(templateContainer.childNodes, []);
       createInjector();
     });
 
@@ -172,16 +171,12 @@ describe('NonElementBinder', () => {
       expect(childInjector.parent).toBe(injector);
     });
 
-    it('should provide the html element and attrs via DI', () => {
+    it('should provide the html element via DI', () => {
       createInjector();
-      var nodeAttrs = new NodeAttrs();
-      createCommentAndNonElementBinder({
-        attrs: nodeAttrs
-      });
+      createCommentAndNonElementBinder();
 
       var childInjector = binder.bind(injector, node);
       expect(childInjector.get(Node)).toBe(node);
-      expect(childInjector.get(NodeAttrs)).toBe(nodeAttrs);
     });
 
     it('should initialize data binding handling', ()=>{
@@ -189,6 +184,9 @@ describe('NonElementBinder', () => {
       var nodeAttrs = new NodeAttrs({
         bind: {
           'value': 'someExpr'
+        },
+        init: {
+          'value': 'someInit'
         }
       });
       createCommentAndNonElementBinder({
@@ -197,7 +195,7 @@ describe('NonElementBinder', () => {
       spyOn(ObjectObserver.prototype, 'bindNode');
 
       binder.bind(injector, node);
-      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', node, [], 'value')
+      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', 'someInit', node, [], 'value')
     });
 
     it('should initialize event handling', ()=>{
@@ -263,7 +261,7 @@ describe('NonElementBinder', () => {
 function createInjector() {
   executionContext = {};
 
-  @Provide('executionContext')
+  @Provide(EXECUTION_CONTEXT)
   function executionContextProvider() {
     return executionContext;
   }

@@ -1,7 +1,7 @@
 import {Selector} from '../src/selector/selector';
 import {Directive, DecoratorDirective} from '../src/annotations';
 import {DirectiveClass} from '../src/directive_class';
-import {DirectiveClassSet} from '../src/directive_class_set';
+import {CompilerConfig} from '../src/compiler_config';
 
 describe('Selector', () => {
   var selector;
@@ -202,7 +202,7 @@ function createSelector(){
   addDirectiveClasses(_NgModelRequired, directives);
   addDirectiveClasses(_TextInputNgModel, directives);
 
-  return new Selector(directives, {start: '{{', end: '}}'});
+  return new Selector(directives, new CompilerConfig());
 }
 
 function addDirectiveClasses(directive, directives){

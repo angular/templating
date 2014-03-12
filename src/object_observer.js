@@ -1,20 +1,17 @@
 import {Inject} from 'di/annotations';
 import {ArrayOfObject} from './types';
+import {EXECUTION_CONTEXT} from './annotations';
 
 /**
  * This will be created once for every view instance.
  */
 export class ObjectObserver {
-  @Inject('executionContext')
+  @Inject(EXECUTION_CONTEXT)
   constructor(executionContext) {
     this.executionContext = executionContext;
   }
 
-  watch(expression:string, changeCallback:Function) {
-    // TODO
-  }
-
-  bindNode(expression:string, node:Node, directiveInstances:ArrayOfObject, propertyName:string) {
+  bindNode(expression:string, initValue:string, node:Node, directiveInstances:ArrayOfObject, propertyName:string) {
     // TODO
   }
 }

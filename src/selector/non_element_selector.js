@@ -1,14 +1,6 @@
 import {assert} from 'assert';
 import {SelectedElementBindings} from './element_selector';
-
-export class InterpolationMarkers {
-  static assert(obj) {
-    assert(obj).is(assert.structure({
-      start: assert.string,
-      end: assert.string
-    }));
-  }
-}
+import {CompilerConfig} from '../compiler_config';
 
 export class ArrayOfMarkedText {
   static assert(obj) {
@@ -20,17 +12,11 @@ export class ArrayOfMarkedText {
 }
 
 export class NonElementSelector {
-  constructor(markers:InterpolationMarkers) {
-    if (!markers) {
-      markers = {
-        start: '{{',
-        end: '}}'
-      }
-    }
-    this.regex = new RegExp(markers.start+'(.*?)'+markers.end, 'g');
+  constructor(config:CompilerConfig) {
+    this.config = config;
   }
   _convertInterpolationToExpression(text:string) {
-    var interpolationParts = text.split(this.regex),
+    var interpolationParts = text.split(this.config.interpolationRegex),
        part, isExpression;
     if (interpolationParts.length <= 1) {
       // no expression found
@@ -55,9 +41,9 @@ export class NonElementSelector {
     if (interpolationExpr) {
       attrValue = interpolationExpr;
       binder.attrs.bind[attrName] = attrValue;
-    } else if (match = /bind-(.*)/.exec(attrName)) {
+    } else if (match = this.config.bindAttrRegex.exec(attrName)) {
       binder.attrs.bind[match[1]] = attrValue;
-    } else if (match = /on-(.*)/.exec(attrName)) {
+    } else if (match = this.config.eventAttrRegex.exec(attrName)) {
       binder.attrs.event[match[1]] = attrValue;
     } else {
       binder.attrs.init[attrName] = attrValue;
