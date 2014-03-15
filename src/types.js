@@ -38,3 +38,12 @@ export class NodeAttrs {
     this.event = data.event || {};
   }
 }
+
+export class ArrayOfClass {
+  static assert(obj) {
+    assert(obj).is(assert.arrayOf(Function));
+  }
+  constructor() {
+    assert.fail('type is not instantiable');
+  }  
+}

@@ -17,8 +17,7 @@
   },
   "devDependencies": {
     "pipe": "git://github.com/angular/pipe#assert",
-    "gulp-connect": "~1.0.5",
-    "jquery": "~2.1.0"
+    "gulp-connect": "~1.0.5"
   },
   "scripts": {
     "test": "karma start --single-run"

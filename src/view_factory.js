@@ -33,11 +33,7 @@ export class ViewFactory {
       return executionContext;
     }
     var viewInjector = injector.createChild([executionContexteProvider]);
-    var clonedNodes = [];
-    for (var i=0, ii=this.templateNodes.length; i<ii; i++) {
-      clonedNodes.push(this.templateNodes[i].cloneNode(true));
-    }
-    var view = new View(clonedNodes, viewInjector);
+    var view = new View(this.templateNodes, viewInjector);
     var boundElements = view.fragment.querySelectorAll('.ng-binder');
     reduceTree(this.elementBinders, bindBinder, viewInjector);
     

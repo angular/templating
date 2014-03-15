@@ -2,6 +2,7 @@ import {Selector} from '../src/selector/selector';
 import {Directive, DecoratorDirective} from '../src/annotations';
 import {DirectiveClass} from '../src/directive_class';
 import {CompilerConfig} from '../src/compiler_config';
+import {$, $0} from './dom_mocks';
 
 describe('Selector', () => {
   var selector;

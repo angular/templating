@@ -9,13 +9,15 @@ import {Injector} from 'di/injector';
  * such as ng-if and ng-repeat.
  */
 export class View extends LinkedListItem {
-  constructor(nodes:ArrayLikeOfNodes, injector:Injector) {
+  constructor(templateNodes:ArrayLikeOfNodes, injector:Injector) {
     super();
     this.injector = injector;
-    // do a copy of the nodes for the case that
-    // we have been given a NodeList
-    
-    this.nodes = Array.prototype.slice.call(nodes);
+    // clone every node separately as they might now
+    // belong to a common parent
+    this.nodes = [];
+    for (var i=0, ii=templateNodes.length; i<ii; i++) {
+      this.nodes.push(templateNodes[i].cloneNode(true));
+    }
     this.fragment = new DocumentFragment();
     this._removeIfNeeded();
   }

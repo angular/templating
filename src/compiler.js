@@ -1,4 +1,4 @@
-import {ArrayLikeOfNodes, NodeAttrs} from './types';
+import {ArrayLikeOfNodes, NodeAttrs, ArrayOfClass} from './types';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {ViewFactory, ElementBinder, NonElementBinder, 
   DirectiveClassWithViewFactory} from './view_factory';
@@ -21,8 +21,11 @@ export class Compiler {
   constructor(config:CompilerConfig) {
     this.config = config;
   }
-  compile(nodes:ArrayLikeOfNodes, directives:ArrayOfDirectiveClass):ViewFactory {
-    return this._compile(nodes, new Selector(directives, this.config));
+  compile(nodes:ArrayLikeOfNodes, directives:ArrayOfClass):ViewFactory {
+    var directiveClasses = this.config.directiveClassesForDirectives(directives);
+    return this._compile(nodes, 
+      new Selector(directiveClasses, this.config)
+    );
   }
   _compile(nodes:ArrayLikeOfNodes, selector:Selector):ViewFactory {
     return new CompileRun(selector).compile(nodes).createViewFactory(nodes);

@@ -1,5 +1,6 @@
 import {use, inject} from 'di/testing';
 import {ViewPort, View} from '../src/view';
+import {$, $html} from './dom_mocks';
 
 describe('View', () => {
   var viewPort;
@@ -12,22 +13,22 @@ describe('View', () => {
       anchor, a, b, c, d;
 
   beforeEach(() => {
-    $rootElement = $('<div>'+anchorHtml+'</div>');
-    anchor = $rootElement.contents()[0];
+    $rootElement = $(anchorHtml);
+    anchor = $rootElement[0];
     viewPort = new ViewPort(anchor);
-    a = new View($('<div>'+aHtml+'</div>').contents(), null);
-    b = new View($('<div>'+bHtml+'</div>').contents(), null);
-    c = new View($('<div>'+cHtml+'</div>').contents(), null);
-    d = new View($('<div>'+dHtml+'</div>').contents(), null);
+    a = new View($(aHtml), null);
+    b = new View($(bHtml), null);
+    c = new View($(cHtml), null);
+    d = new View($(dHtml), null);
   });
 
   function expectChildNodesToEqual(nodes) {
     var str = nodes.join('');
-    expect($rootElement.html()).toEqual(nodes.join(''));
+    expect($html($rootElement)).toEqual(nodes.join(''));
   }
 
   it('should ignore changes to the original node list', () => {
-    var originalList = $('<div></div>');
+    var originalList = Array.prototype.slice.call($('<div></div>'));
     var v = new View(originalList, null);
     originalList.splice(0, 1);
     expect(originalList.length).toBe(0);

@@ -7,6 +7,7 @@ import {Inject, Provide} from 'di/annotations';
 import {EventHandler} from '../src/event_handler';
 import {ObjectObserver} from '../src/object_observer';
 import {NodeAttrs} from '../src/types';
+import {$, $html} from './dom_mocks';
 
 var injector,
   binder,
@@ -98,7 +99,7 @@ describe('ElementBinder', ()=>{
 
   describe('component directives', ()=>{
     var createdInstance,
-       templateContainer,
+       templateNodes,
        viewFactory;
     class SomeDirective {
       constructor() {
@@ -106,8 +107,8 @@ describe('ElementBinder', ()=>{
       }
     }
     beforeEach(()=>{
-      templateContainer = $('<div>a</div>')[0];
-      viewFactory = new ViewFactory(templateContainer.childNodes, []);
+      templateNodes = $('a');
+      viewFactory = new ViewFactory(templateNodes, []);
       createInjector();
     });
 
@@ -133,7 +134,7 @@ describe('ElementBinder', ()=>{
       var contentHtml = element.innerHTML = '<span id="outer"></span>';
 
       binder.bind(injector, element);
-      expect(element.shadowRoot.innerHTML).toBe(templateContainer.innerHTML);
+      expect(element.shadowRoot.innerHTML).toBe($html(templateNodes));
       expect(element.innerHTML).toBe(contentHtml);        
     });
 
@@ -218,7 +219,7 @@ describe('NonElementBinder', () => {
 
   describe('tempate directives', () => {
     var createdInstance,
-       templateContainer,
+       templateNodes,
        viewFactory;
     class SomeDirective {
       constructor() {
@@ -226,8 +227,8 @@ describe('NonElementBinder', () => {
       }
     }
     beforeEach(()=>{
-      templateContainer = $('<div>a</div>')[0];
-      viewFactory = new ViewFactory(templateContainer.childNodes, null);
+      templateNodes = $('a');
+      viewFactory = new ViewFactory(templateNodes, null);
       createInjector();
     });
 
