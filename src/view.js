@@ -1,4 +1,4 @@
-import {ArrayLikeOfNodes} from './types';
+import {NodeContainer} from './types';
 import {LinkedList} from './linked_list';
 import {LinkedListItem} from './linked_list';
 import {Injector} from 'di/injector';
@@ -9,33 +9,35 @@ import {Injector} from 'di/injector';
  * such as ng-if and ng-repeat.
  */
 export class View extends LinkedListItem {
-  constructor(templateNodes:ArrayLikeOfNodes, injector:Injector) {
+  constructor(container:NodeContainer, injector:Injector) {
     super();
     this.injector = injector;
-    // clone every node separately as they might now
-    // belong to a common parent
-    this.nodes = [];
-    for (var i=0, ii=templateNodes.length; i<ii; i++) {
-      this.nodes.push(templateNodes[i].cloneNode(true));
+    // Save references to the nodes so that we can insert
+    // them back into the fragment later...
+    this.nodes = Array.prototype.slice.call(container.childNodes);
+    if (container.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+      this._fragment = container;
+      this.removed = true;
+    } else {
+      this._fragment = new DocumentFragment();
+      this.removed = false;
     }
-    this.fragment = new DocumentFragment();
-    this._removeIfNeeded();
   }
   _removeIfNeeded() {
     if (!this.removed) {
       this.removed = true;
-      this.nodes.forEach((node) => { this.fragment.appendChild(node); });
+      this.nodes.forEach((node) => { this._fragment.appendChild(node); });
     }
   }
   insertBefore(refNode:Node) {
     var parent = refNode.parentNode;
     this._removeIfNeeded();
-    parent.insertBefore(this.fragment, refNode);
+    parent.insertBefore(this._fragment, refNode);
     this.removed = false;
   }
   appendTo(element:HTMLElement) {
     this._removeIfNeeded();
-    element.appendChild(this.fragment);
+    element.appendChild(this._fragment);
     this.removed = false;
   }
 }
@@ -73,6 +75,6 @@ export class ViewPort  {
   // to be notified about the destruction of the injector.
   remove(view:View) {
     this.list.remove(view);
-    view.nodes.forEach((node) => { view.fragment.appendChild(node); });
+    view._removeIfNeeded();
   }
 }

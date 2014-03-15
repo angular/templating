@@ -1,4 +1,4 @@
-import {ArrayLikeOfNodes, NodeAttrs} from './types';
+import {NodeContainer, NodeAttrs} from './types';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {assert} from 'assert';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, EXECUTION_CONTEXT} from './annotations';
@@ -6,7 +6,7 @@ import {Injector} from 'di/injector';
 import {Provide} from 'di/annotations';
 import {ViewPort, View} from './view';
 import {TreeArray} from './tree_array';
-import {ObjectObserver} from './object_observer';
+import {NodeObserver} from './node_observer';
 import {EventHandler} from './event_handler';
 import {reduceTree} from './tree_array';
 
@@ -17,24 +17,31 @@ import {reduceTree} from './tree_array';
  */
 export class ViewFactory {  
   /**
-   * @param templateNodes nodes of the template. 
+   * @param templateContainer nodes of the template. 
    *        All elements in those nodes and their child nodes that should be bound have to have
    *        the css class `ng-directive`.
    * @param elementBinders TreeArray of elementBinders for the nodes with the css class `ng-directive`
    *        from `templateNodes`.
    */  
-  constructor(templateNodes:ArrayLikeOfNodes, elementBinders:TreeArrayOfElementBinder) {
-    this.templateNodes = templateNodes;
+  constructor(templateContainer:NodeContainer, elementBinders:TreeArrayOfElementBinder) {
+    this.templateContainer = templateContainer;
     this.elementBinders = elementBinders;
   }
-  createView(injector:Injector, executionContext:Object):View {
+  createView(injector:Injector, executionContext:Object, inplace:boolean = false):View {
     @Provide(EXECUTION_CONTEXT)
     function executionContexteProvider() {
       return executionContext;
     }
     var viewInjector = injector.createChild([executionContexteProvider]);
-    var view = new View(this.templateNodes, viewInjector);
-    var boundElements = view.fragment.querySelectorAll('.ng-binder');
+    var container;
+    if (inplace) {
+      container = this.templateContainer;
+    } else {
+      container = this.templateContainer.cloneNode(true);
+    }
+
+    var view = new View(container, viewInjector);
+    var boundElements = container.querySelectorAll('.ng-binder');
     reduceTree(this.elementBinders, bindBinder, viewInjector);
     
     return view;
@@ -46,7 +53,7 @@ export class ViewFactory {
         // the first binder is only a container for NonElementBinders directly on the root 
         // of the element.
         // Don't call it's bind method!
-        element = view.fragment;
+        element = container;
         childInjector = parentInjector;
       } else {
         element = boundElements[index-1];
@@ -57,9 +64,7 @@ export class ViewFactory {
         var nonElementNode = element.childNodes[nonElementBinder.indexInParent];
         var nonElInjector = nonElementBinder.bind(childInjector, nonElementNode);
         nonElementNode.injector = nonElInjector;
-        // TODO: associate the injector with the nodes
       });
-      // TODO: associate the injector with the nodes
       return childInjector;
     }
   }
@@ -87,13 +92,13 @@ export class TreeArrayOfElementBinder {
   }  
 }
 
-export class BaseBinderArgs {
+export class NodeBinderArgs {
   static assert(obj) {
     obj.attrs && assert(obj.attrs).is(NodeAttrs);
   }
 }
 
-export class ElementBinderArgs extends BaseBinderArgs {
+export class ElementBinderArgs extends NodeBinderArgs {
   static assert(obj) {
     obj.decorators && assert(obj.decorators).is(ArrayOfDirectiveClass);
     obj.component && assert(obj.component).is(DirectiveClassWithViewFactory);
@@ -109,7 +114,7 @@ export class ArrayOfNonElementBinder {
   }  
 }
 
-export class NonElementBinderArgs extends BaseBinderArgs {
+export class NonElementBinderArgs extends NodeBinderArgs {
   static assert(obj) {    
     if (obj.template) {
       assert(obj.template).is(DirectiveClassWithViewFactory);
@@ -117,8 +122,8 @@ export class NonElementBinderArgs extends BaseBinderArgs {
   }
 }
 
-class BaseBinder {
-  constructor(data:BaseBinderArgs = {}) {
+class NodeBinder {
+  constructor(data:NodeBinderArgs = {}) {
     this.attrs = data.attrs || new NodeAttrs();
   }
   hasBindings() {
@@ -136,9 +141,9 @@ class BaseBinder {
       return childInjector.get(directiveClass.clazz);
     });
     var attrName;
-    var objectObserver = childInjector.get(ObjectObserver);
+    var nodeObserver = childInjector.get(NodeObserver);
     for (attrName in this.attrs.bind) {
-      objectObserver.bindNode(this.attrs.bind[attrName], this.attrs.init[attrName], node, directiveInstances, attrName);
+      nodeObserver.bindNode(this.attrs.bind[attrName], this.attrs.init[attrName], node, directiveInstances, attrName);
     }
 
     var eventHandler = childInjector.get(EventHandler);
@@ -171,7 +176,7 @@ class BaseBinder {
  * 
  * Lifetime: immutable for the duration of application.
  */
-export class ElementBinder extends BaseBinder {
+export class ElementBinder extends NodeBinder {
   constructor(data:ElementBinderArgs = {}) {
     super(data);
     this.decorators = data.decorators || [];
@@ -215,7 +220,7 @@ export class ElementBinder extends BaseBinder {
 }
 
 
-export class NonElementBinder extends BaseBinder {
+export class NonElementBinder extends NodeBinder {
   constructor(data:NonElementBinderArgs = {}) {
     super(data);
     this.template = data.template;

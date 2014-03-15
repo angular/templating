@@ -4,9 +4,9 @@ import {EXECUTION_CONTEXT} from './annotations';
 
 /**
  * This will be created once for every view instance.
- * TODO: Split into NodeBinder and ContextWatcher
+ * TODO: Split into NodeObserver and ContextWatcher
  */
-export class ObjectObserver {
+export class NodeObserver {
   @Inject(EXECUTION_CONTEXT)
   constructor(executionContext) {
     this.executionContext = executionContext;

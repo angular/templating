@@ -16,10 +16,10 @@ describe('View', () => {
     $rootElement = $(anchorHtml);
     anchor = $rootElement[0];
     viewPort = new ViewPort(anchor);
-    a = new View($(aHtml), null);
-    b = new View($(bHtml), null);
-    c = new View($(cHtml), null);
-    d = new View($(dHtml), null);
+    a = new View($('<div>'+aHtml+'</div>')[0], null);
+    b = new View($('<div>'+bHtml+'</div>')[0], null);
+    c = new View($('<div>'+cHtml+'</div>')[0], null);
+    d = new View($('<div>'+dHtml+'</div>')[0], null);
   });
 
   function expectChildNodesToEqual(nodes) {
@@ -27,13 +27,40 @@ describe('View', () => {
     expect($html($rootElement)).toEqual(nodes.join(''));
   }
 
-  it('should ignore changes to the original node list', () => {
-    var originalList = Array.prototype.slice.call($('<div></div>'));
-    var v = new View(originalList, null);
-    originalList.splice(0, 1);
-    expect(originalList.length).toBe(0);
-    expect(v.nodes.length).toBe(1);
+  describe('constructor', ()=>{
+
+    it('should save the nodes into an array that does not change when adding the nodes to the DOM', ()=>{
+      var container = $('<div>a</div>')[0];
+      var node = container.childNodes[0];
+      var v = new View(container, null);
+      container.removeChild(node);
+      expect(v.nodes).toEqual([node]);
+    });
+
+    it('should not reparent the nodes when given an element (important for link without clones)', ()=>{
+      var container = $('<div>a</div>')[0];
+      var node = container.childNodes[0];
+      var v = new View(container, null);
+      expect(node.parentNode).toBe(container);
+    });
+
+    it('should not reparent the nodes when given a fragment (important for link without clones)', ()=>{
+      var container = document.createDocumentFragment();
+      var node = $('a')[0];
+      container.appendChild(node);
+      var v = new View(container, null);
+      expect(node.parentNode).toBe(container);
+    });
+
+    it('should reuse a given fragment as internal fragment', ()=>{
+      var container = document.createDocumentFragment();
+      var node = $('a')[0];
+      container.appendChild(node);
+      var v = new View(container, null);
+      expect(v._fragment).toBe(container);
+    });
   });
+
 
   describe('append', () => {
     it('should append in empty hole', () => {

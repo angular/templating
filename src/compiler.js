@@ -1,4 +1,4 @@
-import {ArrayLikeOfNodes, NodeAttrs, ArrayOfClass} from './types';
+import {NodeContainer, NodeAttrs, ArrayOfClass, ArrayLikeOfNodes, SimpleNodeContainer} from './types';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {ViewFactory, ElementBinder, NonElementBinder, 
   DirectiveClassWithViewFactory} from './view_factory';
@@ -21,34 +21,40 @@ export class Compiler {
   constructor(config:CompilerConfig) {
     this.config = config;
   }
-  compile(nodes:ArrayLikeOfNodes, directives:ArrayOfClass):ViewFactory {
+  
+  compileNodes(nodes:ArrayLikeOfNodes, directives: ArrayOfClass):ViewFactory {
+    return this.compileChildNodes(new SimpleNodeContainer(nodes), directives);
+  }
+
+  // Note: We are passing in a container and not an array of nodes
+  // as this makes cloning and finding nodes (querySelectorAll) faster,
+  // as we don't have to loop over the children but only call the methods
+  // on the container!
+  compileChildNodes(container:NodeContainer, directives:ArrayOfClass):ViewFactory {
     var directiveClasses = this.config.directiveClassesForDirectives(directives);
-    return this._compile(nodes, 
+    return this._compileChildNodes(container, 
       new Selector(directiveClasses, this.config)
     );
   }
-  _compile(nodes:ArrayLikeOfNodes, selector:Selector):ViewFactory {
-    return new CompileRun(selector).compile(nodes).createViewFactory(nodes);
+  _compileChildNodes(container:NodeContainer, selector:Selector):ViewFactory {
+    return new CompileRun(selector).compile(container).createViewFactory(container);
   }
 }
 
-class CompiledElement {
+class CompileElement {
   constructor(
-    element:HTMLElement = null,
-    binder:ElementBinder = new ElementBinder(),
-    parentElement:CompiledElement = null) {
+    element:HTMLElement,
+    binder:ElementBinder,
+    level:number) {
     this.element = element;
     this.binder = binder;
-    this.setParent(parentElement);
-  }
-  setParent(parentElement:CompiledElement) {
-    this.level = parentElement ? parentElement.level + 1 : 0;    
+    this.level = level;
   }
 }
 
-class ArrayOfCompiledElements {
+class ArrayOfCompileElements {
   static assert(obj) {
-    assert(obj).is(assert.arrayOf(CompiledElement));
+    assert(obj).is(assert.arrayOf(CompileElement));
   }
   constructor() {
     throw new Error('not instantiable as just a type');
@@ -56,33 +62,36 @@ class ArrayOfCompiledElements {
 }
 
 class CompileRun {
-  constructor(selector:Selector, initialCompiledElement:CompiledElement = null) {
+  constructor(selector:Selector, initialCompileElement:CompileElement = null) {
     this.selector = selector;
-    this.initialCompiledElement = initialCompiledElement;
+    this.initialCompileElement = initialCompileElement;
   }
-  compile(nodes:ArrayLikeOfNodes):CompileRun {
-    // Always create a root CompiledElement for text nodes directly
+  compile(container:NodeContainer):CompileRun {
+    // Always create a root CompileElement, e.g. for text nodes directly
     // on the root of the template
-    this.compiledElements = [new CompiledElement()];
-    if (this.initialCompiledElement) {
-      this.compiledElements.push(this.initialCompiledElement);
-      this.initialCompiledElement.setParent(this.compiledElements[0]);
+    this.compileElements = [new CompileElement(null, new ElementBinder(), 0)];
+    if (this.initialCompileElement) {
+      this.compileElements.push(this.initialCompileElement);
+      this.initialCompileElement.level = 1;
     }
-    this.compileRecurse(nodes, this.compiledElements[this.compiledElements.length-1]);
+    this.compileRecurse(container, this.compileElements[this.compileElements.length-1]);
     return this;
   }
-  createViewFactory(nodes:ArrayLikeOfNodes) {
+  createViewFactory(container:NodeContainer) {
     var binders = [];
-    reduceTree(this.compiledElements, (parentLevel, compiledElement, index) => {
+    reduceTree(this.compileElements, collectNonEmptyBindersAndCalcBinderTreeLevel, -1);
+    return new ViewFactory(container, binders);
+
+    function collectNonEmptyBindersAndCalcBinderTreeLevel(parentLevel, compileElement, index) {
       var newLevel;
-      var binder = compiledElement.binder;
+      var binder = compileElement.binder;
       if (index === 0 || binder.hasBindings()) {
         newLevel = parentLevel+1;
         if (index>0) {
-          if (compiledElement.element.className) {
-            compiledElement.element.className += ' ng-binder';
+          if (compileElement.element.className) {
+            compileElement.element.className += ' ng-binder';
           } else {
-            compiledElement.element.className = 'ng-binder';
+            compileElement.element.className = 'ng-binder';
           }
         }
         binder.setLevel(newLevel);
@@ -90,13 +99,14 @@ class CompileRun {
       } else {
         newLevel = parentLevel;
       }
-      return newLevel;
-    }, -1);
-    return new ViewFactory(nodes, binders);
+      return newLevel;      
+    }
   }
-  compileRecurse(nodes:ArrayLikeOfNodes, parentElement:CompiledElement) {
+  compileRecurse(container:NodeContainer, parentElement:CompileElement) {
     // variables that are used inside of the inner functions
-    var nodeCount = nodes.length,
+    var 
+      nodes = container.childNodes,
+      nodeCount = nodes.length,
       nodeIndex,
       nodeType,
       node,
@@ -117,15 +127,14 @@ class CompileRun {
           decorators: matchedBindings.decorators,
           component: component
         });
-        var compiledElement = new CompiledElement(node, binder, parentElement);
+        var compileElement = new CompileElement(node, binder, parentElement.level + 1);
         if (matchedBindings.template) {
-          nonElementBinder = this._compileTemplateDirective(node, matchedBindings.template, compiledElement);
+          nonElementBinder = this._compileTemplateDirective(node, matchedBindings.template, compileElement);
         } else {
           // don't recurse for template directives as they
           // change the node to a comment node.
-          compiledElement.treeIndex = this.compiledElements.length;
-          this.compiledElements.push(compiledElement);
-          this.compileRecurse(node.childNodes, compiledElement);
+          this.compileElements.push(compileElement);
+          this.compileRecurse(node, compileElement);
         }
       } else if (nodeType == Node.TEXT_NODE) {
         nonElementBinder = this._compileTextNode(node, nodeIndex);
@@ -146,29 +155,31 @@ class CompileRun {
     }    
   }
   _compileTemplateDirective(node:HTMLElement, templateDirective:DirectiveClass,
-    compiledElement:CompiledElement):NonElementBinder {
-    var initialCompiledTemplateElement = null;
-    var childNodes = node.content ? node.content.childNodes : node.childNodes;
+    compileElement:CompileElement):NonElementBinder {
+    
+    this._replaceNodeWithComment(node, 'template anchor');
 
-    var viewFactoryRoots = childNodes;
+    var initialCompiledTemplateElement = null;
+    var templateContainer = node.content ? node.content : node;
+
+    var viewFactoryRoot = templateContainer;
     if (node.nodeName !== 'TEMPLATE') {        
-      viewFactoryRoots = [node];
-      if (compiledElement.binder.hasBindings()) {
+      viewFactoryRoot = document.createDocumentFragment();
+      viewFactoryRoot.appendChild(node);
+      if (compileElement.binder.hasBindings()) {
         // not a template element and the original element contains
         // other directives or bindings, besides the template directive. 
-        // Then add the compiledElement as
+        // Then add the compileElement as
         // part of the template.
         // TODO: split the attributes into those for the commend node and
         // those for the template
 
-        initialCompiledTemplateElement = compiledElement;
+        initialCompiledTemplateElement = compileElement;
       }
     }
     var viewFactory = new CompileRun(this.selector, initialCompiledTemplateElement)
-      .compile(childNodes)
-      .createViewFactory(viewFactoryRoots);
-
-    this._replaceNodeWithComment(node, 'template anchor');
+      .compile(templateContainer)
+      .createViewFactory(viewFactoryRoot);
 
     // TODO: Split the attributes for the template directive and add them here!
     return new NonElementBinder({
@@ -195,8 +206,8 @@ class CompileRun {
       var templateContainer = document.createElement('div');
       templateContainer.innerHTML = template;
       viewFactory = new CompileRun(this.selector)
-        .compile(templateContainer.childNodes)
-        .createViewFactory(templateContainer.childNodes);
+        .compile(templateContainer)
+        .createViewFactory(templateContainer);
     }
     return {
       directive: componentDirective,

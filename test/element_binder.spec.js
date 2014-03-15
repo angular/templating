@@ -5,7 +5,7 @@ import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory'
 import {Injector} from 'di/injector';
 import {Inject, Provide} from 'di/annotations';
 import {EventHandler} from '../src/event_handler';
-import {ObjectObserver} from '../src/object_observer';
+import {NodeObserver} from '../src/node_observer';
 import {NodeAttrs} from '../src/types';
 import {$, $html} from './dom_mocks';
 
@@ -52,10 +52,10 @@ describe('ElementBinder', ()=>{
       createElementAndBinder({
         attrs: nodeAttrs
       });
-      spyOn(ObjectObserver.prototype, 'bindNode');
+      spyOn(NodeObserver.prototype, 'bindNode');
 
       binder.bind(injector, element);
-      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', 'someInit', element, [], 'value')
+      expect(NodeObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', 'someInit', element, [], 'value')
     });
 
     it('should initialize event handling', ()=>{
@@ -99,7 +99,7 @@ describe('ElementBinder', ()=>{
 
   describe('component directives', ()=>{
     var createdInstance,
-       templateNodes,
+       container,
        viewFactory;
     class SomeDirective {
       constructor() {
@@ -107,8 +107,8 @@ describe('ElementBinder', ()=>{
       }
     }
     beforeEach(()=>{
-      templateNodes = $('a');
-      viewFactory = new ViewFactory(templateNodes, []);
+      container = $('<div>a</div>')[0];
+      viewFactory = new ViewFactory(container, []);
       createInjector();
     });
 
@@ -134,7 +134,7 @@ describe('ElementBinder', ()=>{
       var contentHtml = element.innerHTML = '<span id="outer"></span>';
 
       binder.bind(injector, element);
-      expect(element.shadowRoot.innerHTML).toBe($html(templateNodes));
+      expect(element.shadowRoot.innerHTML).toBe($html(container.childNodes));
       expect(element.innerHTML).toBe(contentHtml);        
     });
 
@@ -193,10 +193,10 @@ describe('NonElementBinder', () => {
       createCommentAndNonElementBinder({
         attrs: nodeAttrs
       });
-      spyOn(ObjectObserver.prototype, 'bindNode');
+      spyOn(NodeObserver.prototype, 'bindNode');
 
       binder.bind(injector, node);
-      expect(ObjectObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', 'someInit', node, [], 'value')
+      expect(NodeObserver.prototype.bindNode).toHaveBeenCalledWith('someExpr', 'someInit', node, [], 'value')
     });
 
     it('should initialize event handling', ()=>{
@@ -219,7 +219,6 @@ describe('NonElementBinder', () => {
 
   describe('tempate directives', () => {
     var createdInstance,
-       templateNodes,
        viewFactory;
     class SomeDirective {
       constructor() {
@@ -227,8 +226,7 @@ describe('NonElementBinder', () => {
       }
     }
     beforeEach(()=>{
-      templateNodes = $('a');
-      viewFactory = new ViewFactory(templateNodes, null);
+      viewFactory = new ViewFactory($('<div>a</div>')[0], null);
       createInjector();
     });
 
@@ -267,7 +265,6 @@ function createInjector() {
     return executionContext;
   }
 
-  // TODO inject executionContext into the Injector
   injector = new Injector([executionContextProvider]);
 }
 

@@ -6,21 +6,35 @@ import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../src/
 import {ViewFactory, ElementBinder} from '../src/view_factory';
 import {CompilerConfig} from '../src/compiler_config';
 import {$, $0, $html} form './dom_mocks';
+import {SimpleNodeContainer} from '../src/types';
 
 describe('Compiler', ()=>{
-  var selector:Selector,
+  var directives,
       binders,
-      nodes,
+      container,
       attrDirectiveAnnotations;
 
   it('should not reparent nodes', inject(Compiler, (compiler)=>{
     createSelector();
-    nodes = $('a');
-    var node = nodes[0];
-    var oldParent = node.parentNode;
-    compiler._compile(nodes, selector);
-    expect(node.parentNode).toBe(oldParent);
+    var container = $('<div>a</div>')[0];
+    var node = container.childNodes[0];
+    compiler.compileChildNodes(container, directives);
+    expect(node.parentNode).toBe(container);
   }));
+
+  describe('compileNodes', ()=>{
+    it('should call compileChildNodes with a SimpleNodeContainer', ()=>{
+      inject(Compiler, (compiler) => {
+        var vf = new ViewFactory($('<div></div>')[0], []);
+        spyOn(compiler, 'compileChildNodes').and.returnValue(vf);
+        var directives = [];
+        var nodes = [];
+
+        expect(compiler.compileNodes(nodes, directives)).toBe(vf);
+        expect(compiler.compileChildNodes).toHaveBeenCalledWith(new SimpleNodeContainer(nodes), directives);
+      });
+    });
+  });
 
   describe('mark nodes with directives and collect binders', ()=> {
     it('should work for one element', function() {
@@ -97,7 +111,7 @@ describe('Compiler', ()=>{
       ]);
       compile('<div comp></div>');
       switchToComponentDirective();
-      expect($html(nodes)).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
+      expect($html(container.childNodes)).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
       verifyBinders('({{a}}),1({{b}})');
     });
 
@@ -106,7 +120,7 @@ describe('Compiler', ()=>{
           new DecoratorDirective({selector: '[name]'})
       ]);
       compile('{{a}}<span name="1">{{b}}</span>');
-      var componentViewFactory = new ViewFactory(nodes, binders);
+      var componentViewFactory = new ViewFactory(container, binders);
 
       createSelector([
           new DecoratorDirective({selector: '[name]'}),
@@ -115,7 +129,7 @@ describe('Compiler', ()=>{
       compile('<div comp></div>');
       switchToComponentDirective();
 
-      expect($html(nodes)).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
+      expect($html(container.childNodes)).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
       verifyBinders('({{a}}),1({{b}})');
     });
 
@@ -131,42 +145,41 @@ describe('Compiler', ()=>{
       // template directive is on root node
       compile('<div tpl>a</div>');
       verifyBinders('(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<!--template anchor-->');
+      expect($html(container.childNodes)).toBe('<!--template anchor-->');
       switchToTemplateDirective();
       verifyBinders('()');
-      expect($html(nodes)).toBe('<div tpl="">a</div>');
-      return;
+      expect($html(container.childNodes)).toBe('<div tpl="">a</div>');
 
       // template directive is on child node
       compile('<div><span tpl>a</span></div>');
       verifyBinders('(),(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
+      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
       switchToTemplateDirective();
       verifyBinders('()');
-      expect($html(nodes)).toBe('<span tpl="">a</span>');
+      expect($html(container.childNodes)).toBe('<span tpl="">a</span>');
       
       // template is after another text node
       compile('<div>a<span tpl>b</span></div>');
       verifyBinders('(),(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
+      expect($html(container.childNodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
       switchToTemplateDirective();
       verifyBinders('()');
-      expect($html(nodes)).toBe('<span tpl="">b</span>');
+      expect($html(container.childNodes)).toBe('<span tpl="">b</span>');
 
       // template has other directives on same node
       compile('<div><span tpl name="1">a</span></div>');
       verifyBinders('(),(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
+      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
       switchToTemplateDirective();
       verifyBinders('(),1()');
-      expect($html(nodes)).toBe('<span tpl="" name="1" class="ng-binder">a</span>');
+      expect($html(container.childNodes)).toBe('<span tpl="" name="1" class="ng-binder">a</span>');
 
       // template contains other directives on child elements
       compile('<div tpl=""><span name="1">a</span></div>');
       verifyBinders('(<!--template anchor-->)');
       switchToTemplateDirective();
       verifyBinders('(),1()');
-      expect($html(nodes)).toBe('<div tpl=""><span name="1" class="ng-binder">a</span></div>');
+      expect($html(container.childNodes)).toBe('<div tpl=""><span name="1" class="ng-binder">a</span></div>');
 
     });
 
@@ -179,54 +192,56 @@ describe('Compiler', ()=>{
       // template directive is on root node
       compile('<template tpl>a</tempate>');
       verifyBinders('(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<!--template anchor-->');
+      expect($html(container.childNodes)).toBe('<!--template anchor-->');
       switchToTemplateDirective();
       verifyBinders('()');
-      expect($html(nodes)).toBe('a');
+      expect($html(container.childNodes)).toBe('a');
 
       // template directive is on child node
       compile('<div><template tpl>a</template></div>');
       verifyBinders('(),(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
+      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
       switchToTemplateDirective();
       verifyBinders('()');
-      expect($html(nodes)).toBe('a');
+      expect($html(container.childNodes)).toBe('a');
       
       // template is after another text node
       compile('<div>a<template tpl>b</template></div>');
       verifyBinders('(),(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
+      expect($html(container.childNodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
       switchToTemplateDirective();
       verifyBinders('()');
-      expect($html(nodes)).toBe('b');
+      expect($html(container.childNodes)).toBe('b');
      
       // template has other directives on same node
       // (should be ignored)
       compile('<div><template tpl name="1">a</template></div>');
       verifyBinders('(),(<!--template anchor-->)');
-      expect($html(nodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
+      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
       switchToTemplateDirective();
       verifyBinders('()');
-      expect($html(nodes)).toBe('a');
+      expect($html(container.childNodes)).toBe('a');
 
       // template contains other directives on child elements
       compile('<template tpl=""><span name="1">a</span></template>');
       verifyBinders('(<!--template anchor-->)');
       switchToTemplateDirective();
       verifyBinders('(),1()');
-      expect($html(nodes)).toBe('<span name="1" class="ng-binder">a</span>');
+      expect($html(container.childNodes)).toBe('<span name="1" class="ng-binder">a</span>');
     });
   });
 
-  function createSelector(directives = []) {    
+  function createSelector(directiveAnnotations = []) {
+    directives = [];
     attrDirectiveAnnotations = {};
-    directives.forEach(function(annotation) {
+    directiveAnnotations.forEach(function(annotation) {
       var attr = extractAttrSelector(annotation);
       attrDirectiveAnnotations[attr] = annotation;
-    });      
-    selector = new Selector(directives.map((annotation) => {
-      return new DirectiveClass(annotation, function() {});
-    }), new CompilerConfig());
+      clazz.annotations = [annotation];
+      directives.push(clazz);
+
+      function clazz() {}
+    });    
 
     function extractAttrSelector(directiveAnnotation) {
       if (!directiveAnnotation) {
@@ -234,7 +249,7 @@ describe('Compiler', ()=>{
       }
       var match = /\[(\w+)\]/.exec(directiveAnnotation.selector);
       if (!match) {
-        throw new Error('mock selector only supports attribute names as selector!');
+        throw new Error('test selector only supports attribute names as selector!');
       }
       return match[1];
     }
@@ -242,8 +257,8 @@ describe('Compiler', ()=>{
 
   function compile(html) {
     inject(Compiler, (compiler)=>{
-      nodes = $(html);
-      binders = compiler._compile(nodes, selector).elementBinders;
+      container = $('<div>'+html+'</div>')[0];
+      binders = compiler.compileChildNodes(container, directives).elementBinders;
     });
   }
 
@@ -259,7 +274,7 @@ describe('Compiler', ()=>{
       if (binderIndex > 0) {
         element = elements[binderIndex-1];
       } else {
-        element = nodes[0] ? nodes[0].parentNode : null;
+        element = container;
       }
 
       var nonElementBindersAsString = [];
@@ -309,17 +324,7 @@ describe('Compiler', ()=>{
   }
 
   function findBinderElements() {
-    var res = [], i, ii, node;
-    for (i=0, ii=nodes.length; i<ii; i++) {
-      node = nodes[i];
-      if (node.classList && node.classList.contains('ng-binder')) {
-        res.push(node);
-      }
-      if (node.querySelectorAll) {
-        res.push(...node.querySelectorAll('.ng-binder'));        
-      } 
-    }
-    return res;
+    return container.querySelectorAll('.ng-binder');
   }
 
   function switchToTemplateDirective() {
@@ -335,7 +340,7 @@ describe('Compiler', ()=>{
     });
     expect(viewFactory).toBeTruthy();
     // update the global variables
-    nodes = viewFactory.templateNodes;
+    container = viewFactory.templateContainer;
     binders = viewFactory.elementBinders;  
   }
 
@@ -348,7 +353,7 @@ describe('Compiler', ()=>{
     });
     expect(viewFactory).toBeTruthy();
     // update the global variables
-    nodes = viewFactory.templateNodes;
+    container = viewFactory.templateContainer;
     binders = viewFactory.elementBinders;  
   }
 });
