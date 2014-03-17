@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/angular/templating.png?branch=master)](https://travis-ci.org/angular/templating)
+
 # Angular templating
 
 
