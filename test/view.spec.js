@@ -61,6 +61,22 @@ describe('View', () => {
     });
   });
 
+  describe('appendTo', ()=>{
+
+    it('should append the nodes to an element', ()=>{
+      var el = $('<div></div>')[0];
+      a.appendTo(el);
+      expect(el.innerHTML).toBe(aHtml);
+    });
+
+    it('should append the nodes to a fragment', ()=>{
+      var df = document.createDocumentFragment();
+      a.appendTo(df);
+      expect($html(df.childNodes)).toBe(aHtml);
+    });
+
+  });
+
 
   describe('append', () => {
     it('should append in empty hole', () => {

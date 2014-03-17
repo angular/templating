@@ -35,9 +35,9 @@ export class View extends LinkedListItem {
     parent.insertBefore(this._fragment, refNode);
     this.removed = false;
   }
-  appendTo(element:HTMLElement) {
+  appendTo(node:Node) {
     this._removeIfNeeded();
-    element.appendChild(this._fragment);
+    node.appendChild(this._fragment);
     this.removed = false;
   }
 }
