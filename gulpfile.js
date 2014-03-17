@@ -4,7 +4,8 @@ var connect = require('gulp-connect');
 
 
 var path = {
-  src: './src/**/*.js',
+  src: ['./src/**/*.js'],
+  examples: ['./examples/**/*.js']
 };
 
 
@@ -13,6 +14,9 @@ gulp.task('build_source_amd', function() {
   gulp.src(path.src)
       .pipe(pipe.traceur())
       .pipe(gulp.dest('dist/amd'));
+  gulp.src(path.examples)
+      .pipe(pipe.traceur())
+      .pipe(gulp.dest('temp/examples'));
 });
 
 gulp.task('build', ['build_source_amd']);
@@ -20,13 +24,13 @@ gulp.task('build', ['build_source_amd']);
 
 // WATCH FILES FOR CHANGES
 gulp.task('watch', function() {
-  gulp.watch(path.src, ['build']);
+  gulp.watch([path.src, path.examples], ['build']);
 });
 
 
 // WEB SERVER
 gulp.task('serve', connect.server({
-  root: __dirname,
+  root: [__dirname],
   port: 8000,
   open: {
     browser: 'Google Chrome'
