@@ -1,7 +1,7 @@
-import {SimpleNodeContainer, ArrayLikeOfNodes, matchesSelector} from '../src/types';
+import {SimpleNodeContainer, ArrayLikeOfNodes, matchesSelector} from '../src/node_container';
 import {$, $html} from './dom_mocks';
 
-describe('types', ()=>{
+describe('node container', ()=>{
 
   describe('matchesSelector', ()=>{
     it('should return false for non element nodes', ()=>{
@@ -21,7 +21,7 @@ describe('types', ()=>{
       expect(matchesSelector(node, '[c]')).toBe(false);
     });
   });
-	 
+   
   describe('SimpleNodeContainer', ()=>{
 
     it('should save the given nodes in the childNodes as an array', ()=>{

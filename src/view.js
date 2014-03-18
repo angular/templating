@@ -1,4 +1,4 @@
-import {NodeContainer} from './types';
+import {NodeContainer} from './node_container';
 import {LinkedList} from './linked_list';
 import {LinkedListItem} from './linked_list';
 import {Injector} from 'di/injector';

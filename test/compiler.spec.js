@@ -6,7 +6,7 @@ import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../src/
 import {ViewFactory, ElementBinder} from '../src/view_factory';
 import {CompilerConfig} from '../src/compiler_config';
 import {$, $0, $html} form './dom_mocks';
-import {SimpleNodeContainer} from '../src/types';
+import {SimpleNodeContainer} from '../src/node_container';
 
 describe('Compiler', ()=>{
   var directives,

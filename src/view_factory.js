@@ -1,4 +1,5 @@
-import {NodeContainer, NodeAttrs} from './types';
+import {NodeAttrs} from './types';
+import {NodeContainer} from './node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {assert} from 'assert';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, EXECUTION_CONTEXT} from './annotations';

@@ -1,4 +1,5 @@
-import {NodeContainer, NodeAttrs, ArrayOfClass, ArrayLikeOfNodes, SimpleNodeContainer} from './types';
+import {NodeAttrs, ArrayOfClass, ArrayLikeOfNodes} from './types';
+import {NodeContainer, SimpleNodeContainer} from './node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {ViewFactory, ElementBinder, NonElementBinder, 
   DirectiveClassWithViewFactory} from './view_factory';
