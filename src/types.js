@@ -102,7 +102,7 @@ var matchesSelectorFnName = findMatchesSelectorFnName();
 function findMatchesSelectorFnName() {
   var res = null;
   var el = document.createElement('div');
-  ['matches', 'matchesSelector', 'mozMatchesSelector', 'msMatchesSelector', 'oMatchesSelector'].forEach((fnName)=>{
+  ['matches', 'matchesSelector', 'webkitMatchesSelector', 'mozMatchesSelector', 'msMatchesSelector', 'oMatchesSelector'].forEach((fnName)=>{
       if (!res && el[fnName]) {
         res = fnName;
       }
