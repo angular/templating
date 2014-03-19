@@ -1,13 +1,13 @@
 import {Inject} from 'di/annotations';
-import {EXECUTION_CONTEXT} from './annotations';
+import {View} from './view';
 
 /**
  * This will be created once for every view instance.
  */
 export class EventHandler {
-  @Inject(EXECUTION_CONTEXT)
-  constructor(executionContext) {
-    this.executionContext = executionContext;
+  @Inject(View)
+  constructor(view) {
+    this.view = view;
   }
 
   listen(node:Node, eventName:string, expression:string) {

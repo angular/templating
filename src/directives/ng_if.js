@@ -1,18 +1,21 @@
-import {TemplateDirective, EXECUTION_CONTEXT} from '../annotations';
+import {TemplateDirective} from '../annotations';
 import {Injector} from 'di/injector';
 import {Inject} from 'di/annotations';
 import {View, ViewPort} from '../view';
 import {ViewFactory} from '../view_factory';
 
 
-@TemplateDirective({selector: '[ng-if]'})
+@TemplateDirective({
+  selector: '[ng-if]',
+  exports: ['ngIf']
+})
 export class NgIf {
-  @Inject(ViewFactory, ViewPort, EXECUTION_CONTEXT, Injector)
-  constructor(viewFactory, viewPort, executionContext, injector) {
+  @Inject(ViewFactory, ViewPort, View, Injector)
+  constructor(viewFactory, viewPort, parentView, injector) {
     this.viewPort = viewPort;
     this.viewFactory = viewFactory;
     this.injector = injector;
-    this.executionContext = executionContext;
+    this.parentView = parentView;
     this._ngIf = null;
     this.view = null;
     Object.defineProperty(this, 'ngIf', {
@@ -31,12 +34,17 @@ export class NgIf {
     return this._ngIf;
   }
   ngIfSetter(value) {
+    if (typeof value === 'string') {
+      // parse initial attribute
+      value = value === 'true';
+    }
+    this._ngIf = value;
     if (!value && this.view) {
       this.viewPort.remove(this.view);
       this.view = null;
     }
     if (value) {
-      this.view = this.viewFactory.createView(this.injector, this.executionContext);
+      this.view = this.viewFactory.createView(this.injector, this.parentView.executionContext);
       this.viewPort.append(this.view);
     }
   }

@@ -9,9 +9,10 @@ import {Injector} from 'di/injector';
  * such as ng-if and ng-repeat.
  */
 export class View extends LinkedListItem {
-  constructor(container:NodeContainer, injector:Injector) {
+  constructor(container:NodeContainer, injector:Injector, executionContext:Object={}) {
     super();
     this.injector = injector;
+    this.executionContext = executionContext;
     // Save references to the nodes so that we can insert
     // them back into the fragment later...
     this.nodes = Array.prototype.slice.call(container.childNodes);
@@ -39,6 +40,12 @@ export class View extends LinkedListItem {
     this._removeIfNeeded();
     node.appendChild(this._fragment);
     this.removed = false;
+  }
+  watch(expression:string, callback:Function, context:Object=null) {
+    // TODO: Include WatchGroup and expression parser here!
+  }
+  assign(expression:string, value:Object, context:Object=null) {
+    // TODO: Include expression parser here
   }
 }
 

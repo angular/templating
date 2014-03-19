@@ -2,6 +2,7 @@ import {Selector} from '../src/selector/selector';
 import {Directive, DecoratorDirective} from '../src/annotations';
 import {DirectiveClass} from '../src/directive_class';
 import {CompilerConfig} from '../src/compiler_config';
+import {NodeAttrs} from '../src/types';
 import {$, $0} from './dom_mocks';
 
 describe('Selector', () => {
@@ -115,23 +116,39 @@ describe('Selector', () => {
         expect(selector.matchElement(e('<div test="{{a}}"></div>')).attrs.bind)
           .toEqual({'test': "''+a+''"});
 
-        expect(selector.matchElement(e('<div test="a{{b}}{{c}}d"></div>')).attrs.bind)
-          .toEqual({'test': "'a'+b+''+c+'d'"});
+        expect(selector.matchElement(e('<div test="{{a}}"></div>')).attrs.bind)
+          .toEqual({'test': "''+a+''"});
+
+        // camel case conversion
+        expect(selector.matchElement(e('<div test-a="{{a}}"></div>')).attrs.bind)
+          .toEqual({'testA': "''+a+''"});
       });
 
       it('should save bind-... attributes', () => {
         expect(selector.matchElement(e('<div bind-test="a"></div>')).attrs.bind)
           .toEqual({'test':'a'});
+
+        // camel case conversion
+        expect(selector.matchElement(e('<div bind-test-a="a"></div>')).attrs.bind)
+          .toEqual({'testA': 'a'});
       });
 
       it('should save on-... attributes', () => {
         expect(selector.matchElement(e('<div on-test="a"></div>')).attrs.event)
           .toEqual({'test': 'a'});
+
+        // camel case conversion
+        expect(selector.matchElement(e('<div on-test-a="a"></div>')).attrs.event)
+          .toEqual({'testA': 'a'});
       });
 
       it('should save normal attributes if there are other bindings', () => {
         expect(selector.matchElement(e('<b test="a"></b>')).attrs.init)
           .toEqual({'test': 'a'});
+
+        // camel case conversion
+        expect(selector.matchElement(e('<div test-a="a"></div>')).attrs.init)
+          .toEqual({'testA': 'a'});
       });
 
     });

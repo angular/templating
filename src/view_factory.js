@@ -4,10 +4,9 @@ import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {assert} from 'assert';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, EXECUTION_CONTEXT} from './annotations';
 import {Injector} from 'di/injector';
-import {Provide} from 'di/annotations';
+import {Inject, Provide} from 'di/annotations';
 import {ViewPort, View} from './view';
 import {TreeArray} from './tree_array';
-import {NodeObserver} from './node_observer';
 import {EventHandler} from './event_handler';
 import {reduceTree} from './tree_array';
 import {NgNode} from './ng_node';
@@ -30,11 +29,6 @@ export class ViewFactory {
     this.elementBinders = elementBinders;
   }
   createView(injector:Injector, executionContext:Object, inplace:boolean = false):View {
-    @Provide(EXECUTION_CONTEXT)
-    function executionContexteProvider() {
-      return executionContext;
-    }
-    var viewInjector = injector.createChild([executionContexteProvider]);
     var container;
     if (inplace) {
       container = this.templateContainer;
@@ -42,7 +36,14 @@ export class ViewFactory {
       container = this.templateContainer.cloneNode(true);
     }
 
-    var view = new View(container, viewInjector);
+    @Provide(View)
+    @Inject(Injector)
+    function viewProvider(injector:Injector) {
+      return new View(container, injector, executionContext);
+    }
+    var viewInjector = injector.createChild([viewProvider]);
+    var view = viewInjector.get(View);
+
     var boundElements = container.querySelectorAll('.ng-binder');
     reduceTree(this.elementBinders, bindBinder, viewInjector);
     
@@ -61,11 +62,9 @@ export class ViewFactory {
         element = boundElements[index-1];
         childInjector = binder.bind(parentInjector, element);
       }
-      element.injector = childInjector;
       binder.nonElementBinders.forEach((nonElementBinder) => {
         var nonElementNode = element.childNodes[nonElementBinder.indexInParent];
-        var nonElInjector = nonElementBinder.bind(childInjector, nonElementNode);
-        nonElementNode.injector = nonElInjector;
+        nonElementBinder.bind(childInjector, nonElementNode);
       });
       return childInjector;
     }
@@ -128,38 +127,46 @@ class NodeBinder {
   constructor(data:NodeBinderArgs = {}) {
     this.attrs = data.attrs || new NodeAttrs();
   }
+  // TODO: Move this to CompileElement in compile!
   hasBindings() {
     // Note: don't check attrs.init, as they don't define
     // whether there is a binding for the element nor not!
-    return this.attrs.bind.length || this.attrs.event.length;
+    for (var prop in this.attrs.bind) {
+      return true;
+    }
+    for (var prop in this.attrs.event) {
+      return true;
+    }
+    return false;
   }
   bind(injector:Injector, node:Node):Injector {
-    var providers = [];
-    var directiveInstances = [];
-    var ngNodeData = {
-      injector: null,
-      directives: directiveInstances
-    };
-    var ngNode = new NgNode(node, ngNodeData);
-    this._collectDiProviders(ngNode, providers);
-    var childInjector = ngNodeData.injector = injector.createChild(providers);
+    var self = this;
+    
+    @Provide(NgNode)
+    @Inject(Injector)
+    function ngNodeProvider(injector:Injector) {
+      return new NgNode(node, {
+        injector: injector,
+        directives: []
+      })
+    }
+    var providers = [ngNodeProvider];
+    this._collectDiProviders(providers);
+    var childInjector = injector.createChild(providers);
+    var ngNode = childInjector.get(NgNode);
+    var view = injector.get(View);
     
     var directiveClasses = [];
     this._collectDirectives(directiveClasses);
-    directiveClasses.forEach(function(directiveClass) {
-      directiveInstances.push(childInjector.get(directiveClass.clazz));
+    directiveClasses.forEach((directiveClass) => {
+      var directiveInstance = childInjector.get(directiveClass.clazz);
+      this._initExportedProperty(node, directiveInstance, directiveClass.annotation.exports || []);
+      ngNode.data().directives.push(directiveInstance);
     });
-    // TODO: Bind the bind- attributes!
-
-    // TODO: init object properties using the 
-    // initAttrs
-
-    // TODO: export properties of the directiveInstance to the node
 
     var attrName;
-    var nodeObserver = childInjector.get(NodeObserver);
     for (attrName in this.attrs.bind) {
-      nodeObserver.bindNode(this.attrs.bind[attrName], this.attrs.init[attrName], node, directiveInstances, attrName);
+      this._setupBidiBinding(view, ngNode, attrName, this.attrs.bind[attrName]);
     }
 
     var eventHandler = childInjector.get(EventHandler);
@@ -167,16 +174,43 @@ class NodeBinder {
       eventHandler.listen(node, attrName, this.attrs.event[attrName]);
     }
     return childInjector;
+
+  }
+  // TODO: Test this!!
+  _setupBidiBinding(view, ngNode, property, expression) {
+    var lastValue;
+    view.watch(expression, (value) => {
+      if (value !== lastValue) {
+        ngNode.prop(property, value);
+      }
+      lastValue = value;
+    }, view.executionContext);
+    view.watch('prop("'+property+'")', (value) => {
+      if (value !== lastValue) {
+        view.assign(expression, value, view.executionContext);
+      }
+      lastValue = value;        
+    }, ngNode);
+  }
+  _initExportedProperty(node, directiveInstance, exportedProps) {
+    var self = this;
+    exportedProps.forEach(function(propName) {
+      if (propName in node) {
+        throw new Error('The directive '+JSON.stringify(directiveClass)+' tries to export the property '+propName+
+          ' although the property is already present');
+      }
+      Object.defineProperty(node, propName, {
+        get: () => { return directiveInstance[propName]; },
+        set: (value) => { directiveInstance[propName] = value; }
+      });
+      if (propName in self.attrs.init) {
+        node[propName] = self.attrs.init[propName];
+      }
+    });
   }
   _collectDirectives(target) {
   }
-  _collectDiProviders(node:NgNode, target) {
-    var self = this;
-    @Provide(NgNode)
-    function nodeProvider() {
-      return node;
-    }
-    target.push(nodeProvider);
+  _collectDiProviders(target) {
   }
 }
 
@@ -250,12 +284,13 @@ export class NonElementBinder extends NodeBinder {
       target.push(this.template.directive);
     }
   }
-  _collectDiProviders(node:NgNode, target) {
-    super._collectDiProviders(node, target);
+  _collectDiProviders(target) {
+    super._collectDiProviders(target);
     var self = this;
     @Provide(ViewPort)
-    function viewPortProvider() {
-      return new ViewPort(node.nativeNode());
+    @Inject(NgNode)
+    function viewPortProvider(ngNode) {
+      return new ViewPort(ngNode.nativeNode());
     }
     @Provide(ViewFactory)
     function viewFactoryProvider() {

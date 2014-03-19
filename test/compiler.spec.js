@@ -137,98 +137,153 @@ describe('Compiler', ()=>{
 
   describe('compile template directives', () => {
 
-    it('should work for template directives on a non template element', ()=>{
-      createSelector([ 
-        new DecoratorDirective({selector: '[name]'}),
-        new TemplateDirective({selector: '[tpl]'}) 
-      ]);
-      // template directive is on root node
-      compile('<div tpl>a</div>');
-      verifyBinders('(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<!--template anchor-->');
-      switchToTemplateDirective();
-      verifyBinders('()');
-      expect($html(container.childNodes)).toBe('<div tpl="">a</div>');
+    describe('on a non template element', ()=>{
 
-      // template directive is on child node
-      compile('<div><span tpl>a</span></div>');
-      verifyBinders('(),(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
-      switchToTemplateDirective();
-      verifyBinders('()');
-      expect($html(container.childNodes)).toBe('<span tpl="">a</span>');
-      
-      // template is after another text node
-      compile('<div>a<span tpl>b</span></div>');
-      verifyBinders('(),(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
-      switchToTemplateDirective();
-      verifyBinders('()');
-      expect($html(container.childNodes)).toBe('<span tpl="">b</span>');
+      it('should create the correct template viewFactory and template nodes', ()=>{
+        createSelector([ 
+          new DecoratorDirective({selector: '[name]'}),
+          new TemplateDirective({selector: '[tpl]'}) 
+        ]);
+        // template directive is on root node
+        compile('<div tpl>a</div>');
+        verifyBinders('(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<!--template anchor-->');
+        switchToTemplateDirective();
+        verifyBinders('()');
+        expect($html(container.childNodes)).toBe('<div tpl="">a</div>');
 
-      // template has other directives on same node
-      compile('<div><span tpl name="1">a</span></div>');
-      verifyBinders('(),(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
-      switchToTemplateDirective();
-      verifyBinders('(),1()');
-      expect($html(container.childNodes)).toBe('<span tpl="" name="1" class="ng-binder">a</span>');
+        // template directive is on child node
+        compile('<div><span tpl>a</span></div>');
+        verifyBinders('(),(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
+        switchToTemplateDirective();
+        verifyBinders('()');
+        expect($html(container.childNodes)).toBe('<span tpl="">a</span>');
+        
+        // template is after another text node
+        compile('<div>a<span tpl>b</span></div>');
+        verifyBinders('(),(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
+        switchToTemplateDirective();
+        verifyBinders('()');
+        expect($html(container.childNodes)).toBe('<span tpl="">b</span>');
 
-      // template contains other directives on child elements
-      compile('<div tpl=""><span name="1">a</span></div>');
-      verifyBinders('(<!--template anchor-->)');
-      switchToTemplateDirective();
-      verifyBinders('(),1()');
-      expect($html(container.childNodes)).toBe('<div tpl=""><span name="1" class="ng-binder">a</span></div>');
+        // template has other directives on same node
+        compile('<div><span tpl name="1">a</span></div>');
+        verifyBinders('(),(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
+        switchToTemplateDirective();
+        verifyBinders('(),1()');
+        expect($html(container.childNodes)).toBe('<span tpl="" name="1" class="ng-binder">a</span>');
+
+        // template contains other directives on child elements
+        compile('<div tpl=""><span name="1">a</span></div>');
+        verifyBinders('(<!--template anchor-->)');
+        switchToTemplateDirective();
+        verifyBinders('(),1()');
+        expect($html(container.childNodes)).toBe('<div tpl=""><span name="1" class="ng-binder">a</span></div>');
+
+      });
+
+      it('should split the nodeAttrs and keep the attributes for the exported properties on the template directive', ()=>{
+        createSelector([ 
+          new TemplateDirective({selector: '[tpl]', exports: ['tpl', 'b']}) 
+        ]);
+        compile('<div tpl="a" bind-b="c" x="y" bind-d="e" on-f="g"></div>');
+
+        var templateBinder = binders[0].nonElementBinders[0];
+        expect(templateBinder.attrs.init).toEqual({
+          tpl: 'a'
+        });
+        expect(templateBinder.attrs.bind).toEqual({
+          b: 'c'
+        });
+        expect(templateBinder.attrs.event).toEqual({});
+
+        switchToTemplateDirective();
+        var elBinder = binders[1];
+        expect(elBinder.attrs.init).toEqual({
+          x: 'y'
+        });
+        expect(elBinder.attrs.bind).toEqual({
+          d: 'e'
+        });
+        expect(elBinder.attrs.event).toEqual({
+          f: 'g'
+        });
+      });
 
     });
 
-    it('should work for template directives on a template elements', ()=>{
-      createSelector([ 
-        new DecoratorDirective({selector: '[name]'}),
-        new TemplateDirective({selector: '[tpl]'}) 
-      ]);
+    describe('on a template element', ()=>{
 
-      // template directive is on root node
-      compile('<template tpl>a</tempate>');
-      verifyBinders('(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<!--template anchor-->');
-      switchToTemplateDirective();
-      verifyBinders('()');
-      expect($html(container.childNodes)).toBe('a');
+      it('should create the correct template viewFactory and template nodes', ()=>{
+        createSelector([ 
+          new DecoratorDirective({selector: '[name]'}),
+          new TemplateDirective({selector: '[tpl]'}) 
+        ]);
 
-      // template directive is on child node
-      compile('<div><template tpl>a</template></div>');
-      verifyBinders('(),(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
-      switchToTemplateDirective();
-      verifyBinders('()');
-      expect($html(container.childNodes)).toBe('a');
-      
-      // template is after another text node
-      compile('<div>a<template tpl>b</template></div>');
-      verifyBinders('(),(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
-      switchToTemplateDirective();
-      verifyBinders('()');
-      expect($html(container.childNodes)).toBe('b');
-     
-      // template has other directives on same node
-      // (should be ignored)
-      compile('<div><template tpl name="1">a</template></div>');
-      verifyBinders('(),(<!--template anchor-->)');
-      expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
-      switchToTemplateDirective();
-      verifyBinders('()');
-      expect($html(container.childNodes)).toBe('a');
+        // template directive is on root node
+        compile('<template tpl>a</tempate>');
+        verifyBinders('(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<!--template anchor-->');
+        switchToTemplateDirective();
+        verifyBinders('()');
+        expect($html(container.childNodes)).toBe('a');
 
-      // template contains other directives on child elements
-      compile('<template tpl=""><span name="1">a</span></template>');
-      verifyBinders('(<!--template anchor-->)');
-      switchToTemplateDirective();
-      verifyBinders('(),1()');
-      expect($html(container.childNodes)).toBe('<span name="1" class="ng-binder">a</span>');
+        // template directive is on child node
+        compile('<div><template tpl>a</template></div>');
+        verifyBinders('(),(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
+        switchToTemplateDirective();
+        verifyBinders('()');
+        expect($html(container.childNodes)).toBe('a');
+        
+        // template is after another text node
+        compile('<div>a<template tpl>b</template></div>');
+        verifyBinders('(),(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<div class="ng-binder">a<!--template anchor--></div>');
+        switchToTemplateDirective();
+        verifyBinders('()');
+        expect($html(container.childNodes)).toBe('b');
+       
+        // template has other directives on same node
+        // (should be ignored)
+        compile('<div><template tpl name="1">a</template></div>');
+        verifyBinders('(),(<!--template anchor-->)');
+        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
+        switchToTemplateDirective();
+        verifyBinders('()');
+        expect($html(container.childNodes)).toBe('a');
+
+        // template contains other directives on child elements
+        compile('<template tpl=""><span name="1">a</span></template>');
+        verifyBinders('(<!--template anchor-->)');
+        switchToTemplateDirective();
+        verifyBinders('(),1()');
+        expect($html(container.childNodes)).toBe('<span name="1" class="ng-binder">a</span>');
+      });
+
+      it('should use the nodeAttrs of the template element', ()=>{
+        createSelector([ 
+          new TemplateDirective({selector: '[tpl]'}) 
+        ]);
+        compile('<template tpl="a" bind-b="c" on-d="e"></tempate>');
+        var templateBinder = binders[0].nonElementBinders[0];
+        expect(templateBinder.attrs.init).toEqual({
+          tpl: 'a'
+        });
+        expect(templateBinder.attrs.bind).toEqual({
+          b: 'c'
+        });
+        expect(templateBinder.attrs.event).toEqual({
+          d: 'e'
+        });
+      });
+
     });
+
+
   });
 
   function createSelector(directiveAnnotations = []) {

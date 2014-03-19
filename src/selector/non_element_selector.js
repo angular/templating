@@ -1,6 +1,7 @@
 import {assert} from 'assert';
 import {SelectedElementBindings} from './element_selector';
 import {CompilerConfig} from '../compiler_config';
+import {NodeAttrs} from '../types';
 
 export class ArrayOfMarkedText {
   static assert(obj) {
@@ -40,13 +41,13 @@ export class NonElementSelector {
     var match;
     if (interpolationExpr) {
       attrValue = interpolationExpr;
-      binder.attrs.bind[attrName] = attrValue;
+      binder.attrs.bind[NodeAttrs.toCamelCase(attrName)] = attrValue;
     } else if (match = this.config.bindAttrRegex.exec(attrName)) {
-      binder.attrs.bind[match[1]] = attrValue;
+      binder.attrs.bind[NodeAttrs.toCamelCase(match[1])] = attrValue;
     } else if (match = this.config.eventAttrRegex.exec(attrName)) {
-      binder.attrs.event[match[1]] = attrValue;
+      binder.attrs.event[NodeAttrs.toCamelCase(match[1])] = attrValue;
     } else {
-      binder.attrs.init[attrName] = attrValue;
+      binder.attrs.init[NodeAttrs.toCamelCase(attrName)] = attrValue;
     }
   }
 }

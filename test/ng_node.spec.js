@@ -15,6 +15,12 @@ describe('ng_node', ()=>{
     expect(ngNode.nativeNode()).toBe(node);
   });
 
+  it('should save itself on the node', ()=>{
+    var node = document.createElement('span');
+    var ngNode = new NgNode(node);
+    expect(node.ngNode).toBe(ngNode);
+  });
+
   describe('property access', ()=>{
     var nativeObj, ngNode, somePropGetter, somePropSetter;
 

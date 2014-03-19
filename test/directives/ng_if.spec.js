@@ -6,29 +6,39 @@ import {NgIf} from '../../src/directives/ng_if';
 import {$, $html} from '../dom_mocks';
 
 describe('ngIf', ()=>{
-  var view, container, ngIf;
-  beforeEach( ()=> {
+  var view, container, ngIf, anchor;
+
+  function compile(html) {
     inject(Compiler, Injector, (compiler, rootInjector) => {
-      container = $('<div><a ng-if=""></a></div>')[0];
+      container = $('<div>'+html+'</div>')[0];
       var viewFactory = compiler.compileChildNodes(container, [NgIf]);
 
       view = viewFactory.createView(rootInjector, {}, true);
-      var anchor = container.childNodes[0];
-      ngIf = anchor.injector.get(NgIf);
+      anchor = container.lastChild;
     });
-  });
+  }
 
-  it('should not show the content initially', ()=>{
+  it('should not show the content initially if the attribute value is falsy', ()=>{
+    compile('<a ng-if=""></a>');
+    expect(anchor.ngIf).toBe(false);
     expect($html(container.childNodes)).toBe('<!--template anchor-->')
   });
 
+  it('should show the content initially if the attribute value is truthy', ()=>{
+    compile('<a ng-if="true"></a>');
+    expect(anchor.ngIf).toBe(true);
+    expect($html(container.childNodes)).toBe('<a ng-if="true"></a><!--template anchor-->')
+  });
+
   it('should show the content when the value is true', ()=>{
-    ngIf.ngIf = true;
+    compile('<a ng-if=""></a>');
+    anchor.ngIf = true;
     expect($html(container.childNodes)).toBe('<a ng-if=""></a><!--template anchor-->')
   });
 
   it('should hide the content when the value is falsy', ()=>{
-    ngIf.ngIf = false;
+    compile('<a ng-if=""></a>');
+    anchor.ngIf = false;
     expect($html(container.childNodes)).toBe('<!--template anchor-->')
   });
 

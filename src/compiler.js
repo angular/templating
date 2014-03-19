@@ -1,4 +1,4 @@
-import {NodeAttrs, ArrayOfClass, ArrayLikeOfNodes} from './types';
+import {NodeAttrs, ArrayOfClass, ArrayLikeOfNodes, ArrayOfString} from './types';
 import {NodeContainer, SimpleNodeContainer} from './node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {ViewFactory, ElementBinder, NonElementBinder, 
@@ -162,6 +162,7 @@ class CompileRun {
 
     var initialCompiledTemplateElement = null;
     var templateContainer = node.content ? node.content : node;
+    var templateNodeAttrs = compileElement.binder.attrs;
 
     var viewFactoryRoot = templateContainer;
     if (node.nodeName !== 'TEMPLATE') {        
@@ -172,19 +173,18 @@ class CompileRun {
         // other directives or bindings, besides the template directive. 
         // Then add the compileElement as
         // part of the template.
-        // TODO: split the attributes into those for the commend node and
-        // those for the template
-
         initialCompiledTemplateElement = compileElement;
       }
+      // split the attributes into those for the comment node and
+      // those for the template element
+      templateNodeAttrs = compileElement.binder.attrs.split(templateDirective.annotation.exports || []);
     }
     var viewFactory = new CompileRun(this.selector, initialCompiledTemplateElement)
       .compile(templateContainer)
       .createViewFactory(viewFactoryRoot);
 
-    // TODO: Split the attributes for the template directive and add them here!
     return new NonElementBinder({
-      attrs: new NodeAttrs(),
+      attrs: templateNodeAttrs,
       template: {
         directive: templateDirective,
         viewFactory: viewFactory

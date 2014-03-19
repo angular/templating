@@ -2,7 +2,6 @@ import {use, inject} from 'di/testing';
 import {Injector} from 'di/injector';
 import {ViewPort, View} from '../src/view';
 import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory';
-import {EXECUTION_CONTEXT} from '../src/annotations';
 import {$, $html} from './dom_mocks';
 
 describe('ViewFactory', () => {
@@ -29,12 +28,19 @@ describe('ViewFactory', () => {
     expect(node.parentNode).toBe(container);
   });
 
-  it('should create a child injector and provide the given executionContext on the new injector', ()=>{
+  it('should create a child injector and provide the view on the new injector', ()=>{
     var injector = new Injector();
     var execContext = {};
     var view = new ViewFactory($('<div>a</div>')[0], []).createView(injector, execContext);
     expect(view.injector.parent).toBe(injector);
-    expect(view.injector.get(EXECUTION_CONTEXT)).toBe(execContext);
+    expect(view.injector.get(View)).toBe(view);
+  });
+
+  it('should save the executionContext on the view', ()=>{
+    var injector = new Injector();
+    var execContext = {};
+    var view = new ViewFactory($('<div>a</div>')[0], []).createView(injector, execContext);
+    expect(view.executionContext).toBe(execContext);
   });
 
   it('should not call the first binder', ()=>{
@@ -78,19 +84,6 @@ describe('ViewFactory', () => {
     expect(rootNonElBinders[1].bind).toHaveBeenCalledWith(view.injector, view.nodes[2]);
 
     expect(nonRootNonElBinders[0].bind).toHaveBeenCalledWith(binders[1].childInjector, view.nodes[1].childNodes[0]);
-  });
-
-  it('should store the created injectors on the nodes', () => {
-    var injector = new Injector();
-    var binders = mockBinders([0,1]);
-    var rootNonElBinders = binders[0].nonElementBinders = mockNonElementBinders([0]);
-    var nonRootNonElBinders = binders[1].nonElementBinders = mockNonElementBinders([0]);
-    var view = new ViewFactory($('<div>a<a class="ng-binder">c</a></div>')[0], binders)
-      .createView(injector, {});
-
-    expect(view.nodes[0].injector).toBe(rootNonElBinders[0].childInjector);
-    expect(view.nodes[1].injector).toBe(binders[1].childInjector);
-    expect(view.nodes[1].childNodes[0].injector).toBe(nonRootNonElBinders[0].childInjector);
   });
 
 });

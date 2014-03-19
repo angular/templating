@@ -1,5 +1,6 @@
 export class NgNode {
   constructor(node:Node, data:Object=null) {
+    node.ngNode = this;
     this._node = node;
     this._data = data;
     this._dirty = false;
