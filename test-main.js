@@ -18,8 +18,7 @@ require.config({
 
   paths: {
     'di': './node_modules/di/dist/amd',
-    'assert': './node_modules/pipe/node_modules/assert/dist/amd/assert',
-    'q': './node_modules/di/node_modules/q/q'
+    'assert': './node_modules/pipe/node_modules/assert/dist/amd/assert'
   },
 
   // Dynamically load all test files and ES6 polyfill.

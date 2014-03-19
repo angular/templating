@@ -12,11 +12,11 @@
     "url": "https://github.com/angular/templating/issues"
   },
   "dependencies": {
-    "di": "~2.0.0-pre-2",
+    "di": "~2.0.0-pre-4",
     "weakmap": "~0.0.6"
   },
   "devDependencies": {
-    "pipe": "git://github.com/angular/pipe#assert",
+    "pipe": "git://github.com/angular/pipe",
     "gulp-connect": "~1.0.5"
   },
   "scripts": {
