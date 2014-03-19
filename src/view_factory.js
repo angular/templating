@@ -10,6 +10,7 @@ import {TreeArray} from './tree_array';
 import {NodeObserver} from './node_observer';
 import {EventHandler} from './event_handler';
 import {reduceTree} from './tree_array';
+import {NgNode} from './ng_node';
 
 /*
  * A ViewFactory contains a nodes which need to be cloned for each new 
@@ -134,13 +135,27 @@ class NodeBinder {
   }
   bind(injector:Injector, node:Node):Injector {
     var providers = [];
-    this._collectDiProviders(node, providers);
+    var directiveInstances = [];
+    var ngNodeData = {
+      injector: null,
+      directives: directiveInstances
+    };
+    var ngNode = new NgNode(node, ngNodeData);
+    this._collectDiProviders(ngNode, providers);
+    var childInjector = ngNodeData.injector = injector.createChild(providers);
+    
     var directiveClasses = [];
     this._collectDirectives(directiveClasses);
-    var childInjector = injector.createChild(providers);
-    var directiveInstances = directiveClasses.map(function(directiveClass) {
-      return childInjector.get(directiveClass.clazz);
+    directiveClasses.forEach(function(directiveClass) {
+      directiveInstances.push(childInjector.get(directiveClass.clazz));
     });
+    // TODO: Bind the bind- attributes!
+
+    // TODO: init object properties using the 
+    // initAttrs
+
+    // TODO: export properties of the directiveInstance to the node
+
     var attrName;
     var nodeObserver = childInjector.get(NodeObserver);
     for (attrName in this.attrs.bind) {
@@ -155,9 +170,9 @@ class NodeBinder {
   }
   _collectDirectives(target) {
   }
-  _collectDiProviders(node:Node, target) {
+  _collectDiProviders(node:NgNode, target) {
     var self = this;
-    @Provide(Node)
+    @Provide(NgNode)
     function nodeProvider() {
       return node;
     }
@@ -235,12 +250,12 @@ export class NonElementBinder extends NodeBinder {
       target.push(this.template.directive);
     }
   }
-  _collectDiProviders(node:Node, target) {
+  _collectDiProviders(node:NgNode, target) {
     super._collectDiProviders(node, target);
     var self = this;
     @Provide(ViewPort)
     function viewPortProvider() {
-      return new ViewPort(node);
+      return new ViewPort(node.nativeNode());
     }
     @Provide(ViewFactory)
     function viewFactoryProvider() {

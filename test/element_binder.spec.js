@@ -8,6 +8,7 @@ import {EventHandler} from '../src/event_handler';
 import {NodeObserver} from '../src/node_observer';
 import {NodeAttrs} from '../src/types';
 import {$, $html} from './dom_mocks';
+import {NgNode} from '../src/ng_node';
 
 var injector,
   binder,
@@ -31,12 +32,12 @@ describe('ElementBinder', ()=>{
   });
 
   describe('generic behavior', ()=>{
-    it('should provide the html element via DI', () => {
+    it('should provide the ngNode via DI', () => {
       createInjector();
       createElementAndBinder({});
 
       var childInjector = binder.bind(injector, element);
-      expect(childInjector.get(Node)).toBe(element);
+      expect(childInjector.get(NgNode).nativeNode()).toBe(element);
     });
 
     it('should initialize data binding handling', ()=>{
@@ -172,12 +173,12 @@ describe('NonElementBinder', () => {
       expect(childInjector.parent).toBe(injector);
     });
 
-    it('should provide the html element via DI', () => {
+    it('should provide the ngNode via DI', () => {
       createInjector();
       createCommentAndNonElementBinder();
 
       var childInjector = binder.bind(injector, node);
-      expect(childInjector.get(Node)).toBe(node);
+      expect(childInjector.get(NgNode).nativeNode()).toBe(node);
     });
 
     it('should initialize data binding handling', ()=>{
