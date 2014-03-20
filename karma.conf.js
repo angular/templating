@@ -6,6 +6,7 @@ module.exports = function(config) {
   config.set({
     // list of files / patterns to load in the browser
     files: [
+      {pattern: 'node_modules/pipe/node_modules/gulp-traceur/node_modules/traceur/bin/traceur.js', included: true},
       'test-main.js',
       {pattern: 'src/**/*.js', included: false},
       {pattern: 'test/**/*.js', included: false},
