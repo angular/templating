@@ -122,11 +122,11 @@ describe('ElementBinder', ()=>{
         spyOn(view, 'watch');
         spyOn(view, 'assign');
         binder.bind(injector, element);
-        spyOn(element.ngNode, 'prop');
 
         watchCalls = view.watch.calls;
         watchExprCallback = watchCalls.argsFor(0)[1];
         watchPropCallback = watchCalls.argsFor(1)[1];
+        element.ngNode.flush();
       });
 
       it('should initialize data binding', ()=>{
@@ -135,13 +135,14 @@ describe('ElementBinder', ()=>{
         expect(watchCalls.argsFor(0)[0]).toBe('someExpr');
         expect(watchCalls.argsFor(0)[2]).toBe(view.executionContext);
         // watch the property on the ngNode
-        expect(watchCalls.argsFor(1)[0]).toBe('prop("someProp")');
-        expect(watchCalls.argsFor(1)[2]).toBe(element.ngNode);
+        expect(watchCalls.argsFor(1)[0]).toBe('value');
+        expect(watchCalls.argsFor(1)[2]).toBe(element.ngNode.prop("someProp"));
       });
 
       it('should update the ngNode when the epxression changes', ()=>{
         watchExprCallback('someValue');
-        expect(element.ngNode.prop).toHaveBeenCalledWith('someProp', 'someValue');
+        expect(element.ngNode.isDirty()).toBe(true);
+        expect(element.ngNode.prop('someProp').value).toBe('someValue');
       });
 
       it('should update the expression when ngNode changes', ()=>{
@@ -158,7 +159,7 @@ describe('ElementBinder', ()=>{
       it('should not update the ngNode when the expression changes after an ngNode change', ()=>{
         watchPropCallback('someValue');
         watchExprCallback('someValue');
-        expect(element.ngNode.prop).not.toHaveBeenCalled();
+        expect(element.ngNode.isDirty()).toBe(false);
       });
     });
 
@@ -303,8 +304,8 @@ describe('NonElementBinder', () => {
       expect(watchCalls.argsFor(0)[0]).toBe('someExpr');
       expect(watchCalls.argsFor(0)[2]).toBe(view.executionContext);
       // watch the property on the ngNode
-      expect(watchCalls.argsFor(1)[0]).toBe('prop("someProp")');
-      expect(watchCalls.argsFor(1)[2]).toBe(node.ngNode);
+      expect(watchCalls.argsFor(1)[0]).toBe('value');
+      expect(watchCalls.argsFor(1)[2]).toBe(node.ngNode.prop("someProp"));
 
       // We assume that NonElementBinder and ElementBinder share a common
       // implementatin for setting up the databinding,

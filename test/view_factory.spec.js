@@ -92,8 +92,9 @@ describe('ViewFactory', () => {
 function mockBinder(level) {
   var binder = new ElementBinder();
   binder.setLevel(level);
+  binder._bind = binder.bind;
   spyOn(binder, 'bind').and.callFake(function(injector) {
-    return binder.childInjector = injector.createChild();
+    return binder.childInjector = binder._bind(...arguments);
   });
   return binder;  
 }
@@ -109,8 +110,9 @@ function mockBinders(levels) {
 function mockNonElementBinder(indexInParent) {
   var binder = new NonElementBinder();
   binder.setIndexInParent(indexInParent);
+  binder._bind = binder.bind;
   spyOn(binder, 'bind').and.callFake(function(injector) {
-    return binder.childInjector = injector.createChild();
+    return binder.childInjector = binder._bind(...arguments);
   });
   return binder;  
 }

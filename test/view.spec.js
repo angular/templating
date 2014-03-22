@@ -1,6 +1,7 @@
 import {use, inject} from 'di/testing';
 import {ViewPort, View} from '../src/view';
 import {$, $html} from './dom_mocks';
+import {NgNode} from '../src/ng_node';
 
 describe('View', () => {
   var viewPort;
@@ -193,5 +194,18 @@ describe('View', () => {
       expectChildNodesToEqual([aHtml, bHtml, cHtml, dHtml, anchorHtml]);
     });
 
-  });    
+  });
+
+  describe('flush', ()=>{
+    it('should flush all ngNodes', ()=>{
+      var node = document.createElement('div');
+      var ngNode = new NgNode(node);
+      a.ngNodes.push(ngNode);
+      spyOn(ngNode, 'flush');
+      a.flush();
+      expect(ngNode.flush).toHaveBeenCalled();
+    });
+  });
+
+  // TODO: Test watch, assign, evaluate, digest
 });

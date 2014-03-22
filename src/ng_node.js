@@ -1,3 +1,11 @@
+import {assert} from 'assert';
+
+export class ArrayOfNgNode {
+  static assert(obj) {
+    assert(obj).is(assert.arrayOf(NgNode));
+  }
+}
+
 export class NgNode {
   constructor(node:Node, data:Object=null) {
     node.ngNode = this;
@@ -6,15 +14,18 @@ export class NgNode {
     this._dirty = false;
     this._classes = {
       cache: null,
-      changed: {}
+      changed: {},
+      accessors: {}
     };
     this._props = {
       cache: {},
-      changed: {}
+      changed: {},
+      accessors: {}
     }
     this._styles = {
       cache: {},
-      changed: {}
+      changed: {},
+      accessors: {}
     }
     this._installPropertyChangeEventListeners();
   }
@@ -69,12 +80,36 @@ export class NgNode {
       styles: changedStyles
     }
   }
-  hasClass(classes:string) {
-    this._ensureClassCache();
-    return classes.split(' ').reduce((state, className) => {
-      return state && !!this._classes.cache[className];
-    }, true);
-    return this;
+  clazz(classes:string) {
+    var self = this;
+    var accessor = self._classes.accessors[classes];
+    if (!accessor) {
+      accessor = Object.create({}, {
+        value: {
+          get: get,
+          set: set
+        }
+      });
+      self._classes.accessors[classes] = accessor;
+    }
+    return accessor;
+
+    function get() {
+      self._ensureClassCache();
+      return classes.split(' ').reduce((state, className) => {
+        return state && !!self._classes.cache[className];
+      }, true);
+    }
+
+    function set(condition) {
+      self._ensureClassCache();
+      classes.split(' ').forEach((className) => {
+        self._classes.cache[className] = !!condition;
+        self._classes.changed[className] = true;
+      });
+      self._dirty = true;
+      return this;
+    }
   }
   _ensureClassCache() {
     if (!this._classes.cache) {
@@ -83,19 +118,6 @@ export class NgNode {
         cache[className] = true;
       });
     }
-  }
-  toggleClass(classes:string, condition:boolean=null) {
-    this._ensureClassCache();
-    classes.split(' ').forEach((className) => {
-      var classCondition = condition;
-      if (classCondition === null) {
-        classCondition = !this._classes.cache[className];
-      }      
-      this._classes.cache[className] = classCondition;
-      this._classes.changed[className] = true;
-    });
-    this._dirty = true;
-    return this;
   }
   _flushClasses() {
     var changedValues = {}
@@ -121,17 +143,33 @@ export class NgNode {
   css(name:string, value = null) {
     return this._accessGeneric(this._node.style, this._styles, name, value);
   }
-  _accessGeneric(nativeObj, localObj, name:string, value = null) {
-    if (value !== null) {
+  _accessGeneric(nativeObj, localObj, name:string) {
+    var self = this;
+    var accessor = localObj.accessors[name];
+    if (!accessor) {
+      accessor = Object.create({}, {
+        value: {
+          get: get,
+          set: set
+        }
+      });
+      localObj.accessors[name] = accessor;
+    }
+    return accessor;
+
+    function set(value) {
       localObj.cache[name] = value;
       localObj.changed[name] = true;
-      this._dirty = true;
-      return this;
+      self._dirty = true;
+      return self;
     }
-    if (!(name in localObj.cache)) {
-      localObj.cache[name] = nativeObj[name];
+
+    function get() {
+      if (!(name in localObj.cache)) {
+        localObj.cache[name] = nativeObj[name];
+      }
+      return localObj.cache[name];          
     }
-    return localObj.cache[name];    
   }
   _flushGeneric(nativeObj, localObj) {
     var changedValues = {};

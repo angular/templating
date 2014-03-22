@@ -36,25 +36,25 @@ describe('ng_node', ()=>{
     
     it('reads the native property', ()=>{
       somePropGetter.and.returnValue('someValue');
-      expect(ngNode.prop('someProp')).toBe('someValue');
+      expect(ngNode.prop('someProp').value).toBe('someValue');
     });
 
     it('caches reads to the native property', ()=>{
       somePropGetter.and.returnValue('someValue');
-      expect(ngNode.prop('someProp')).toBe('someValue');
-      expect(ngNode.prop('someProp')).toBe('someValue');
+      expect(ngNode.prop('someProp').value).toBe('someValue');
+      expect(ngNode.prop('someProp').value).toBe('someValue');
       expect(somePropGetter.calls.count()).toBe(1);
     });
 
     it('caches writes to the native property', ()=>{
-      ngNode.prop('someProp', 'someValue');
-      expect(ngNode.prop('someProp')).toBe('someValue');
+      ngNode.prop('someProp').value = 'someValue';
+      expect(ngNode.prop('someProp').value).toBe('someValue');
       expect(somePropGetter.calls.count()).toBe(0);
       expect(somePropSetter.calls.count()).toBe(0);
     });
 
     it('flushes the cached writes to the native property only once', ()=>{
-      ngNode.prop('someProp', 'someValue');
+      ngNode.prop('someProp').value = 'someValue';
       ngNode.flush();
       ngNode.flush();
       
@@ -63,13 +63,13 @@ describe('ng_node', ()=>{
     });
 
     it('returns the changed properties on flush', ()=>{
-      ngNode.prop('someProp', 'someValue');
+      ngNode.prop('someProp').value = 'someValue';
       expect(ngNode.flush().props).toEqual({someProp: 'someValue'});
     });
 
     it('sets the dirty flag when a property is set and clears it on flush', ()=>{
       expect(ngNode.isDirty()).toBe(false);
-      ngNode.prop('someProp', 'someValue');
+      ngNode.prop('someProp').value = 'someValue';
       expect(ngNode.isDirty()).toBe(true);
       ngNode.flush();
       expect(ngNode.isDirty()).toBe(false);
@@ -91,25 +91,25 @@ describe('ng_node', ()=>{
     
     it('reads the native style', ()=>{
       somePropGetter.and.returnValue('someValue');
-      expect(ngNode.css('someProp')).toBe('someValue');
+      expect(ngNode.css('someProp').value).toBe('someValue');
     });
 
     it('caches reads to the native style', ()=>{
       somePropGetter.and.returnValue('someValue');
-      expect(ngNode.css('someProp')).toBe('someValue');
-      expect(ngNode.css('someProp')).toBe('someValue');
+      expect(ngNode.css('someProp').value).toBe('someValue');
+      expect(ngNode.css('someProp').value).toBe('someValue');
       expect(somePropGetter.calls.count()).toBe(1);
     });
 
     it('caches writes to the native style', ()=>{
-      ngNode.css('someProp', 'someValue');
-      expect(ngNode.css('someProp')).toBe('someValue');
+      ngNode.css('someProp').value = 'someValue';
+      expect(ngNode.css('someProp').value).toBe('someValue');
       expect(somePropGetter.calls.count()).toBe(0);
       expect(somePropSetter.calls.count()).toBe(0);
     });
 
     it('flushes the cached writes to the native style only once', ()=>{
-      ngNode.css('someProp', 'someValue');
+      ngNode.css('someProp').value = 'someValue';
       ngNode.flush();
       ngNode.flush();
       
@@ -118,13 +118,13 @@ describe('ng_node', ()=>{
     });
 
     it('returns the changed styles on flush', ()=>{
-      ngNode.css('someProp', 'someValue');
+      ngNode.css('someProp').value = 'someValue';
       expect(ngNode.flush().styles).toEqual({someProp: 'someValue'});
     });
 
     it('sets the dirty flag when a style is set and clears it on flush', ()=>{
       expect(ngNode.isDirty()).toBe(false);
-      ngNode.css('someProp', 'someValue');
+      ngNode.css('someProp').value = 'someValue';
       expect(ngNode.isDirty()).toBe(true);
       ngNode.flush();
       expect(ngNode.isDirty()).toBe(false);
@@ -144,75 +144,68 @@ describe('ng_node', ()=>{
       ngNode = new NgNode(nativeObj);
     });
 
-    describe('hasClass', ()=>{
+    describe('read', ()=>{
       it('reads a single native class', ()=>{
         classNameGetter.and.returnValue('a b');
-        expect(ngNode.hasClass('a')).toBe(true);
-        expect(ngNode.hasClass('b')).toBe(true);
-        expect(ngNode.hasClass('c')).toBe(false);
+        expect(ngNode.clazz('a').value).toBe(true);
+        expect(ngNode.clazz('b').value).toBe(true);
+        expect(ngNode.clazz('c').value).toBe(false);
       });
 
       it('uses logical AND when asked for multiple classes, independent of className order', ()=>{
         classNameGetter.and.returnValue('a b');
-        expect(ngNode.hasClass('a b')).toBe(true);
-        expect(ngNode.hasClass('b a')).toBe(true);
-        expect(ngNode.hasClass('a c')).toBe(false);
+        expect(ngNode.clazz('a b').value).toBe(true);
+        expect(ngNode.clazz('b a').value).toBe(true);
+        expect(ngNode.clazz('a c').value).toBe(false);
       });
 
       it('caches reads to the native className', ()=>{
         classNameGetter.and.returnValue('a b');
-        expect(ngNode.hasClass('a')).toBe(true);
-        expect(ngNode.hasClass('a')).toBe(true);
+        expect(ngNode.clazz('a').value).toBe(true);
+        expect(ngNode.clazz('a').value).toBe(true);
         expect(classNameGetter.calls.count()).toBe(1);
       });
     });
 
-    describe('toggleClass', ()=>{
+    describe('write', ()=>{
 
       it('reads in the native className', ()=>{
         classNameGetter.and.returnValue('a');
-        ngNode.toggleClass('b', true);
-        expect(ngNode.hasClass('a b')).toBe(true);        
+        ngNode.clazz('b').value = true;
+        expect(ngNode.clazz('a b').value).toBe(true);        
       });
 
       it('adds multiple classes', ()=>{
         classNameGetter.and.returnValue('a');
-        ngNode.toggleClass('b c', true);
-        expect(ngNode.hasClass('a b c')).toBe(true);
+        ngNode.clazz('b c').value = true;
+        expect(ngNode.clazz('a b c').value).toBe(true);
       });
 
       it('removes multiple classes', ()=>{
         classNameGetter.and.returnValue('a b c');
-        ngNode.toggleClass('b c', false);
-        expect(ngNode.hasClass('a')).toBe(true);
-        expect(ngNode.hasClass('b')).toBe(false);
-        expect(ngNode.hasClass('c')).toBe(false);
-      });
-
-      it('toggles classes if no argumet is given', ()=>{
-        classNameGetter.and.returnValue('a');
-        ngNode.toggleClass('a b');
-        expect(ngNode.hasClass('a')).toBe(false);
-        expect(ngNode.hasClass('b')).toBe(true);
+        ngNode.clazz('b c').value = false;
+        expect(ngNode.clazz('a').value).toBe(true);
+        expect(ngNode.clazz('b').value).toBe(false);
+        expect(ngNode.clazz('c').value).toBe(false);
       });
 
       it('caches reads to the native className', ()=>{
         classNameGetter.and.returnValue('a');
-        ngNode.toggleClass('b', true);
-        ngNode.toggleClass('b', true);
+        ngNode.clazz('b').value = true;
+        ngNode.clazz('b').value = true;
         expect(classNameGetter.calls.count()).toBe(1);
       });
 
-      it('shares the cache with hasClass', ()=>{        
+      it('shares the cache with reads', ()=>{        
         classNameGetter.and.returnValue('a');
-        expect(ngNode.hasClass('a')).toBe(true);
-        ngNode.toggleClass('b', true);
-        expect(ngNode.hasClass('a b')).toBe(true);
+        expect(ngNode.clazz('a').value).toBe(true);
+        ngNode.clazz('b').value = true;
+        expect(ngNode.clazz('a b').value).toBe(true);
         expect(classNameGetter.calls.count()).toBe(1);
       });
 
       it('flushes the changes to the native className only once', ()=>{
-        ngNode.toggleClass('b c', true);
+        ngNode.clazz('b c').value = true;
         ngNode.flush();
         ngNode.flush();
         
@@ -223,23 +216,23 @@ describe('ng_node', ()=>{
 
       it('returns the changed classes on flush', ()=>{
         classNameGetter.and.returnValue('a');        
-        ngNode.toggleClass('b', true);
-        ngNode.toggleClass('c', false);
+        ngNode.clazz('b').value = true;
+        ngNode.clazz('c').value = false;
         expect(ngNode.flush().classes).toEqual({b:true, c:false});
       });
 
       it('preserves non modified classes during flush', ()=>{
         classNameGetter.and.returnValue('a');        
-        ngNode.toggleClass('b', true);
+        ngNode.clazz('b').value = true;
         ngNode.flush();
         
         var actualClassName = sortClassNames(classNameSetter.calls.argsFor(0)[0]);
         expect(actualClassName).toEqual('a b');
       });
 
-      it('sets the dirty flag when a class is changedand clears it on flush', ()=>{
+      it('sets the dirty flag when a class is changed and clears it on flush', ()=>{
         expect(ngNode.isDirty()).toBe(false);
-        ngNode.toggleClass('a');
+        ngNode.clazz('a').value = true;
         expect(ngNode.isDirty()).toBe(true);
         ngNode.flush();
         expect(ngNode.isDirty()).toBe(false);
@@ -256,22 +249,22 @@ describe('ng_node', ()=>{
       node.test1 = 1;
       node.test2 = 2;
       node.test3 = 3;
-      expect(ngNode.prop('test1')).toBe(1);
-      expect(ngNode.prop('test2')).toBe(2);
-      expect(ngNode.prop('test3')).toBe(3);
+      expect(ngNode.prop('test1').value).toBe(1);
+      expect(ngNode.prop('test2').value).toBe(2);
+      expect(ngNode.prop('test3').value).toBe(3);
 
       node.test1 = 10;
       node.test2 = 20;
-      expect(ngNode.prop('test1')).toBe(1);
-      expect(ngNode.prop('test2')).toBe(2);
-      expect(ngNode.prop('test3')).toBe(3);
+      expect(ngNode.prop('test1').value).toBe(1);
+      expect(ngNode.prop('test2').value).toBe(2);
+      expect(ngNode.prop('test3').value).toBe(3);
 
       triggerEvent(node, 'propchange', {
         properties: ['test1', 'test2']
       });
-      expect(ngNode.prop('test1')).toBe(10);
-      expect(ngNode.prop('test2')).toBe(20);
-      expect(ngNode.prop('test3')).toBe(3);
+      expect(ngNode.prop('test1').value).toBe(10);
+      expect(ngNode.prop('test2').value).toBe(20);
+      expect(ngNode.prop('test3').value).toBe(3);
     });
   });
 
@@ -280,36 +273,36 @@ describe('ng_node', ()=>{
       var node = document.createElement('input');
       var ngNode = new NgNode(node);
 
-      expect(ngNode.prop('value')).toBe('');
+      expect(ngNode.prop('value').value).toBe('');
       node.value = 'someValue';
-      expect(ngNode.prop('value')).toBe('');
+      expect(ngNode.prop('value').value).toBe('');
 
       triggerEvent(node, 'input');
-      expect(ngNode.prop('value')).toBe('someValue');
+      expect(ngNode.prop('value').value).toBe('someValue');
     });
 
     it('should listen for change events and update the value in the cache', ()=>{
       var node = document.createElement('input');
       var ngNode = new NgNode(node);
 
-      expect(ngNode.prop('value')).toBe('');
+      expect(ngNode.prop('value').value).toBe('');
       node.value = 'someValue';
-      expect(ngNode.prop('value')).toBe('');
+      expect(ngNode.prop('value').value).toBe('');
 
       triggerEvent(node, 'change');
-      expect(ngNode.prop('value')).toBe('someValue');
+      expect(ngNode.prop('value').value).toBe('someValue');
     });
 
     it('should listen for keypress events and update the value in the cache', ()=>{
       var node = document.createElement('input');
       var ngNode = new NgNode(node);
 
-      expect(ngNode.prop('value')).toBe('');
+      expect(ngNode.prop('value').value).toBe('');
       node.value = 'someValue';
-      expect(ngNode.prop('value')).toBe('');
+      expect(ngNode.prop('value').value).toBe('');
 
       triggerEvent(node, 'keypress');
-      expect(ngNode.prop('value')).toBe('someValue');
+      expect(ngNode.prop('value').value).toBe('someValue');
     });
   });
 
@@ -317,21 +310,21 @@ describe('ng_node', ()=>{
     it('should listen for change events on the select and update "value" prop in the cache', ()=>{
       var select = $('<select><option selected>1</option><option>2</option></select>')[0];
       var ngNode = new NgNode(select);
-      expect(ngNode.prop('value')).toBe('1');
+      expect(ngNode.prop('value').value).toBe('1');
       select.selectedIndex = 1;
-      expect(ngNode.prop('value')).toBe('1');
+      expect(ngNode.prop('value').value).toBe('1');
       triggerEvent(select, 'change');
-      expect(ngNode.prop('value')).toBe('2');
+      expect(ngNode.prop('value').value).toBe('2');
     });
     it('should listen for change events on the select and update "selected" prop of options in the cache', ()=>{
       var select = $('<select><option selected>1</option><option>2</option></select>')[0];
       var option2 = select.childNodes[1];
       var ngNode = new NgNode(option2);
-      expect(ngNode.prop('selected')).toBe(false);
+      expect(ngNode.prop('selected').value).toBe(false);
       select.selectedIndex = 1;
-      expect(ngNode.prop('selected')).toBe(false);
+      expect(ngNode.prop('selected').value).toBe(false);
       triggerEvent(select, 'change');
-      expect(ngNode.prop('selected')).toBe(true);
+      expect(ngNode.prop('selected').value).toBe(true);
     });
   });
 });

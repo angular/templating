@@ -1,8 +1,8 @@
-import {TemplateDirective} from '../annotations';
+import {TemplateDirective} from '../../src/annotations';
 import {Injector} from 'di/injector';
 import {Inject} from 'di/annotations';
-import {View, ViewPort} from '../view';
-import {ViewFactory} from '../view_factory';
+import {View, ViewPort} from '../../src/view';
+import {ViewFactory} from '../../src/view_factory';
 
 
 @TemplateDirective({

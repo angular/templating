@@ -2,7 +2,7 @@ import {inject} from 'di/testing';
 import {Injector} from 'di/injector';
 import {Compiler} from '../../src/compiler';
 import {DirectiveClass} from '../../src/directive_class';
-import {NgIf} from '../../src/directives/ng_if';
+import {NgIf} from './ng_if';
 import {$, $html} from '../dom_mocks';
 
 describe('ngIf', ()=>{

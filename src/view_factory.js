@@ -35,11 +35,12 @@ export class ViewFactory {
     } else {
       container = this.templateContainer.cloneNode(true);
     }
+    var ngNodes = [];
 
     @Provide(View)
     @Inject(Injector)
     function viewProvider(injector:Injector) {
-      return new View(container, injector, executionContext);
+      return new View(container, injector, executionContext, ngNodes);
     }
     var viewInjector = injector.createChild([viewProvider]);
     var view = viewInjector.get(View);
@@ -61,10 +62,12 @@ export class ViewFactory {
       } else {
         element = boundElements[index-1];
         childInjector = binder.bind(parentInjector, element);
+        ngNodes.push(childInjector.get(NgNode));
       }
       binder.nonElementBinders.forEach((nonElementBinder) => {
         var nonElementNode = element.childNodes[nonElementBinder.indexInParent];
-        nonElementBinder.bind(childInjector, nonElementNode);
+        var nonElementInjector = nonElementBinder.bind(childInjector, nonElementNode);
+        ngNodes.push(nonElementInjector.get(NgNode));
       });
       return childInjector;
     }
@@ -176,21 +179,24 @@ class NodeBinder {
     return childInjector;
 
   }
-  // TODO: Test this!!
   _setupBidiBinding(view, ngNode, property, expression) {
-    var lastValue;
+    // TODO: Add test for this first assignment!
+    var lastValue = view.evaluate(expression, view.executionContext);
+    ngNode.prop(property).value = lastValue;
+    
     view.watch(expression, (value) => {
       if (value !== lastValue) {
-        ngNode.prop(property, value);
+        ngNode.prop(property).value = value;
       }
       lastValue = value;
     }, view.executionContext);
-    view.watch('prop("'+property+'")', (value) => {
+
+    view.watch('value', (value) => {
       if (value !== lastValue) {
         view.assign(expression, value, view.executionContext);
       }
       lastValue = value;        
-    }, ngNode);
+    }, ngNode.prop(property));
   }
   _initExportedProperty(node, directiveInstance, exportedProps) {
     var self = this;

@@ -12,7 +12,9 @@
     "url": "https://github.com/angular/templating/issues"
   },
   "dependencies": {
-    "di": "~2.0.0-pre-5"
+    "di": "~2.0.0-pre-5",
+    "expressionist": "git://github.com/angular/expressionist.js#dist",
+    "watchtower": "git://github.com/angular/watchtower.js#dist"
   },
   "devDependencies": {
     "pipe": "angular/pipe",
