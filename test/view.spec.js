@@ -1,7 +1,9 @@
 import {use, inject} from 'di/testing';
-import {ViewPort, View} from '../src/view';
+import {Injector} from 'di/injector';
+import {ViewPort, View, RootView} from '../src/view';
 import {$, $html} from './dom_mocks';
 import {NgNode} from '../src/ng_node';
+import {RootWatchGroup} from 'watchtower/watch_group';
 
 describe('View', () => {
   var viewPort;
@@ -17,10 +19,10 @@ describe('View', () => {
     $rootElement = $(anchorHtml);
     anchor = $rootElement[0];
     viewPort = new ViewPort(anchor);
-    a = new View($('<div>'+aHtml+'</div>')[0], null);
-    b = new View($('<div>'+bHtml+'</div>')[0], null);
-    c = new View($('<div>'+cHtml+'</div>')[0], null);
-    d = new View($('<div>'+dHtml+'</div>')[0], null);
+    a = new RootView($('<div>'+aHtml+'</div>')[0], new Injector());
+    b = new RootView($('<div>'+bHtml+'</div>')[0], new Injector());
+    c = new RootView($('<div>'+cHtml+'</div>')[0], new Injector());
+    d = new RootView($('<div>'+dHtml+'</div>')[0], new Injector());
   });
 
   function expectChildNodesToEqual(nodes) {
@@ -33,7 +35,7 @@ describe('View', () => {
     it('should save the nodes into an array that does not change when adding the nodes to the DOM', ()=>{
       var container = $('<div>a</div>')[0];
       var node = container.childNodes[0];
-      var v = new View(container, null);
+      var v = new RootView( container, new Injector());
       container.removeChild(node);
       expect(v.nodes).toEqual([node]);
     });
@@ -41,7 +43,7 @@ describe('View', () => {
     it('should not reparent the nodes when given an element (important for link without clones)', ()=>{
       var container = $('<div>a</div>')[0];
       var node = container.childNodes[0];
-      var v = new View(container, null);
+      var v = new RootView( container, new Injector());
       expect(node.parentNode).toBe(container);
     });
 
@@ -49,7 +51,7 @@ describe('View', () => {
       var container = document.createDocumentFragment();
       var node = $('a')[0];
       container.appendChild(node);
-      var v = new View(container, null);
+      var v = new RootView( container, new Injector());
       expect(node.parentNode).toBe(container);
     });
 
@@ -57,8 +59,47 @@ describe('View', () => {
       var container = document.createDocumentFragment();
       var node = $('a')[0];
       container.appendChild(node);
-      var v = new View(container, null);
+      var v = new RootView( container, new Injector());
       expect(v._fragment).toBe(container);
+    });
+
+    it('should set the parentView and the rootView', ()=>{
+      var container = document.createDocumentFragment();
+      var injector = new Injector();
+      var v1 = new RootView(container, injector);
+      
+      expect(v1.parentView).toBe(null);
+      expect(v1.rootView).toBe(v1);
+
+      var v2 = new View(v1, container, injector);
+      expect(v2.parentView).toBe(v1);
+      expect(v2.rootView).toBe(v1);
+
+      var v3 = new View(v2, container, injector);
+      expect(v3.parentView).toBe(v2);
+      expect(v2.rootView).toBe(v1);
+    });
+
+    it('should set the parser and the watchParser', ()=>{
+      var container = document.createDocumentFragment();
+      var injector = new Injector();
+      var v1 = new RootView(container, injector);
+      expect(v1.parser).toBeDefined();
+      expect(v1.watchParser).toBeDefined();
+      
+      var v2 = new View(v1, container, injector);
+      expect(v2.parser).toBe(v1.parser);
+      expect(v2.watchParser).toBe(v1.watchParser);
+    });
+
+    it('should create a watchGroup', ()=>{
+      var container = document.createDocumentFragment();
+      var injector = new Injector();
+      var v1 = new RootView(container, injector);
+      expect(v1.watchGrp.constructor).toBe(RootWatchGroup);
+      
+      var v2 = new View(v1, container, injector);
+      expect(v2.watchGrp._parentWatchGroup).toBe(v1.watchGrp);
     });
   });
 
@@ -196,16 +237,146 @@ describe('View', () => {
 
   });
 
-  describe('flush', ()=>{
-    it('should flush all ngNodes', ()=>{
-      var node = document.createElement('div');
-      var ngNode = new NgNode(node);
-      a.ngNodes.push(ngNode);
+  describe('evaluate', ()=>{
+
+    it('should evaluate the expression in the view executionContext if no context is given', ()=>{
+      a.executionContext.someProp = 'someValue';
+      expect(a.evaluate('someProp')).toBe('someValue');
+    });
+
+    it('should evaluate the expression in the given executionContext', ()=>{
+      var context = {
+        someProp: 'anotherValue'
+      };
+      a.executionContext.someProp = 'someValue';
+      expect(a.evaluate('someProp', context)).toBe('anotherValue');
+    });
+
+  });
+
+  describe('assign', ()=>{
+
+    it('should assign the expression in the view executionContext if no context is given', ()=>{
+      a.assign('someProp', 'someValue');
+      expect(a.executionContext.someProp).toBe('someValue');
+    });
+
+    it('should assign the expression in the given executionContext', ()=>{
+      var context = {};
+      a.assign('someProp', 'someValue', context)
+      expect(context.someProp).toBe('someValue');
+    });
+
+  });
+
+  describe('watch', ()=>{
+
+    it('should watch the expression in the view executionContext if no context is given', ()=>{
+      var callback = jasmine.createSpy('callback');
+      a.watch('someProp', callback);      
+
+      a.executionContext.someProp = 'someValue';
+      a.digest();
+      expect(callback).toHaveBeenCalledWith('someValue', undefined);
+      
+      a.executionContext.someProp = 'anotherValue';
+      a.digest();
+      expect(callback).toHaveBeenCalledWith('anotherValue', 'someValue');
+    });
+
+    it('should watch the expression in the given context', ()=>{
+      var context = {};
+      var callback = jasmine.createSpy('callback');
+      a.watch('someProp', callback, context);
+
+      context.someProp = 'someValue';
+      a.digest();
+      expect(callback).toHaveBeenCalledWith('someValue', undefined);
+      
+      context.someProp = 'anotherValue';
+      a.digest();
+      expect(callback).toHaveBeenCalledWith('anotherValue', 'someValue');
+    });
+
+    it('should watch expressions in child views', ()=>{
+      var childView = new View(a, document.createElement('a'), a.injector);
+      childView.executionContext.someProp = 'someValue';
+      var callback = jasmine.createSpy('callback');
+      childView.watch('someProp', callback);
+      a.digest();
+
+      expect(callback).toHaveBeenCalledWith('someValue', undefined);
+    });
+
+  });
+
+  describe('digest', ()=>{
+    
+    it('should check the watchGrp for changes', () => {
+      spyOn(a.watchGrp, 'detectChanges');
+      a.digest();
+      expect(a.watchGrp.detectChanges).toHaveBeenCalled();
+    });
+
+    it('should flush all dirty nodes and then remove them from the list', ()=>{
+      var node = document.createElement('a');
+      var ngNode = new NgNode(node, {
+        view: a
+      });
       spyOn(ngNode, 'flush');
-      a.flush();
+      ngNode.prop('textContent', 'someText');
+      expect(a.dirtyNodes).toEqual([ngNode]);
+
+      a.digest();
+
       expect(ngNode.flush).toHaveBeenCalled();
+      expect(a.dirtyNodes).toEqual([]);        
     });
   });
 
-  // TODO: Test watch, assign, evaluate, digest
+  describe('destroy', ()=>{
+
+    it('should remove the watchGroup', ()=>{
+      var root = new RootView($('<div></div>')[0], new Injector());
+      spyOn(root.watchGrp, 'remove').and.callThrough();
+      root.destroy();
+      expect(root.watchGrp.remove).not.toHaveBeenCalled();
+
+      var childView = new View(root, $('<div></div>')[0], new Injector());
+      spyOn(childView.watchGrp, 'remove').and.callThrough();
+
+      childView.destroy();
+      expect(childView.watchGrp.remove).toHaveBeenCalled();
+    });
+
+    it('should throw when working with a destroyed view', ()=>{
+      var expectedError = new Error('This view has been destroyed and can not be used any more');
+      var a = new RootView($('<div></div>')[0], new Injector());
+      a.destroy();
+
+      expect(()=>{
+        viewPort.append(a);  
+      }).toThrow(expectedError);
+      
+      expect(()=>{
+        viewPort.remove(a);  
+      }).toThrow(expectedError);
+
+      expect(()=>{
+        viewPort.remove(a);  
+      }).toThrow(expectedError);
+
+      expect(()=>{
+        a.watch('someExpr', null);  
+      }).toThrow(expectedError);
+
+      expect(()=>{
+        a.evaluate('someExpr');
+      }).toThrow(expectedError);
+
+      expect(()=>{
+        a.assign('someExpr', null);
+      }).toThrow(expectedError);
+    });
+  });
 });

@@ -79,8 +79,9 @@ class CompileRun {
     return this;
   }
   createViewFactory(container:NodeContainer) {
-    var binders = [];
+    var binders = [];    
     reduceTree(this.compileElements, collectNonEmptyBindersAndCalcBinderTreeLevel, -1);
+
     return new ViewFactory(container, binders);
 
     function collectNonEmptyBindersAndCalcBinderTreeLevel(parentLevel, compileElement, index) {
@@ -122,6 +123,8 @@ class CompileRun {
         var component;
         if (matchedBindings.component) {
           component = this._compileComponentDirective(matchedBindings.component);
+        } else {
+          component = null;
         }
         var binder = new ElementBinder({
           attrs: matchedBindings.attrs,
@@ -149,8 +152,9 @@ class CompileRun {
     var bindExpression = this.selector.matchText(node);
     if (bindExpression) {
       return new NonElementBinder({
+        // TODO: Test this!
         attrs: new NodeAttrs({
-          bind: {'text-content': this.selector.matchText(node)}
+          bind: {'nodeValue': this.selector.matchText(node)}
         })
       });          
     }    

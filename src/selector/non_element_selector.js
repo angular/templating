@@ -28,6 +28,9 @@ export class NonElementSelector {
       if (index % 2 === 0) {
         // plain text parts
         interpolationParts[index] = "'" + part + "'";
+      } else {
+        // expression parts
+        interpolationParts[index] = "(" + part + ")";
       }
     });
     return interpolationParts.join('+');

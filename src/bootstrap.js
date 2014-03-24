@@ -2,14 +2,14 @@ import {Injector} from 'di/injector';
 import {Compiler} from 'templating/compiler';
 import {ArrayOfClass} from 'templating/types';
 
-// TODO: Think about how to test this!!
+// TODO: Create tests for this
 
 var apps = Array.prototype.slice.call(document.querySelectorAll('[ng-app]'));
 var moduleScripts = Array.prototype.slice.call(document.querySelectorAll('module'));
 
 var modulesSrc = moduleScripts.map((moduleScript) => { return moduleScript.getAttribute('src'); });
 
-// TODO: Sytem.get here
+// TODO: use Sytem.get here
 require(modulesSrc, function() {
   var modules = Array.prototype.slice.call(arguments);
   var moduleClasses = extractClasses(modules);
@@ -23,7 +23,12 @@ function createApp(appRootElement, moduleClasses) {
   var compiler = rootInjector.get(Compiler);
 
   var vf = compiler.compileNodes([appRootElement], moduleClasses);
-  vf.createView(rootInjector, {}, true);
+  var rootView = vf.createRootView(rootInjector, {}, true);
+
+  // TODO: Integrate with Zone.js and remove the setInterval!
+  window.setInterval(function(){
+    rootView.digest();
+  }, 100);
 }
 
 function extractClasses(modules):ArrayOfClass {

@@ -133,6 +133,16 @@ describe('Compiler', ()=>{
       verifyBinders('({{a}}),1({{b}})');
     });
 
+    it('should not use the component for sibling elements', ()=>{
+      var template = '{{a}}<span name="1">{{b}}</span>';
+      createSelector([ 
+          new ComponentDirective({selector: '[comp]', template: template})
+      ]);
+      compile('<div comp></div><div></div>');
+      // root binder and component, nothing else
+      verifyBinders('(),()');
+    });
+
   });
 
   describe('compile template directives', () => {

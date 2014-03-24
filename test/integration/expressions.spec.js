@@ -5,7 +5,7 @@ import {DirectiveClass} from '../../src/directive_class';
 import {$, $html} from '../dom_mocks';
 
 describe('expressions', ()=>{
-  var view, container, context;
+  var rootView, container, context;
 
   function compile(html, ctx={}) {
     context = ctx;
@@ -13,7 +13,7 @@ describe('expressions', ()=>{
       container = $('<div>'+html+'</div>')[0];
       var viewFactory = compiler.compileChildNodes(container, []);
 
-      view = viewFactory.createView(rootInjector, context, true);
+      rootView = viewFactory.createRootView(rootInjector, context, true);
     });
   }
 
@@ -23,8 +23,7 @@ describe('expressions', ()=>{
     });
     var input = container.firstChild;
 
-    view.digest();
-    view.flush();
+    rootView.digest();
 
     expect(input.value).toBe('someValue');
     expect(context.boundValue).toBe('someValue');
@@ -32,7 +31,7 @@ describe('expressions', ()=>{
     input.value = 'anotherValue';
     
     triggerEvent(input, 'change');    
-    view.digest();
+    rootView.digest();
 
     expect(context.boundValue).toBe('anotherValue');
   });

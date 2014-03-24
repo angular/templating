@@ -13,7 +13,7 @@ describe('ngIf', ()=>{
       container = $('<div>'+html+'</div>')[0];
       var viewFactory = compiler.compileChildNodes(container, [NgIf]);
 
-      view = viewFactory.createView(rootInjector, {}, true);
+      view = viewFactory.createRootView(rootInjector, {}, true);
       anchor = container.lastChild;
     });
   }

@@ -1,6 +1,6 @@
 import {DirectiveClass} from '../src/directive_class';
 import {DecoratorDirective, TemplateDirective, ComponentDirective, EXECUTION_CONTEXT} from '../src/annotations';
-import {ViewPort, View} from '../src/view';
+import {ViewPort, View, RootView} from '../src/view';
 import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory';
 import {Injector} from 'di/injector';
 import {Inject, Provide} from 'di/annotations';
@@ -55,7 +55,7 @@ describe('ElementBinder', ()=>{
       expect(ngNode.data().directives).toEqual([childInjector.get(SomeDirective)]);
     });
 
-    it('should add exported properties of directives to the element', ()=>{      
+    it('should add exported properties of directives to the element and not cache them in the ngNode', ()=>{      
       class SomeDirective {
       }
       createInjector();
@@ -69,8 +69,12 @@ describe('ElementBinder', ()=>{
       var directiveInstance = childInjector.get(SomeDirective);
       directiveInstance.someProp = 'someValue';
       expect(element.someProp).toBe('someValue');
+      expect(element.ngNode.prop('someProp')).toBe('someValue');
       element.someProp = 'anotherValue';
       expect(directiveInstance.someProp).toBe('anotherValue');
+      // Not caching on the ngNode
+      // is important so that we don't get into digest cycles between digest and flush!
+      expect(element.ngNode.prop('someProp')).toBe('anotherValue');
     });
 
     it('should not overwrite existing properties when exporting properties of directives', ()=>{      
@@ -83,7 +87,7 @@ describe('ElementBinder', ()=>{
         ]
       });
 
-      expect( () => {binder.bind(injector, element);}).toThrow();
+      expect( ()=>{ binder.bind(injector, element); } ).toThrow();
     });
 
     it('should initialize exported properties with the attribute value', ()=>{
@@ -108,59 +112,70 @@ describe('ElementBinder', ()=>{
     });
 
     describe('data binding', () => {
-      var watchCalls, watchExprCallback, watchPropCallback;
       beforeEach(()=>{
         createInjector();
         var nodeAttrs = new NodeAttrs({
           bind: {
-            'someProp': 'someExpr'
+            'someNodeProp': 'someCtxProp'
           }
         });
         createElementAndBinder({
           attrs: nodeAttrs
         });
-        spyOn(view, 'watch');
-        spyOn(view, 'assign');
-        binder.bind(injector, element);
-
-        watchCalls = view.watch.calls;
-        watchExprCallback = watchCalls.argsFor(0)[1];
-        watchPropCallback = watchCalls.argsFor(1)[1];
-        element.ngNode.flush();
-      });
-
-      it('should initialize data binding', ()=>{
-        expect(watchCalls.count()).toBe(2);
-        // watch the expression on the execution context
-        expect(watchCalls.argsFor(0)[0]).toBe('someExpr');
-        expect(watchCalls.argsFor(0)[2]).toBe(view.executionContext);
-        // watch the property on the ngNode
-        expect(watchCalls.argsFor(1)[0]).toBe('value');
-        expect(watchCalls.argsFor(1)[2]).toBe(element.ngNode.prop("someProp"));
       });
 
       it('should update the ngNode when the epxression changes', ()=>{
-        watchExprCallback('someValue');
-        expect(element.ngNode.isDirty()).toBe(true);
-        expect(element.ngNode.prop('someProp').value).toBe('someValue');
+        binder.bind(injector, element);
+        view.watchGrp.detectChanges();
+
+        view.executionContext.someCtxProp = 'someValue';
+        view.watchGrp.detectChanges();
+        expect(element.ngNode.prop('someNodeProp')).toBe('someValue');
+        expect(view.executionContext.someCtxProp).toBe('someValue');
       });
 
       it('should update the expression when ngNode changes', ()=>{
-        watchPropCallback('someValue');
-        expect(view.assign).toHaveBeenCalledWith('someExpr', 'someValue', view.executionContext);
+        binder.bind(injector, element);
+        view.watchGrp.detectChanges();
+
+        element.ngNode.prop('someNodeProp', 'someValue');
+        
+        view.watchGrp.detectChanges();
+        expect(element.ngNode.prop('someNodeProp')).toBe('someValue');
+        expect(view.executionContext.someCtxProp).toBe('someValue');
       });
 
-      it('should not update the expression when ngNode changes after an expression change', ()=>{
-        watchExprCallback('someValue');
-        watchPropCallback('someValue');
-        expect(view.assign).not.toHaveBeenCalled();
-      });
+      it('should not update the ngNode in later digests when ngNode changes', ()=>{
+        binder.bind(injector, element);
+        view.watchGrp.detectChanges();
 
-      it('should not update the ngNode when the expression changes after an ngNode change', ()=>{
-        watchPropCallback('someValue');
-        watchExprCallback('someValue');
+        element.ngNode.prop('someNodeProp', 'someValue');
+        element.ngNode.flush();
+        
+        view.watchGrp.detectChanges();        
+        view.watchGrp.detectChanges();
+
         expect(element.ngNode.isDirty()).toBe(false);
       });
+
+      it('should let changes in the view win over changes in the element', ()=>{
+        binder.bind(injector, element);
+
+        // first digest
+        element.ngNode.prop('someNodeProp', 'a1');
+        view.executionContext.someCtxProp = 'b1';
+        view.digest();
+        expect(element.ngNode.prop('someNodeProp')).toBe('b1');
+        expect(view.executionContext.someCtxProp).toBe('b1');
+
+        // fruther digests
+        element.ngNode.prop('someNodeProp', 'a2');
+        view.executionContext.someCtxProp = 'b2';
+        view.digest();
+        expect(element.ngNode.prop('someNodeProp')).toBe('b2');
+        expect(view.executionContext.someCtxProp).toBe('b2');
+      });
+
     });
 
     it('should initialize event handling', ()=>{
@@ -244,7 +259,7 @@ describe('ElementBinder', ()=>{
     });
 
     it('should call the viewFactory with the component instance as execution context', () => {
-      spyOn(viewFactory, 'createView').and.callThrough();
+      spyOn(viewFactory, 'createChildView').and.callThrough();
 
       createElementAndBinder({
         component: {
@@ -254,7 +269,7 @@ describe('ElementBinder', ()=>{
       });
       var childInjector = binder.bind(injector, element);
 
-      expect(viewFactory.createView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
+      expect(viewFactory.createChildView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
     });
 
   });
@@ -289,27 +304,33 @@ describe('NonElementBinder', () => {
       createInjector();
       var nodeAttrs = new NodeAttrs({
         bind: {
-          'someProp': 'someExpr'
+          'someNodeProp': 'someCtxProp'
         }
       });
       createCommentAndNonElementBinder({
         attrs: nodeAttrs
       });
-      spyOn(view, 'watch');
 
       binder.bind(injector, node);
-      var watchCalls = view.watch.calls;
-      expect(watchCalls.count()).toBe(2);
-      // watch the expression on the execution context
-      expect(watchCalls.argsFor(0)[0]).toBe('someExpr');
-      expect(watchCalls.argsFor(0)[2]).toBe(view.executionContext);
-      // watch the property on the ngNode
-      expect(watchCalls.argsFor(1)[0]).toBe('value');
-      expect(watchCalls.argsFor(1)[2]).toBe(node.ngNode.prop("someProp"));
+
+      view.executionContext.someCtxProp = '1';
+      view.digest();
+      expect(node.ngNode.prop('someNodeProp')).toBe('1');
+      expect(view.executionContext.someCtxProp).toBe('1');
+
+      view.executionContext.someCtxProp = '2';
+      view.digest();
+      expect(node.ngNode.prop('someNodeProp')).toBe('2');
+      expect(view.executionContext.someCtxProp).toBe('2');
+
+      node.ngNode.prop('someNodeProp', '3');
+      view.digest();
+      expect(node.ngNode.prop('someNodeProp')).toBe('3');
+      expect(view.executionContext.someCtxProp).toBe('3');
 
       // We assume that NonElementBinder and ElementBinder share a common
       // implementatin for setting up the databinding,
-      // so we don't test the runtime test cases again here.
+      // so we don't test the other test cases again here.
       // See the test cases for ElementBinder above.
     });
 
@@ -409,7 +430,7 @@ describe('NonElementBinder', () => {
 function createInjector() {
   @Provide(View)
   function viewProvider(injector:Injector) {
-    return new View(document.createElement('a'), injector);
+    return new RootView(document.createElement('a'), injector);
   }
 
   injector = new Injector([viewProvider]);

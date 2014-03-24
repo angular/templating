@@ -114,14 +114,14 @@ describe('Selector', () => {
     describe('match bindings', function() {
       it('should convert attr interpolation into bind-...', () => {
         expect(selector.matchElement(e('<div test="{{a}}"></div>')).attrs.bind)
-          .toEqual({'test': "''+a+''"});
+          .toEqual({'test': "''+(a)+''"});
 
-        expect(selector.matchElement(e('<div test="{{a}}"></div>')).attrs.bind)
-          .toEqual({'test': "''+a+''"});
+        expect(selector.matchElement(e('<div test="{{1+2}}"></div>')).attrs.bind)
+          .toEqual({'test': "''+(1+2)+''"});
 
         // camel case conversion
         expect(selector.matchElement(e('<div test-a="{{a}}"></div>')).attrs.bind)
-          .toEqual({'testA': "''+a+''"});
+          .toEqual({'testA': "''+(a)+''"});
       });
 
       it('should save bind-... attributes', () => {
@@ -160,8 +160,9 @@ describe('Selector', () => {
       expect(selector.matchText(e('a b c'))).toBeFalsy();
     });
     it('should convert interpolation into expression strings', () => {
-      expect(selector.matchText(e('{{a}}'))).toBe("''+a+''");
-      expect(selector.matchText(e('a{{b}}{{c}}d'))).toBe("'a'+b+''+c+'d'");
+      expect(selector.matchText(e('{{a}}'))).toBe("''+(a)+''");
+      expect(selector.matchText(e('a{{b}}{{c}}d'))).toBe("'a'+(b)+''+(c)+'d'");
+      expect(selector.matchText(e('a{{1+2}}d'))).toBe("'a'+(1+2)+'d'");
     });
   });
 

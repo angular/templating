@@ -20,12 +20,14 @@ export class NgNode {
     this._props = {
       cache: {},
       changed: {},
-      accessors: {}
+      accessors: {},
+      notCacheable: {}
     }
     this._styles = {
       cache: {},
       changed: {},
-      accessors: {}
+      accessors: {},
+      notCacheable: {}
     }
     this._installPropertyChangeEventListeners();
   }
@@ -68,6 +70,15 @@ export class NgNode {
   isDirty() {
     return this._dirty;
   }
+  _setDirty() {    
+    if (!this.isDirty()) {
+      this._dirty = true;      
+      if (this._data && this._data.view) {
+        // TODO: Test this!
+        this._data.view.rootView.dirtyNodes.push(this);
+      }
+    }
+  }
   flush() {
     this._dirty = false;
 
@@ -80,34 +91,20 @@ export class NgNode {
       styles: changedStyles
     }
   }
-  clazz(classes:string) {
-    var self = this;
-    var accessor = self._classes.accessors[classes];
-    if (!accessor) {
-      accessor = Object.create({}, {
-        value: {
-          get: get,
-          set: set
-        }
-      });
-      self._classes.accessors[classes] = accessor;
-    }
-    return accessor;
-
-    function get() {
-      self._ensureClassCache();
+  clazz(classes:string, ...values) {
+    if (values.length === 0) {
+      this._ensureClassCache();
       return classes.split(' ').reduce((state, className) => {
-        return state && !!self._classes.cache[className];
+        return state && !!this._classes.cache[className];
       }, true);
-    }
-
-    function set(condition) {
-      self._ensureClassCache();
+    } else {
+      var value = values[0];
+      this._ensureClassCache();
       classes.split(' ').forEach((className) => {
-        self._classes.cache[className] = !!condition;
-        self._classes.changed[className] = true;
+        this._classes.cache[className] = !!value;
+        this._classes.changed[className] = true;
       });
-      self._dirty = true;
+      this._setDirty();
       return this;
     }
   }
@@ -137,38 +134,39 @@ export class NgNode {
     }
     return changedValues;
   }
-  prop(name:string, value:string = null) {
-    return this._accessGeneric(this._node, this._props, name, value);
-  }
-  css(name:string, value = null) {
-    return this._accessGeneric(this._node.style, this._styles, name, value);
-  }
-  _accessGeneric(nativeObj, localObj, name:string) {
-    var self = this;
-    var accessor = localObj.accessors[name];
-    if (!accessor) {
-      accessor = Object.create({}, {
-        value: {
-          get: get,
-          set: set
-        }
-      });
-      localObj.accessors[name] = accessor;
+  propCacheable(name:string, cacheable = undefined) {
+    if (cacheable === undefined) {
+      return !this._props.notCacheable[name];
     }
-    return accessor;
-
-    function set(value) {
-      localObj.cache[name] = value;
-      localObj.changed[name] = true;
-      self._dirty = true;
-      return self;
-    }
-
-    function get() {
+    this._props.notCacheable[name] = !cacheable;
+    return this;
+  }
+  prop(name:string, ...values) {
+    return this._accessGeneric(this._node, this._props, name, values);
+  }
+  css(name:string, ...values) {
+    return this._accessGeneric(this._node.style, this._styles, name, values);
+  }
+  _accessGeneric(nativeObj, localObj, name:string, values) {
+    var notCacheable = localObj.notCacheable[name];
+    if (values.length === 0) {
+      if (notCacheable) {
+        return nativeObj[name];
+      }
       if (!(name in localObj.cache)) {
         localObj.cache[name] = nativeObj[name];
       }
-      return localObj.cache[name];          
+      return localObj.cache[name];
+    } else {
+      var value = values[0];
+      if (notCacheable) {
+        nativeObj[name] = value;
+        return this;
+      }
+      localObj.cache[name] = value;
+      localObj.changed[name] = true;
+      this._setDirty();
+      return this;      
     }
   }
   _flushGeneric(nativeObj, localObj) {

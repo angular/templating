@@ -50,7 +50,7 @@ ViewFactory {templateContainer: SimpleNodeContainer, elementBinders: Array[4], c
         require(deps, function() {
           var module = callback(...arguments);
           var rootInjector = new Injector();
-          var view = module.viewFactory.createView(rootInjector, {});
+          var view = module.viewFactory.createRootView(rootInjector, {});
           expect($html(view.nodes)).toBe('<div></div>');
 
           done();        

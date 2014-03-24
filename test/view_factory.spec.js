@@ -1,6 +1,6 @@
 import {use, inject} from 'di/testing';
 import {Injector} from 'di/injector';
-import {ViewPort, View} from '../src/view';
+import {ViewPort, View, RootView} from '../src/view';
 import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory';
 import {$, $html} from './dom_mocks';
 
@@ -8,14 +8,14 @@ describe('ViewFactory', () => {
   it('should not clone the given nodes if inplace flag is set', () => {
     var injector = new Injector();
     var container = $('<div>a<a></a></div>')[0];
-    var view = new ViewFactory(container, []).createView(injector, {}, true);
+    var view = new ViewFactory(container, []).createRootView(injector, {}, true);
     expect(Array.prototype.slice.call(container.childNodes)).toEqual(view.nodes);
   });
 
   it('should clone the given nodes if inplace flag is not set', () => {
     var injector = new Injector();
     var container = $('<div>a<a></a></div>')[0];
-    var view = new ViewFactory(container, []).createView(injector, {});
+    var view = new ViewFactory(container, []).createRootView(injector, {});
     expect(Array.prototype.slice.call(container.childNodes)).not.toEqual(view.nodes);
     expect($html(container.childNodes)).toBe($html(view.nodes));
   });
@@ -24,14 +24,14 @@ describe('ViewFactory', () => {
     var injector = new Injector();
     var container = $('<div>a</div>')[0]
     var node = container.childNodes[0];
-    new ViewFactory(container, []).createView(injector, {});
+    new ViewFactory(container, []).createRootView(injector, {});
     expect(node.parentNode).toBe(container);
   });
 
   it('should create a child injector and provide the view on the new injector', ()=>{
     var injector = new Injector();
     var execContext = {};
-    var view = new ViewFactory($('<div>a</div>')[0], []).createView(injector, execContext);
+    var view = new ViewFactory($('<div>a</div>')[0], []).createRootView(injector, execContext);
     expect(view.injector.parent).toBe(injector);
     expect(view.injector.get(View)).toBe(view);
   });
@@ -39,15 +39,23 @@ describe('ViewFactory', () => {
   it('should save the executionContext on the view', ()=>{
     var injector = new Injector();
     var execContext = {};
-    var view = new ViewFactory($('<div>a</div>')[0], []).createView(injector, execContext);
+    var view = new ViewFactory($('<div>a</div>')[0], []).createRootView(injector, execContext);
     expect(view.executionContext).toBe(execContext);
+  });
+
+  it('should create a child view using the view in the injector', ()=>{
+    var injector = new Injector();
+    var vf = new ViewFactory($('<div>a</div>')[0], []);
+    var rootView = vf.createRootView(injector, {});
+    var childView = vf.createChildView(rootView.injector, {});
+    expect(childView.parentView).toBe(rootView);
   });
 
   it('should not call the first binder', ()=>{
     var injector = new Injector();
     var binders = mockBinders([0]);
     var view = new ViewFactory($('<div></div>')[0], binders)
-      .createView(injector, {});
+      .createRootView(injector, {});
     
     expect(binders[0].bind).not.toHaveBeenCalled();
   });
@@ -56,7 +64,7 @@ describe('ViewFactory', () => {
     var injector = new Injector();
     var binders = mockBinders([0,1]);
     var view = new ViewFactory($('<div><a></a><b class="ng-binder"></b></div>')[0], binders)
-      .createView(injector, {});
+      .createRootView(injector, {});
     
     expect(binders[1].bind.calls.argsFor(0)[1]).toBe(view.nodes[1]);
   });
@@ -65,7 +73,7 @@ describe('ViewFactory', () => {
     var injector = new Injector();
     var binders = mockBinders([0,1,2,1]);
     var view = new ViewFactory($('<div><a class="ng-binder"><b class="ng-binder"></b></a><a class="ng-binder"></div>')[0], binders)
-      .createView(injector, {});
+      .createRootView(injector, {});
         
     expect(binders[1].bind.calls.argsFor(0)[0]).toBe(view.injector);
     expect(binders[2].bind.calls.argsFor(0)[0].parent).toBe(view.injector);
@@ -79,7 +87,7 @@ describe('ViewFactory', () => {
     var rootNonElBinders = binders[0].nonElementBinders = mockNonElementBinders([0,2]);
     var nonRootNonElBinders = binders[1].nonElementBinders = mockNonElementBinders([0]);
     var view = new ViewFactory($('<div>a<a class="ng-binder">c</a>b</div>')[0], binders)
-      .createView(injector, {});
+      .createRootView(injector, {});
     expect(rootNonElBinders[0].bind).toHaveBeenCalledWith(view.injector, view.nodes[0]);
     expect(rootNonElBinders[1].bind).toHaveBeenCalledWith(view.injector, view.nodes[2]);
 

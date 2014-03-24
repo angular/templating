@@ -5,11 +5,12 @@ import {assert} from 'assert';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, EXECUTION_CONTEXT} from './annotations';
 import {Injector} from 'di/injector';
 import {Inject, Provide} from 'di/annotations';
-import {ViewPort, View} from './view';
+import {ViewPort, View, RootView} from './view';
 import {TreeArray} from './tree_array';
 import {EventHandler} from './event_handler';
 import {reduceTree} from './tree_array';
 import {NgNode} from './ng_node';
+import {ConstantAST} from 'watchtower/ast';
 
 /*
  * A ViewFactory contains a nodes which need to be cloned for each new 
@@ -28,19 +29,27 @@ export class ViewFactory {
     this.templateContainer = templateContainer;
     this.elementBinders = elementBinders;
   }
-  createView(injector:Injector, executionContext:Object, inplace:boolean = false):View {
+  createRootView(injector:Injector, executionContext:Object, inplace:boolean = false):RootView {
+    return this._createView(null, injector, executionContext, inplace);
+  }
+  createChildView(injector:Injector, executionContext:Object, inplace:boolean = false):View {
+    return this._createView(injector.get(View), injector, executionContext, inplace);
+  }
+  _createView(parentView:View, injector:Injector, executionContext:Object, inplace:boolean = false):View {
     var container;
     if (inplace) {
       container = this.templateContainer;
     } else {
       container = this.templateContainer.cloneNode(true);
     }
-    var ngNodes = [];
 
     @Provide(View)
     @Inject(Injector)
     function viewProvider(injector:Injector) {
-      return new View(container, injector, executionContext, ngNodes);
+      if (!parentView) {
+        return new RootView(container, injector, executionContext);
+      }
+      return new View(parentView, container, injector, executionContext);
     }
     var viewInjector = injector.createChild([viewProvider]);
     var view = viewInjector.get(View);
@@ -62,12 +71,12 @@ export class ViewFactory {
       } else {
         element = boundElements[index-1];
         childInjector = binder.bind(parentInjector, element);
-        ngNodes.push(childInjector.get(NgNode));
+        childInjector.get(NgNode);
       }
       binder.nonElementBinders.forEach((nonElementBinder) => {
         var nonElementNode = element.childNodes[nonElementBinder.indexInParent];
         var nonElementInjector = nonElementBinder.bind(childInjector, nonElementNode);
-        ngNodes.push(nonElementInjector.get(NgNode));
+        nonElementInjector.get(NgNode);
       });
       return childInjector;
     }
@@ -144,12 +153,14 @@ class NodeBinder {
   }
   bind(injector:Injector, node:Node):Injector {
     var self = this;
+    var view = injector.get(View);
     
     @Provide(NgNode)
     @Inject(Injector)
     function ngNodeProvider(injector:Injector) {
       return new NgNode(node, {
         injector: injector,
+        view: view,
         directives: []
       })
     }
@@ -157,13 +168,12 @@ class NodeBinder {
     this._collectDiProviders(providers);
     var childInjector = injector.createChild(providers);
     var ngNode = childInjector.get(NgNode);
-    var view = injector.get(View);
     
     var directiveClasses = [];
     this._collectDirectives(directiveClasses);
     directiveClasses.forEach((directiveClass) => {
       var directiveInstance = childInjector.get(directiveClass.clazz);
-      this._initExportedProperty(node, directiveInstance, directiveClass.annotation.exports || []);
+      this._initExportedProperty(ngNode, directiveInstance, directiveClass.annotation.exports || []);
       ngNode.data().directives.push(directiveInstance);
     });
 
@@ -180,25 +190,35 @@ class NodeBinder {
 
   }
   _setupBidiBinding(view, ngNode, property, expression) {
-    // TODO: Add test for this first assignment!
-    var lastValue = view.evaluate(expression, view.executionContext);
-    ngNode.prop(property).value = lastValue;
-    
-    view.watch(expression, (value) => {
-      if (value !== lastValue) {
-        ngNode.prop(property).value = value;
+    var context = Object.create(view.executionContext, {
+      $node: {
+        value: ngNode
       }
-      lastValue = value;
-    }, view.executionContext);
+    });
+    // TODO: Refactor this to use $node.prop.<property>
+    // when watchTower/expressionist.js support PropertyProxies
+    var watchAst = view.watchParser.parse('[$node.prop("'+property+'"), '+expression+']', null, false, context);
+    var lastValue = undefined;
+    view.watchGrp.watch(watchAst, function(data) {
+      data = data || [];
+      if (data[1] !== lastValue) {
+        // view change
+        lastValue = data[1];
+        ngNode.prop(property, lastValue);
+      } else if (data[0] !== lastValue) {
+        // node change
+        // TODO: check if the expression is assignable and in that case don't call it!
+        lastValue = data[0];
+        try {
+          view.assign(expression, lastValue);
+        } catch (e) {
+        }        
+      }
 
-    view.watch('value', (value) => {
-      if (value !== lastValue) {
-        view.assign(expression, value, view.executionContext);
-      }
-      lastValue = value;        
-    }, ngNode.prop(property));
+    });
   }
-  _initExportedProperty(node, directiveInstance, exportedProps) {
+  _initExportedProperty(ngNode, directiveInstance, exportedProps) {
+    var node = ngNode.nativeNode();
     var self = this;
     exportedProps.forEach(function(propName) {
       if (propName in node) {
@@ -209,6 +229,7 @@ class NodeBinder {
         get: () => { return directiveInstance[propName]; },
         set: (value) => { directiveInstance[propName] = value; }
       });
+      ngNode.propCacheable(propName, false);
       if (propName in self.attrs.init) {
         node[propName] = self.attrs.init[propName];
       }
@@ -268,13 +289,25 @@ export class ElementBinder extends NodeBinder {
   _bindComponentTemplate(injector:Injector, element:HTMLElement) {
     // use the component instance as new execution context
     var componentInstance = injector.get(this.component.directive.clazz);
-    var view = this.component.viewFactory.createView(injector, componentInstance);
+    var view = this.component.viewFactory.createChildView(injector, componentInstance);
     // TODO: Make ShadowDOM optional using custom transclusion
-    var root = element.createShadowRoot();
+    var root = createShadowRoot(element);
     view.appendTo(root);
   }
 }
 
+function createShadowRoot(el) {
+  var res = ['createShadowRoot', 'webkitCreateShadowRoot'].reduce(function(shadowRoot, fnName) {
+    if (!shadowRoot && el[fnName]) {
+      shadowRoot = el[fnName]();
+    }
+    return shadowRoot;
+  }, null);
+  if (!res) {
+    throw new Error('could not find createShadowRoot on the element', el);
+  }
+  return res;
+}
 
 export class NonElementBinder extends NodeBinder {
   constructor(data:NonElementBinderArgs = {}) {

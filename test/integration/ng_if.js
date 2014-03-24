@@ -44,7 +44,7 @@ export class NgIf {
       this.view = null;
     }
     if (value) {
-      this.view = this.viewFactory.createView(this.injector, this.parentView.executionContext);
+      this.view = this.viewFactory.createChildView(this.injector, this.parentView.executionContext);
       this.viewPort.append(this.view);
     }
   }

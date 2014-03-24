@@ -16,16 +16,25 @@ import { NgNode, ArrayOfNgNode } from './ng_node';
  * such as ng-if and ng-repeat.
  */
 export class View extends LinkedListItem {
-  constructor(container:NodeContainer, injector:Injector, executionContext:Object = {}, ngNodes:ArrayOfNgNode = []) {
+  constructor(parentView:View, container:NodeContainer, injector:Injector, executionContext:Object = {}) {
     super();
     this.injector = injector;
+    this.parentView = parentView;
     this.executionContext = executionContext;
+    if (this.parentView) {
+      this.rootView = this.parentView.rootView;
+      this.watchGrp = this.parentView.watchGrp.newGroup(this.executionContext);
+    } else {
+      this.rootView = this;
+      // TODO: Refactor this setup, use DI
+      this.detector = new DirtyCheckingChangeDetector(new GetterCache({}));
+      this.watchGrp = new RootWatchGroup(this.detector, this.executionContext);
+    }
+    this.parser = injector.get(Parser);
+    this.watchParser = injector.get(WatchParser);
     // Save references to the nodes so that we can insert
     // them back into the fragment later...
-    // TODO: rename this? it's only the parent nodes, but the ngNodes are all 
-    // nodes that have bindings in this view!
     this.nodes = Array.prototype.slice.call(container.childNodes);
-    this.ngNodes = ngNodes;
     if (container.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
       this._fragment = container;
       this.removed = true;
@@ -33,18 +42,9 @@ export class View extends LinkedListItem {
       this._fragment = new DocumentFragment();
       this.removed = false;
     }
-    // TODO: Refactor this setup, use DI
-    // TODO: Don't create a RootWatchGroup every time,
-    // but use the parent view's watchGroup
-    // -> refactor view to require a parent view as input
-    // ?? Maybe create a RootView ??
-    // -> would always be inplace...
-    this.detector = new DirtyCheckingChangeDetector(new GetterCache({}));
-    this.watchGrp = new RootWatchGroup(this.detector, this.executionContext);
-    this.parser = new Parser();
-    this.watchParser = new WatchParser(this.parser);
   }
   _removeIfNeeded() {
+    this._checkDestroyed();
     if (!this.removed) {
       this.removed = true;
       this.nodes.forEach((node) => { this._fragment.appendChild(node); });
@@ -62,39 +62,55 @@ export class View extends LinkedListItem {
     this.removed = false;
   }
   watch(expression:string, callback:Function, context:Object=null) {
+    this._checkDestroyed();
     // TODO: How to get the filters??
     // -> they should be defined in the modules that the template
     //    imports resp. in the data that is given to compile()!
-    // -> it would be optimal if we could precompile the expressions,
-    //    as through this we would know which filters are used and which are not!
-    var watchGrp = this.watchGrp;
-    if (context && context !== this.executionContext) {
-      // TODO: How to clean up this new watchGrp??
-      watchGrp = this.watchGrp.newGroup(context);
-    }
-    var filters = function(){};
+    var filters = null;
     // TODO: Cache expressions
-    var watchAst = this.watchParser.parse(expression, filters);
-    watchGrp.watch(watchAst, callback);
+    // -> can't cache the watchAst, but
+    //    we could cache the expression AST, then change watchParser to
+    //    get the expression AST as an input, and not the expression string!
+    var watchAst = this.watchParser.parse(expression, filters, false, context);
+    this.watchGrp.watch(watchAst, callback);
   }
   assign(expression:string, value=null, context:Object=null) {
+    this._checkDestroyed();
     // TODO: Cache the expressions!
     var parsedExpr = this.parser.parse(expression);
     parsedExpr.bind(context || this.executionContext).assign(value);
   }
   evaluate(expression:string, context:Object=null) {
+    this._checkDestroyed();
     // TODO: Cache the expressions!
     var parsedExpr = this.parser.parse(expression);
     return parsedExpr.bind(context || this.executionContext).eval();
   }
+  destroy() {
+    if (this.rootView !== this) {
+      this.watchGrp.remove();
+    }
+    this.destroyed = true;
+  }
+  _checkDestroyed() {
+    if (this.destroyed) {
+      throw new Error('This view has been destroyed and can not be used any more');
+    }
+  }
+}
+
+export class RootView extends View {
+  constructor(container:NodeContainer, injector:Injector, executionContext:Object = {}) {
+    super(null, container, injector, executionContext);
+    this.dirtyNodes = [];
+  }
   digest() {
     this.watchGrp.detectChanges();
-    // TODO: Call child views as well
+    while (this.dirtyNodes.length) {
+      this.dirtyNodes.pop().flush();
+    }
   }
-  flush() {
-    this.ngNodes.forEach((ngNode) => { ngNode.flush(); });
-    // TODO: Call child views as well
-  }
+
 }
 
 export class ViewPort  {
@@ -124,10 +140,6 @@ export class ViewPort  {
       this.insertBefore(view, referenceView.next);
     }
   }
-
-  // TODO: destroy the injector of the view as well here
-  // TODO: Provide a hook for DI objects (e.g. event_handler)
-  // to be notified about the destruction of the injector.
   remove(view:View) {
     this.list.remove(view);
     view._removeIfNeeded();
