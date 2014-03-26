@@ -2,6 +2,7 @@ var gulp = require('gulp');
 var pipe = require('pipe/gulp');
 var connect = require('gulp-connect');
 var traceur = require('gulp-traceur');
+var through = require('through2');
 
 
 var path = {
@@ -47,3 +48,33 @@ gulp.task('serve', connect.server({
     browser: 'Google Chrome'
   }
 }));
+
+
+var clientify = require('clientify');
+var rename = function(search, replace) {
+  return through.obj(function(file, enc, cb) {
+    file.path = file.path.replace(search, replace);
+    this.push(file);
+  });
+};
+
+// Move to package.json?
+var GITHUB_REPOS = [
+  'angular/watchtower.js#dist',
+  'angular/expressionist.js#dist'
+];
+
+gulp.task('shrinkwrap', function() {
+  gulp.src('./package.json')
+    .pipe(through.obj(function(file, _, done) {
+      var pkg = JSON.parse(file.contents);
+      var stream = this;
+      clientify.shrinkwrap(pkg, GITHUB_REPOS).then(function(shrinkwrap) {
+        file.contents = new Buffer(JSON.stringify(shrinkwrap, null, '  '));
+        stream.push(file);
+        done();
+      });
+    }))
+    .pipe(rename('package.json', 'npm-shrinkwrap.json'))
+    .pipe(gulp.dest('.'));
+});
