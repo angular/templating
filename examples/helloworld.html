@@ -1,10 +1,10 @@
 <!doctype html>
 <html>
 <head>
-  <script type="text/javascript" src="/node_modules/di/node_modules/es6-shim/es6-shim.js"></script>
+  <script type="text/javascript" src="/node_modules/es6-shim/es6-shim.js"></script>
 
-  <script type="text/javascript" src="/node_modules/pipe/node_modules/requirejs/require.js"></script>
-  <script type="text/javascript" src="/node_modules/pipe/node_modules/karma-traceur-preprocessor/node_modules/traceur/bin/traceur-runtime.js"></script>
+  <script type="text/javascript" src="/node_modules/requirejs/require.js"></script>
+  <script type="text/javascript" src="/node_modules/traceur/bin/traceur-runtime.js"></script>
 
   <!-- TODO: include source maps! -->
   <!-- TODO: create standalone repo for examples, e.g. v2_examples -->
@@ -13,7 +13,7 @@
     require.config({
       paths: {
         'di': '/node_modules/di/dist/amd',
-        'assert': '/node_modules/pipe/node_modules/assert/dist/amd/assert',
+        'assert': '/node_modules/assert/dist/amd/assert',
         'templating': '/dist/amd',
         'expressionist': '/node_modules/expressionist/dist/amd',
         'watchtower': '/node_modules/watchtower/dist/amd'
