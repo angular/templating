@@ -1,6 +1,7 @@
 var gulp = require('gulp');
 var pipe = require('pipe/gulp');
 var connect = require('gulp-connect');
+var traceur = require('gulp-traceur');
 
 
 var path = {
@@ -12,19 +13,19 @@ var path = {
 // TRANSPILE ES6
 gulp.task('build_source_amd', function() {
   gulp.src(path.src)
-      .pipe(pipe.traceur())
+      .pipe(traceur(pipe.traceur()))
       .pipe(gulp.dest('dist/amd'));
 });
 
 gulp.task('build_examples', function() {
   gulp.src(path.examples)
-      .pipe(pipe.traceur())
+      .pipe(traceur(pipe.traceur()))
       .pipe(gulp.dest('temp/examples'));
 });
 
 gulp.task('build_source_cjs', function() {
   gulp.src(path.src)
-      .pipe(pipe.traceur({modules: 'commonjs'}))
+      .pipe(traceur(pipe.traceur({modules: 'commonjs'})))
       .pipe(gulp.dest('dist/cjs'));
 });
 

@@ -17,8 +17,18 @@
     "watchtower": "git://github.com/angular/watchtower.js#dist"
   },
   "devDependencies": {
-    "pipe": "angular/pipe",
-    "gulp-connect": "~1.0.5"
+    "assert": "git://github.com/angular/assert#dist",
+    "gulp": "^3.5.6",
+    "gulp-connect": "~1.0.5",
+    "gulp-traceur": "^0.3.0",
+    "karma": "^0.12.1",
+    "karma-chrome-launcher": "^0.1.2",
+    "karma-jasmine": "^0.2.2",
+    "karma-requirejs": "^0.2.1",
+    "karma-sauce-launcher": "^0.2.3",
+    "karma-traceur-preprocessor": "^0.2.2",
+    "pipe": "git://github.com/angular/pipe#remove-transitive-deps",
+    "requirejs": "^2.1.11"
   },
   "scripts": {
     "test": "karma start --single-run"
