@@ -195,11 +195,8 @@ class NodeBinder {
         value: ngNode
       }
     });
-    // TODO: Refactor this to use $node.prop.<property>
-    // when watchTower/expressionist.js support PropertyProxies
-    var watchAst = view.watchParser.parse('[$node.prop("'+property+'"), '+expression+']', null, false, context);
     var lastValue = undefined;
-    view.watchGrp.watch(watchAst, function(data) {
+    view.watch('[$node.prop("'+property+'"), '+expression+']', function(data) {
       data = data || [];
       if (data[1] !== lastValue) {
         // view change
@@ -208,6 +205,9 @@ class NodeBinder {
       } else if (data[0] !== lastValue) {
         // node change
         // TODO: check if the expression is assignable and in that case don't call it!
+        // TODO: Need to get the AST for this?
+        // TODO: Maybe change interface in view: merge evaluate, assign into one function
+        // that returns an object that only has the assign method if the expression is assignable        
         lastValue = data[0];
         try {
           view.assign(expression, lastValue);
@@ -215,7 +215,7 @@ class NodeBinder {
         }        
       }
 
-    });
+    }, context);
   }
   _initExportedProperty(ngNode, directiveInstance, exportedProps) {
     var node = ngNode.nativeNode();

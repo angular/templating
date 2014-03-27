@@ -10,7 +10,7 @@ module.exports = function(config) {
       'test-main.js',
 
       {pattern: 'src/**/*.js', included: false},
-      {pattern: 'test/**/*.js', included: false},
+      {pattern: 'test/**/*', included: false},      
 
       {pattern: 'node_modules/di/dist/amd/**/*.js', included: false},
       {pattern: 'node_modules/assert/dist/amd/**/*.js', included: false},

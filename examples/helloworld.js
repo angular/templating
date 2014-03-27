@@ -1,10 +1,9 @@
 import {ComponentDirective} from 'templating/annotations';
+import {viewFactory} from 'templating/requirejs-html!./greet';
 
-// TODO: next step: externalize the template into a separate file
-// and have our compiler automatically compile it
 @ComponentDirective({
   selector: 'exp-hello',
-  template: '<input type="text" bind-value="user">{{greet(user)}}'
+  template: viewFactory
 })
 export class FirstComponent {
   constructor() {

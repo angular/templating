@@ -31,7 +31,9 @@
     "karma-traceur-preprocessor": "^0.2.2",
     "pipe": "git://github.com/angular/pipe#remove-transitive-deps",
     "requirejs": "^2.1.11",
-    "through2": "^0.4.1"
+    "through2": "^0.4.1",
+    "gulp-util": "~2.2.14",
+    "jsdom": "~0.10.3"
   },
   "scripts": {
     "test": "karma start --single-run"

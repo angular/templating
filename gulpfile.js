@@ -3,13 +3,20 @@ var pipe = require('pipe/gulp');
 var connect = require('gulp-connect');
 var traceur = require('gulp-traceur');
 var through = require('through2');
-
+var precompile = require('./gulp-precompile');
 
 var path = {
   src: ['./src/**/*.js'],
-  examples: ['./examples/**/*.js']
+  examples: ['./examples/**/*.js'],
+  exampleTemplates: ['./examples/**/*.html']
 };
 
+function rename(search, replace) {
+  return through.obj(function(file, enc, cb) {
+    file.path = file.path.replace(search, replace);
+    this.push(file);
+  });
+}
 
 // TRANSPILE ES6
 gulp.task('build_source_amd', function() {
@@ -28,6 +35,15 @@ gulp.task('build_examples', function() {
   gulp.src(path.examples)
       .pipe(traceur(pipe.traceur()))
       .pipe(gulp.dest('temp/examples'));
+  gulp.src(path.exampleTemplates)
+      .pipe(gulp.dest('temp/examples'));
+  /* TODO: Not working yet...
+  gulp.src(path.exampleTemplates)
+      .pipe(precompile())
+      .pipe(traceur({}))
+      .pipe(rename(/html$/, 'js'))
+      .pipe(gulp.dest('test/examples/'));
+  **/
 });
 
 gulp.task('build_source_cjs', function() {
