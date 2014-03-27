@@ -7,6 +7,11 @@
       "from": "di@2.0.0-pre-5",
       "dependencies": {}
     },
+    "traceur": {
+      "version": "0.0.33",
+      "from": "git://github.com/vojtajina/traceur-compiler#es6-plus-to-pure-es6",
+      "dependencies": {}
+    },
     "expressionist": {
       "version": "0.0.1",
       "from": "git://github.com/angular/expressionist.js#dist",
@@ -15,11 +20,6 @@
     "watchtower": {
       "version": "0.0.1",
       "from": "git://github.com/angular/watchtower.js#dist",
-      "dependencies": {}
-    },
-    "traceur": {
-      "version": "0.0.32",
-      "from": "traceur@0.0.32",
       "dependencies": {}
     },
     "es6-shim": {
@@ -76,6 +76,25 @@
       "version": "1.0.0",
       "from": "weak-map@1.0.0",
       "dependencies": {}
+    },
+
+    "gulp-traceur": {
+      "version": "0.3.0",
+      "from": "gulp-traceur@0.3.0",
+      "dependencies": {
+        "through2": {
+          "version": "0.4.1",
+          "from": "through2@0.4.1"
+        },
+        "gulp-util": {
+          "version": "2.2.14",
+          "from": "gulp-util@2.2.14"
+        }
+      }
+    },
+    "karma-traceur-preprocessor": {
+      "version": "0.2.2",
+      "from": "karma-traceur-preprocessor@0.2.2"
     }
   }
 }
