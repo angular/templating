@@ -18,6 +18,12 @@ gulp.task('build_source_amd', function() {
       .pipe(gulp.dest('dist/amd'));
 });
 
+gulp.task('build_source_es6', function() {
+  gulp.src(path.src)
+      .pipe(traceur(pipe.traceur({pureES6: true})))
+      .pipe(gulp.dest('dist/es6'));
+});
+
 gulp.task('build_examples', function() {
   gulp.src(path.examples)
       .pipe(traceur(pipe.traceur()))
@@ -30,7 +36,7 @@ gulp.task('build_source_cjs', function() {
       .pipe(gulp.dest('dist/cjs'));
 });
 
-gulp.task('build', ['build_source_amd', 'build_source_cjs', 'build_examples']);
+gulp.task('build', ['build_source_amd', 'build_source_cjs', 'build_source_es6', 'build_examples']);
 
 
 // WATCH FILES FOR CHANGES
@@ -61,7 +67,8 @@ var rename = function(search, replace) {
 // Move to package.json?
 var GITHUB_REPOS = [
   'angular/watchtower.js#dist',
-  'angular/expressionist.js#dist'
+  'angular/expressionist.js#dist',
+  'vojtajina/traceur-compiler#es6-plus-to-pure-es6'
 ];
 
 gulp.task('shrinkwrap', function() {
@@ -73,7 +80,7 @@ gulp.task('shrinkwrap', function() {
         file.contents = new Buffer(JSON.stringify(shrinkwrap, null, '  '));
         stream.push(file);
         done();
-      });
+      }).done();
     }))
     .pipe(rename('package.json', 'npm-shrinkwrap.json'))
     .pipe(gulp.dest('.'));
