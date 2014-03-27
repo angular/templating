@@ -14,7 +14,8 @@
   "dependencies": {
     "di": "~2.0.0-pre-5",
     "expressionist": "git://github.com/angular/expressionist.js#dist",
-    "watchtower": "git://github.com/angular/watchtower.js#dist"
+    "watchtower": "git://github.com/angular/watchtower.js#dist",
+    "traceur": "git://github.com/vojtajina/traceur-compiler#es6-plus-to-pure-es6"
   },
   "devDependencies": {
     "assert": "git://github.com/angular/assert#dist",
