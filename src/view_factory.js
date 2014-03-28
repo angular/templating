@@ -2,7 +2,7 @@ import {NodeAttrs} from './types';
 import {NodeContainer} from './node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {assert} from 'assert';
-import {TemplateDirective, ComponentDirective, DecoratorDirective, EXECUTION_CONTEXT} from './annotations';
+import {TemplateDirective, ComponentDirective, DecoratorDirective, Directive} from './annotations';
 import {Injector} from 'di/injector';
 import {Inject, Provide} from 'di/annotations';
 import {ViewPort, View, RootView} from './view';
@@ -166,11 +166,14 @@ class NodeBinder {
     }
     var providers = [ngNodeProvider];
     this._collectDiProviders(providers);
-    var childInjector = injector.createChild(providers);
-    var ngNode = childInjector.get(NgNode);
-    
     var directiveClasses = [];
     this._collectDirectives(directiveClasses);
+
+    // TODO: We should only force the recreation of the 
+    // directives on this ElememtBinder, not all of the directives!
+    var childInjector = injector.createChild(providers, [Directive]);
+    var ngNode = childInjector.get(NgNode);
+    
     directiveClasses.forEach((directiveClass) => {
       var directiveInstance = childInjector.get(directiveClass.clazz);
       this._initExportedProperty(ngNode, directiveInstance, directiveClass.annotation.exports || []);

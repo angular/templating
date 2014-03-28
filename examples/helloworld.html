@@ -11,6 +11,7 @@
 
   <script>
     require.config({
+      baseUrl: '/temp/examples',
       paths: {
         'di': '/node_modules/di/dist/amd',
         'assert': '/node_modules/assert/dist/amd/assert',
@@ -22,7 +23,7 @@
     });
   </script>
 
-  <module src="/temp/examples/helloworld.js"></module>
+  <module src="helloworld"></module>
 </head>
 <body ng-app>
 

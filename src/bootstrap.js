@@ -19,16 +19,20 @@ require(modulesSrc, function() {
 });
 
 function createApp(appRootElement, moduleClasses) {
-  var rootInjector = new Injector();
-  var compiler = rootInjector.get(Compiler);
+  // TODO: Wait until all modules have been loaded!
+  window.setTimeout(function() {
+    var rootInjector = new Injector();
+    var compiler = rootInjector.get(Compiler);
 
-  var vf = compiler.compileNodes([appRootElement], moduleClasses);
-  var rootView = vf.createRootView(rootInjector, {}, true);
+    var vf = compiler.compileNodes([appRootElement], moduleClasses);
+    var rootView = vf.createRootView(rootInjector, {}, true);
 
-  // TODO: Integrate with Zone.js and remove the setInterval!
-  window.setInterval(function(){
-    rootView.digest();
-  }, 100);
+    // TODO: Integrate with Zone.js and remove the setInterval!
+    window.setInterval(function(){
+      rootView.digest();
+    }, 100);
+
+}, 1000)
 }
 
 function extractClasses(modules):ArrayOfClass {

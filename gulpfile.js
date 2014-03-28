@@ -3,7 +3,7 @@ var pipe = require('pipe/gulp');
 var connect = require('gulp-connect');
 var traceur = require('gulp-traceur');
 var through = require('through2');
-var precompile = require('./gulp-precompile');
+// var precompile = require('./gulp-precompile');
 
 var path = {
   src: ['./src/**/*.js'],
@@ -58,7 +58,7 @@ gulp.task('build', ['build_source_amd', 'build_source_cjs', 'build_source_es6', 
 // WATCH FILES FOR CHANGES
 gulp.task('watch', function() {
   gulp.watch([path.src], ['build_source_amd']);
-  gulp.watch([path.examples], ['build_examples']);
+  gulp.watch([path.examples, path.exampleTemplates], ['build_examples']);
 });
 
 

@@ -1,6 +1,7 @@
 import {Injector} from 'di/injector';
 import {Compiler} from './compiler';
 import {CompilerConfig} from './compiler_config';
+import {ViewFactory, ElementBinder} from 'templating/view_factory';
 
 // TODO: How to configure this injector??
 // TODO: Where to get the CompilerConfig from??
@@ -8,6 +9,20 @@ var injector = new Injector();
 var compiler = injector.get(Compiler);
 
 export function load(name, req, onload, config) {
+  var rootBinder = new ElementBinder();
+  rootBinder.setLevel(0);
+  // Return an empty ViewFactory that we fill later on.
+  // Because of this we won't get into problems with cycles that
+  // have been created through the ViewFactory.
+  
+  // TODO: Return a promise instead of the actual
+  // ViewFactory!!!
+  var vf = new ViewFactory(document.createElement('div'), [rootBinder]);
+  onload({
+    __esModule: true,
+    viewFactory: vf
+  });
+
   // TODO: read out the require config and instantiate the
   // compiler here!
   // ?? Maybe pass the compilerConfig to every call of the compiler ??
@@ -16,18 +31,17 @@ export function load(name, req, onload, config) {
     if (error) {
       onload.error(error);
     } else {
-      var vf;
       try {
-        // TODO: Parse the module tags as well!
-        vf = compiler.compileChildNodes(doc, []);
+        var depNames = findModules(doc);
+        req(depNames, function(...modules) {
+          // TODO: Add try/catch
+          var realVf = compiler.compileChildNodes(doc, extractClasses(modules));
+          vf.templateContainer = realVf.templateContainer;
+          vf.elementBinders = realVf.elementBinders;
+          console.log(vf);
+        });
       } catch (e) {
         onload.error(e);
-      }
-      if (vf) {
-        onload({
-          __esModule: true,
-          viewFactory: vf
-        });
       }
     }
   });
@@ -69,6 +83,30 @@ function loadText(url, callback) {
       }
     }
   }
+}
+
+function findModules(doc) {
+  var modules = doc.querySelectorAll('module[src]');
+  var res = [];
+  var i;
+  for (i=0; i<modules.length; i++) {
+    res.push(modules[i].getAttribute('src'));
+  }
+  return res;
+}
+
+function extractClasses(modules) {
+  var res = [];
+  modules.forEach( (module) => {
+    var exportedValue;
+    for (var prop in module) {
+      exportedValue = module[prop];
+      if (typeof exportedValue === 'function') {
+        res.push(exportedValue);
+      }
+    }
+  });
+  return res;
 }
 
 function isResponseTypeContentSupported() {
