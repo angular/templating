@@ -1,56 +1,53 @@
 import {Injector} from 'di/injector';
 import {Compiler} from './compiler';
 import {CompilerConfig} from './compiler_config';
-import {ViewFactory, ElementBinder} from 'templating/view_factory';
+import {ViewFactory, ElementBinder} from './view_factory';
 
-// TODO: How to configure this injector??
-// TODO: Where to get the CompilerConfig from??
 var injector = new Injector();
 var compiler = injector.get(Compiler);
 
 export function load(name, req, onload, config) {
-  var rootBinder = new ElementBinder();
-  rootBinder.setLevel(0);
-  // Return an empty ViewFactory that we fill later on.
-  // Because of this we won't get into problems with cycles that
-  // have been created through the ViewFactory.
-  
-  // TODO: Return a promise instead of the actual
-  // ViewFactory!!!
-  var vf = new ViewFactory(document.createElement('div'), [rootBinder]);
+  // TODO: read out the require config and instantiate the
+  // compiler here (with the correct CompilerConfig)
   onload({
     __esModule: true,
-    viewFactory: vf
+    viewFactory: new Promise(resolver)
   });
 
-  // TODO: read out the require config and instantiate the
-  // compiler here!
-  // ?? Maybe pass the compilerConfig to every call of the compiler ??
-  var url = req.toUrl(name+'.html');
-  loadText(url, function(error, doc) {
-    if (error) {
-      onload.error(error);
-    } else {
-      try {
-        var depNames = findModules(doc);
-        req(depNames, function(...modules) {
-          // TODO: Add try/catch
-          var realVf = compiler.compileChildNodes(doc, extractClasses(modules));
-          vf.templateContainer = realVf.templateContainer;
-          vf.elementBinders = realVf.elementBinders;
-          console.log(vf);
-        });
-      } catch (e) {
-        onload.error(e);
+  function resolver(resolve, reject) {
+    rejectOnError(()=>{
+      var url = req.toUrl(name+'.html');
+      loadText(url, rejectOnError( (error, doc) => {
+        if (error) {
+          reject(error);
+        } else {
+          var depNames = findModules(doc);
+          req(depNames, rejectOnError(function(...modules) {
+            // TODO: Add try/catch
+            var vf = compiler.compileChildNodes(doc, extractClasses(modules));
+            resolve(vf);
+          }));
+        }
+      }));
+    })();
+
+    function rejectOnError(callback) {
+      return function(...args) {
+        try {
+          return callback(...args);
+        } catch (e) {
+          reject(e);
+          throw e;
+        }
       }
     }
-  });
+  }
 }
 load.responseTypeContentSupported = isResponseTypeContentSupported();
 
 function loadText(url, callback) {
   var done = false;
-  var xhr = new XMLHttpRequest();
+  var xhr = new window.XMLHttpRequest();
   xhr.open('GET', url, true);
   if (load.responseTypeContentSupported) {
     xhr.responseType = 'document';
@@ -73,8 +70,8 @@ function loadText(url, callback) {
         callback(new Error('Error loading '+url+': '+xhr.status+' '+xhr.statusText), xhr);
       } else {
         var doc;
-        if (load.responseTypeContentSupported) {
-          doc = xhr.responseXML;
+        if (xhr.responseXML) {
+          doc = xhr.responseXML.body;
         } else {
           doc = document.createElement('div');
           doc.innerHTML = xhr.responseText;

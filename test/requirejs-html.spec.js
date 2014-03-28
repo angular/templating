@@ -1,6 +1,6 @@
 import {load as htmlLoad} from '../src/requirejs-html';
 import {viewFactory} from '../src/requirejs-html!./atemplate';
-
+import {ViewFactory} from '../src/view_factory';
 
 describe('requirejs-html', ()=>{
   var req, load, xhr, oldXhr;
@@ -23,8 +23,9 @@ describe('requirejs-html', ()=>{
 
   function returnXhrSuccess(html) {
     if (xhr.responseType === 'document') {
-      var doc = document.createElement('div');
-      doc.innerHTML = html;
+      var doc = {};
+      doc.body = document.createElement('div');
+      doc.body.innerHTML = html;
       xhr.responseXML = doc;
     } else if (xhr.responseType === 'text/html') {
       xhr.responseText = html;
@@ -35,62 +36,87 @@ describe('requirejs-html', ()=>{
     xhr.readyState = 4;
     xhr.status = 200;
     xhr.onreadystatechange();
-    return doc;
   }
 
-  it('should normalize the url', ()=>{
+  it('should normalize the url and load the template via xhr', ()=>{
     req.toUrl.and.returnValue('someNormalizedName');
     
     htmlLoad('someName', req, load);
 
     expect(req.toUrl).toHaveBeenCalledWith('someName.html');
     expect(xhr.open).toHaveBeenCalledWith('GET', 'someNormalizedName', true);
+    expect(xhr.send).toHaveBeenCalled();
   });
 
-  it('should load the template via xhr and create a ViewFactory if responseType=document is supported', ()=>{
+  it('should return a promise that returns a viewFactory', (done)=>{
     req.toUrl.and.returnValue('someNormalizedName');
+    req.and.callFake(function(deps, callback) {
+      callback();
+    });
+
+    htmlLoad('someName', req, load);
+    expect(load).toHaveBeenCalled();
+    expect(load.error).not.toHaveBeenCalled();
+    var promise = load.calls.mostRecent().args[0].viewFactory;
+    expect(promise.then).toBeDefined();
+
+    returnXhrSuccess('someHtml');
+    promise.then((vf)=>{
+      expect(vf instanceof ViewFactory).toBe(true);
+      done();
+    });
+  });  
+
+  it('should load the template body if responseType=document is supported', (done)=>{
+    req.toUrl.and.returnValue('someNormalizedName');
+    req.and.callFake(function(deps, callback) {
+      callback();
+    });
 
     htmlLoad.responseTypeContentSupported = true;
     htmlLoad('someName', req, load);
-
-    expect(xhr.open).toHaveBeenCalledWith('GET', 'someNormalizedName', true);
-    expect(xhr.send).toHaveBeenCalled();
-
+    var promise = load.calls.mostRecent().args[0].viewFactory;
     expect(xhr.responseType).toBe('document');
-    var doc = returnXhrSuccess('someHtml');
 
-    expect(load).toHaveBeenCalled();
-    expect(load.error).not.toHaveBeenCalled();
-    var vf = load.calls.mostRecent().args[0].viewFactory;
-    expect(vf.templateContainer).toBe(doc);
+    returnXhrSuccess('someHtml');
+    promise.then((vf)=>{
+      expect(vf.templateContainer.innerHTML).toBe('someHtml');
+      done();
+    });
   });
 
-  it('should load the template via xhr and create a ViewFactory if responseType=document is not supported', ()=>{
+  it('should load the template if responseType=document is not supported', ()=>{
     req.toUrl.and.returnValue('someNormalizedName');
+    req.and.callFake(function(deps, callback) {
+      callback();
+    });
 
     htmlLoad.responseTypeContentSupported = false;
     htmlLoad('someName', req, load);
-
-    expect(xhr.open).toHaveBeenCalledWith('GET', 'someNormalizedName', true);
-    expect(xhr.send).toHaveBeenCalled();
-
+    var promise = load.calls.mostRecent().args[0].viewFactory;
     expect(xhr.responseType).toBe('text/html');
+    
     returnXhrSuccess('someHtml');
-
-    expect(load).toHaveBeenCalled();
-    expect(load.error).not.toHaveBeenCalled();
-    var vf = load.calls.mostRecent().args[0].viewFactory;
-    expect(vf.templateContainer.innerHTML).toBe('someHtml');
+    promise.then((vf)=>{
+      expect(vf.templateContainer.innerHTML).toBe('someHtml');
+      done();
+    });
   });
+
+  // TODO: it should load the modules defines in the <module> tags
 
   describe('errors', ()=>{
     
-    it('should detect xhr aborts vian onerror', ()=>{
+    it('should detect xhr aborts via onerror', (done)=>{
       req.toUrl.and.returnValue('someNormalizedName');
 
       htmlLoad('someName', req, load);
       xhr.onerror();
-      expect(load.error).toHaveBeenCalledWith(new Error('Error loading someNormalizedName: aborted'));
+      var promise = load.calls.mostRecent().args[0].viewFactory;
+      promise.catch((e) => {
+        expect(e).toEqual(new Error('Error loading someNormalizedName: aborted'));        
+        done();
+      });
     });
 
     it('should detect xhr aborts via onabort', ()=>{
@@ -98,7 +124,11 @@ describe('requirejs-html', ()=>{
 
       htmlLoad('someName', req, load);
       xhr.onabort();
-      expect(load.error).toHaveBeenCalledWith(new Error('Error loading someNormalizedName: aborted'));
+      var promise = load.calls.mostRecent().args[0].viewFactory;
+      promise.catch((e) => {
+        expect(e).toEqual(new Error('Error loading someNormalizedName: aborted'));
+        done();
+      });
     });
 
     it('should detect error status codes', ()=>{
@@ -109,12 +139,19 @@ describe('requirejs-html', ()=>{
       xhr.status = 404;
       xhr.statusText = 'NotFound';
       xhr.onreadystatechange();
-      expect(load.error).toHaveBeenCalledWith(new Error('Error loading someNormalizedName: 404 NotFound'));
+      var promise = load.calls.mostRecent().args[0].viewFactory;
+      promise.catch((e) => {
+        expect(e).toEqual(new Error('Error loading someNormalizedName: 404 NotFound'));
+        done();
+      });
     });
   });
   
-  it('should work in integration', ()=>{
-    // viewFactory
+  it('should work in integration', (done)=>{
+    viewFactory.then((vf) =>{
+      expect(vf.templateContainer.innerHTML.trim()).toBe('<div>someTemplate</div>');
+      done();
+    });
   });
 
 });

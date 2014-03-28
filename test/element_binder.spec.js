@@ -272,6 +272,40 @@ describe('ElementBinder', ()=>{
       expect(viewFactory.createChildView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
     });
 
+    describe('viewFactory is a promise', ()=>{
+      var _resolve, _reject, viewFactoryPromise;
+
+      beforeEach(()=>{
+        viewFactoryPromise = new Promise((resolve, reject) =>{
+          _resolve = resolve; _reject = reject;
+        });
+      });
+
+      it('should call the viewFactory eventually', (done)=>{
+        spyOn(viewFactory, 'createChildView').and.callThrough();
+
+        createElementAndBinder({
+          component: {
+            directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
+            viewFactory: viewFactoryPromise
+          }
+        });
+        var childInjector = binder.bind(injector, element);
+        expect(viewFactory.createChildView).not.toHaveBeenCalled();
+
+        viewFactoryPromise.then( ()=> {
+          expect(viewFactory.createChildView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
+          done();
+        });
+        
+        _resolve(viewFactory);
+      });
+
+      // TODO: Error case (reject): log the error via the logger
+      // TODO: Which logger to use?
+    
+    });
+
   });
 
 });

@@ -1,8 +1,7 @@
 import {NodeAttrs, ArrayOfClass, ArrayLikeOfNodes, ArrayOfString} from './types';
 import {NodeContainer, SimpleNodeContainer} from './node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
-import {ViewFactory, ElementBinder, NonElementBinder, 
-  DirectiveClassWithViewFactory} from './view_factory';
+import {ViewFactory, ElementBinder, NonElementBinder} from './view_factory';
 import {Selector, SelectedElementBindings} from './selector/selector';
 import {TemplateDirective} from './annotations';
 import {TreeArray, reduceTree} from './tree_array';
@@ -202,17 +201,18 @@ class CompileRun {
     parent.removeChild(node);
     return comment;
   }
-  _compileComponentDirective(componentDirective:DirectiveClass):DirectiveClassWithViewFactory {
+  _compileComponentDirective(componentDirective:DirectiveClass) {
     var template = componentDirective.annotation.template;
     var viewFactory;
-    if (template instanceof ViewFactory) {
-      viewFactory = template;
-    } else {
+    if (typeof template === 'string') {
+      // TODO: Allow <module> tags in the inline template as well!
       var templateContainer = document.createElement('div');
       templateContainer.innerHTML = template;
       viewFactory = new CompileRun(this.selector)
         .compile(templateContainer)
         .createViewFactory(templateContainer);
+    } else {
+      viewFactory = template;
     }
     return {
       directive: componentDirective,

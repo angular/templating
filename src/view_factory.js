@@ -83,16 +83,12 @@ export class ViewFactory {
   }
 }
 
-export class DirectiveClassWithViewFactory {
+export class ViewFactoryPromise {  
   static assert(obj) {
-    assert(obj).is(assert.structure({
-      directive: DirectiveClass,
-      viewFactory: ViewFactory
-    }));
+    // TODO: How to assert that the result of the promise 
+    // is a ViewFactory?
+    assert(obj).is(Promise);
   }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }    
 }
 
 export class TreeArrayOfElementBinder {
@@ -114,7 +110,10 @@ export class NodeBinderArgs {
 export class ElementBinderArgs extends NodeBinderArgs {
   static assert(obj) {
     obj.decorators && assert(obj.decorators).is(ArrayOfDirectiveClass);
-    obj.component && assert(obj.component).is(DirectiveClassWithViewFactory);
+    if (obj.component) {
+      assert(obj.component.directive).is(DirectiveClass);
+      assert(obj.component.viewFactory).is(ViewFactoryPromise, ViewFactory);
+    }
   }
 }
 
@@ -130,7 +129,10 @@ export class ArrayOfNonElementBinder {
 export class NonElementBinderArgs extends NodeBinderArgs {
   static assert(obj) {    
     if (obj.template) {
-      assert(obj.template).is(DirectiveClassWithViewFactory);
+      assert(obj.template).is(assert.structure({
+        directive: DirectiveClass,
+        viewFactory: ViewFactory
+      }));
     }
   }
 }
@@ -292,10 +294,19 @@ export class ElementBinder extends NodeBinder {
   _bindComponentTemplate(injector:Injector, element:HTMLElement) {
     // use the component instance as new execution context
     var componentInstance = injector.get(this.component.directive.clazz);
-    var view = this.component.viewFactory.createChildView(injector, componentInstance);
-    // TODO: Make ShadowDOM optional using custom transclusion
-    var root = createShadowRoot(element);
-    view.appendTo(root);
+    if (this.component.viewFactory.then) {
+      // TODO: Test this!
+      this.component.viewFactory.then(createView);
+    } else {
+      createView(this.component.viewFactory);
+    }
+
+    function createView(viewFactory) {
+      var view = viewFactory.createChildView(injector, componentInstance);
+      // TODO: Make ShadowDOM optional using custom transclusion
+      var root = createShadowRoot(element);
+      view.appendTo(root);      
+    }
   }
 }
 
