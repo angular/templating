@@ -17,10 +17,16 @@ require.config({
   baseUrl: '/base',
 
   paths: {
-    'di': './node_modules/di/dist/amd',
-    'assert': './node_modules/assert/dist/amd/assert',
-    'expressionist': './node_modules/expressionist/dist/amd',
-    'watchtower': './node_modules/watchtower/dist/amd'
+    'node_modules': './node_modules'
+  },
+  map: {
+    '*': { 
+      'assert': 'node_modules/assert/dist/amd/assert',
+      'di': 'node_modules/di/dist/amd/index',
+      'di/testing': 'node_modules/di/dist/amd/testing',
+      'watchtower': 'node_modules/watchtower/dist/amd/index',
+      'expressionist': 'node_modules/expressionist/dist/amd/index'
+    }
   },
 
   // Dynamically load all test files and ES6 polyfill.

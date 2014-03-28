@@ -1,4 +1,4 @@
-import {Injector} from 'di/injector';
+import {Injector} from 'di';
 import {Compiler} from './compiler';
 import {CompilerConfig} from './compiler_config';
 import {ViewFactory, ElementBinder} from './view_factory';

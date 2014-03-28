@@ -1,5 +1,5 @@
 import {assert} from 'assert';
-import {Injector} from 'di/injector';
+import {Injector} from 'di';
 
 export class ArrayLikeOfNodes {
   static assert(obj) {

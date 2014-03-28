@@ -13,13 +13,19 @@
     require.config({
       baseUrl: '/temp/examples',
       paths: {
-        'di': '/node_modules/di/dist/amd',
-        'assert': '/node_modules/assert/dist/amd/assert',
-        'templating': '/dist/amd',
-        'expressionist': '/node_modules/expressionist/dist/amd',
-        'watchtower': '/node_modules/watchtower/dist/amd'
+        'node_modules': '/node_modules',
+        'dist': '/dist'
       },
-      deps: ['templating/bootstrap']
+      map: {
+        '*': {
+          'templating': 'dist/amd/index',
+          'di': 'node_modules/di/dist/amd/index',
+          'assert': 'node_modules/assert/dist/amd/assert',
+          'expressionist': 'node_modules/expressionist/dist/amd/index',
+          'watchtower': 'node_modules/watchtower/dist/amd/index'
+        }
+      },
+      deps: ['templating']
     });
   </script>
 

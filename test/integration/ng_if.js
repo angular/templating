@@ -1,6 +1,6 @@
 import {TemplateDirective} from '../../src/annotations';
-import {Injector} from 'di/injector';
-import {Inject} from 'di/annotations';
+import {Injector} from 'di';
+import {Inject} from 'di';
 import {View, ViewPort} from '../../src/view';
 import {ViewFactory} from '../../src/view_factory';
 

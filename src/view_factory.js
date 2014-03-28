@@ -3,14 +3,13 @@ import {NodeContainer} from './node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {assert} from 'assert';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, Directive} from './annotations';
-import {Injector} from 'di/injector';
-import {Inject, Provide} from 'di/annotations';
+import {Injector} from 'di';
+import {Inject, Provide} from 'di';
 import {ViewPort, View, RootView} from './view';
 import {TreeArray} from './tree_array';
 import {EventHandler} from './event_handler';
 import {reduceTree} from './tree_array';
 import {NgNode} from './ng_node';
-import {ConstantAST} from 'watchtower/ast';
 
 /*
  * A ViewFactory contains a nodes which need to be cloned for each new 
@@ -112,7 +111,9 @@ export class ElementBinderArgs extends NodeBinderArgs {
     obj.decorators && assert(obj.decorators).is(ArrayOfDirectiveClass);
     if (obj.component) {
       assert(obj.component.directive).is(DirectiveClass);
-      assert(obj.component.viewFactory).is(ViewFactoryPromise, ViewFactory);
+      // TODO: Can't use .is(ViewFactoryPromise, ViewFactory) as
+      // assert.js will raise a StackOverFlowError!
+      assert(obj.component.viewFactory).is(Object);
     }
   }
 }

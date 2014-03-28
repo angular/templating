@@ -1,9 +1,9 @@
-import {use, inject} from 'di/testing';
-import {Injector} from 'di/injector';
+import {use, inject} from 'di';
+import {Injector} from 'di';
 import {ViewPort, View, RootView} from '../src/view';
 import {$, $html} from './dom_mocks';
 import {NgNode} from '../src/ng_node';
-import {RootWatchGroup} from 'watchtower/watch_group';
+import {RootWatchGroup} from 'watchtower';
 
 describe('View', () => {
   var viewPort;

@@ -1,6 +1,6 @@
 import {compile as traceur} from './traceur-api';
 import {$, $html} from '../dom_mocks';
-import {Injector} from 'di/injector';
+import {Injector} from 'di';
 import {precompile, serialize} from '../../src/precompiler';
 import {SimpleNodeContainer} from '../../src/node_container';
 import {DecoratorDirective} from '../../src/annotations';
@@ -15,7 +15,7 @@ describe('precompile', ()=>{
       throw new Error('in lines:\n'+sourceES6+'\n'+transpiled.errors);
     }
     var sourceES5 = transpiled.js;
-    sourceES5 = sourceES5.replace(/templating\//g, 'src/');
+    sourceES5 = sourceES5.replace(/"templating"/g, '"src/index"');
 
     var define = function(deps, callback) {      
       // TODO: Use the ES6 loader here!
@@ -24,7 +24,7 @@ describe('precompile', ()=>{
         done(module);        
       });
     }
-    eval(sourceES5);    
+    eval(sourceES5);
   }
 
   describe('compile html into a viewFactory', ()=>{
@@ -172,7 +172,7 @@ describe('precompile', ()=>{
 
     it('should serialize a SimpleNodeContainer', (done) =>{
       var nc = new SimpleNodeContainer([document.createElement('div')]);
-      serializeAndEval(nc, {'templating/node_container': {'SimpleNodeContainer': SimpleNodeContainer}}, function(result) {
+      serializeAndEval(nc, {'templating': {'SimpleNodeContainer': SimpleNodeContainer}}, function(result) {
         expect(result instanceof SimpleNodeContainer).toBe(true);
         expect(result.childNodes[0].nodeName).toBe('DIV');
         done();

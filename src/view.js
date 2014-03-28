@@ -1,13 +1,13 @@
 import {NodeContainer} from './node_container';
 import {LinkedList} from './linked_list';
 import {LinkedListItem} from './linked_list';
-import {Injector} from 'di/injector';
+import {Injector} from 'di';
 
-import {WatchParser, Parser} from 'expressionist/watch_parser';
-import {Parser} from 'expressionist/parser';
+import {WatchParser, Parser} from 'expressionist';
+import {Parser} from 'expressionist';
 
-import { GetterCache, DirtyCheckingChangeDetector } from 'watchtower/dirty_checking';
-import { WatchGroup, RootWatchGroup} from 'watchtower/watch_group';
+import { GetterCache, DirtyCheckingChangeDetector } from 'watchtower';
+import { WatchGroup, RootWatchGroup} from 'watchtower';
 import { NgNode, ArrayOfNgNode } from './ng_node';
 
 /*

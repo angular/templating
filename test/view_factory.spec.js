@@ -1,5 +1,5 @@
-import {use, inject} from 'di/testing';
-import {Injector} from 'di/injector';
+import {use, inject} from 'di';
+import {Injector} from 'di';
 import {ViewPort, View, RootView} from '../src/view';
 import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory';
 import {$, $html} from './dom_mocks';

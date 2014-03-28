@@ -1,4 +1,4 @@
-import {Injector} from 'di/injector';
+import {Injector} from 'di';
 import {Compiler} from './compiler';
 import {ViewFactory, ElementBinder} from './view_factory';
 import {NodeAttrs} from './types';
@@ -11,11 +11,9 @@ export function precompile(config, loder, html) {
   var el = document.createElement('div');
   el.innerHTML = html;
   var moduleNameWithExports = {
-    'templating/view_factory': { 
+    'templating': { 
       'ViewFactory': ViewFactory,
-      'ElementBinder': ElementBinder
-    },
-    'templating/types': {
+      'ElementBinder': ElementBinder,
       'NodeAttrs': NodeAttrs
     }
   };
@@ -28,7 +26,7 @@ export function precompile(config, loder, html) {
 export function serialize(object, exportName, moduleNameWithExports) {
   var builder = new Builder(),
       imports = {
-        'createObject': 'templating/instantiate-helper'
+        'createObject': 'templating'
       };
   serializeRecurse(builder, imports, object, moduleNameWithExports);
 
@@ -80,7 +78,7 @@ function serializeRecurse(builder, imports, object, moduleNameWithExports) {
       var moduleAndExport = findModuleAndExport(object.constructor, moduleNameWithExports);
       if (moduleAndExport) {
         imports[moduleAndExport.exportName] = moduleAndExport.moduleName;
-        imports['createObject'] = 'templating/instantiate-helper';
+        imports['createObject'] = 'templating';
         builder.appendLine('createObject('+moduleAndExport.exportName+',{');
         serializeDirectProps(object);
         builder.appendLine('})');
@@ -126,7 +124,7 @@ function serializeRecurse(builder, imports, object, moduleNameWithExports) {
     var clone = node.cloneNode(true);
     var container = document.createElement('div');
     container.appendChild(node)
-    imports['createNode'] = 'templating/instantiate-helper';
+    imports['createNode'] = 'templating';
     builder.appendLine("createNode("+node.nodeType+",'"+container.innerHTML+"')");
   }
 }

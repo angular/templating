@@ -1,5 +1,5 @@
 import {inject} from 'di/testing';
-import {Injector} from 'di/injector';
+import {Injector} from 'di';
 import {Compiler} from '../../src/compiler';
 import {DirectiveClass} from '../../src/directive_class';
 import {NgIf} from './ng_if';

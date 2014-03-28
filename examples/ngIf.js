@@ -1,8 +1,8 @@
-import {TemplateDirective} from 'templating/annotations';
-import {Injector} from 'di/injector';
-import {Inject} from 'di/annotations';
-import {View, ViewPort} from 'templating/view';
-import {ViewFactory} from 'templating/view_factory';
+import {TemplateDirective} from 'templating';
+import {Injector} from 'di';
+import {Inject} from 'di';
+import {View, ViewPort} from 'templating';
+import {ViewFactory} from 'templating';
 
 @TemplateDirective({
   selector: '[ng-if]',

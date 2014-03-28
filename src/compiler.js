@@ -5,7 +5,7 @@ import {ViewFactory, ElementBinder, NonElementBinder} from './view_factory';
 import {Selector, SelectedElementBindings} from './selector/selector';
 import {TemplateDirective} from './annotations';
 import {TreeArray, reduceTree} from './tree_array';
-import {Inject} from 'di/annotations';
+import {Inject} from 'di';
 import {CompilerConfig} from './compiler_config';
 
 /*

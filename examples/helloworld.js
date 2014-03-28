@@ -1,5 +1,5 @@
-import {ComponentDirective} from 'templating/annotations';
-import {viewFactory} from 'templating/requirejs-html!./greet';
+import {ComponentDirective} from 'templating';
+import {viewFactory} from 'templating!./greet';
 
 @ComponentDirective({
   selector: 'exp-hello',
