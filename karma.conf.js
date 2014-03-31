@@ -10,10 +10,10 @@ module.exports = function(config) {
       'test-main.js',
 
       {pattern: 'src/**/*.js', included: false},
-      {pattern: 'test/**/*', included: false},      
+      {pattern: 'test/**/*', included: false},
 
       {pattern: 'node_modules/di/dist/amd/**/*.js', included: false},
-      {pattern: 'node_modules/assert/dist/amd/**/*.js', included: false},
+      {pattern: 'node_modules/rtts-assert/dist/amd/**/*.js', included: false},
       {pattern: 'node_modules/watchtower/dist/amd/**/*.js', included: false},
       {pattern: 'node_modules/expressionist/dist/amd/**/*.js', included: false},
       {pattern: 'node_modules/es6-shim/es6-shim.js', included: false}

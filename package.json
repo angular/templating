@@ -13,12 +13,12 @@
   },
   "dependencies": {
     "di": "~2.0.0-pre-6",
-    "expressionist": "git://github.com/angular/expressionist.js#dist",
+    "expressionist": "git://github.com/angular/expressionist.js#rename-assert",
     "watchtower": "git://github.com/angular/watchtower.js#dist",
     "traceur": "git://github.com/vojtajina/traceur-compiler#es6-plus-to-pure-es6"
   },
   "devDependencies": {
-    "assert": "git://github.com/angular/assert#dist",
+    "rtts-assert": "git://github.com/angular/assert#dist-rename",
     "clientify": "git://github.com/vojtajina/clientify#shrinkwrap",
     "gulp": "^3.5.6",
     "gulp-connect": "~1.0.5",

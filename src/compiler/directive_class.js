@@ -1,5 +1,5 @@
 import {Directive} from '../annotations';
-import {assert} from 'assert';
+import {assert} from 'rtts-assert';
 
 /**
  * DirectiveClass represents all of the meta data for un-instantiated directive

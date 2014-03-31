@@ -14,7 +14,7 @@
     },
     "expressionist": {
       "version": "0.0.1",
-      "from": "git://github.com/angular/expressionist.js#dist",
+      "from": "git://github.com/angular/expressionist.js#rename-assert",
       "dependencies": {}
     },
     "watchtower": {
