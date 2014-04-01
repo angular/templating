@@ -21,9 +21,9 @@ require.config({
   },
   map: {
     '*': {
-      'rtts-assert': 'node_modules/rtts-assert/dist/amd/assert',
-      'di': 'node_modules/di/dist/amd/index',
-      'di/testing': 'node_modules/di/dist/amd/testing',
+      'rtts-assert': 'node_modules/rtts-assert/src/assert',
+      'di': 'node_modules/di/src/index',
+      'di/testing': 'node_modules/di/src/testing',
       'watchtower': 'node_modules/watchtower/src/index',
       'expressionist': 'node_modules/expressionist/src/index'
     }
