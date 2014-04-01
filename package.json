@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "di": "~2.0.0-pre-6",
-    "expressionist": "angular/expressionist.js#deps-from-source",
-    "watchtower": "angular/watchtower.js#set-up-assert",
+    "expressionist": "angular/expressionist.js",
+    "watchtower": "angular/watchtower.js",
     "traceur": "vojtajina/traceur-compiler#add-es6-pure-transformer-dist"
   },
   "devDependencies": {
