@@ -27,7 +27,7 @@ gulp.task('build_source_amd', function() {
 
 gulp.task('build_source_es6', function() {
   gulp.src(path.src)
-      .pipe(traceur(pipe.traceur({pureES6: true})))
+      .pipe(traceur(pipe.traceur({outputLanguage: 'es6'})))
       .pipe(gulp.dest('dist/es6'));
 });
 
