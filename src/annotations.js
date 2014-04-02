@@ -1,4 +1,4 @@
-import {assert} from 'assert';
+import {assert} from 'rtts-assert';
 
 class DirectiveArgs {
   static assert(obj) {

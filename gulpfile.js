@@ -27,7 +27,7 @@ gulp.task('build_source_amd', function() {
 
 gulp.task('build_source_es6', function() {
   gulp.src(path.src)
-      .pipe(traceur(pipe.traceur({pureES6: true})))
+      .pipe(traceur(pipe.traceur({outputLanguage: 'es6'})))
       .pipe(gulp.dest('dist/es6'));
 });
 
@@ -82,9 +82,9 @@ var rename = function(search, replace) {
 
 // Move to package.json?
 var GITHUB_REPOS = [
-  'angular/watchtower.js#dist',
-  'angular/expressionist.js#dist',
-  'vojtajina/traceur-compiler#es6-plus-to-pure-es6'
+  'angular/watchtower.js#set-up-assert',
+  'angular/expressionist.js#deps-from-source',
+  'vojtajina/traceur-compiler#add-es6-pure-transformer-dist'
 ];
 
 gulp.task('shrinkwrap', function() {

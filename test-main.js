@@ -20,12 +20,12 @@ require.config({
     'node_modules': './node_modules'
   },
   map: {
-    '*': { 
-      'assert': 'node_modules/assert/dist/amd/assert',
-      'di': 'node_modules/di/dist/amd/index',
-      'di/testing': 'node_modules/di/dist/amd/testing',
-      'watchtower': 'node_modules/watchtower/dist/amd/index',
-      'expressionist': 'node_modules/expressionist/dist/amd/index'
+    '*': {
+      'rtts-assert': 'node_modules/rtts-assert/src/assert',
+      'di': 'node_modules/di/src/index',
+      'di/testing': 'node_modules/di/src/testing',
+      'watchtower': 'node_modules/watchtower/src/index',
+      'expressionist': 'node_modules/expressionist/src/index'
     }
   },
 

@@ -1,7 +1,7 @@
 import {Directive} from '../annotations';
 import {ArrayOfDirectiveClass, DirectiveClass} from './directive_class';
 import {ElementSelector, SelectedElementBindings} from './element_selector';
-import {assert} from 'assert';
+import {assert} from 'rtts-assert';
 import {NonElementSelector} from './non_element_selector';
 import {CompilerConfig} from './compiler_config';
 

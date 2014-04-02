@@ -1,4 +1,4 @@
-import {assert} from 'assert';
+import {assert} from 'rtts-assert';
 import {Injector} from 'di';
 
 export class ArrayLikeOfNodes {

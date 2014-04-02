@@ -1,4 +1,4 @@
-import {assert} from 'assert';
+import {assert} from 'rtts-assert';
 
 export class ArrayOfNgNode {
   static assert(obj) {

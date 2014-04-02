@@ -1,4 +1,4 @@
-import {assert} from 'assert';
+import {assert} from 'rtts-assert';
 import {SelectedElementBindings} from './element_selector';
 import {CompilerConfig} from './compiler_config';
 import {NodeAttrs} from '../types';
