@@ -1,7 +1,7 @@
 import {Injector} from 'di';
 import {Compiler} from './compiler';
-import {ViewFactory, ElementBinder} from './view_factory';
-import {NodeAttrs} from './types';
+import {ViewFactory, ElementBinder} from '../view_factory';
+import {NodeAttrs} from '../types';
 
 export function precompile(config, loder, html) {
   // TODO: How to configure this injector??

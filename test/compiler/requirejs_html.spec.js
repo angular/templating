@@ -1,6 +1,6 @@
-import {load as htmlLoad} from '../src/requirejs_html';
-import {viewFactory} from '../src/requirejs_html!./atemplate';
-import {ViewFactory} from '../src/view_factory';
+import {load as htmlLoad} from '../../src/compiler/requirejs_html';
+import {viewFactory} from '../../src/compiler/requirejs_html!./atemplate';
+import {ViewFactory} from '../../src/view_factory';
 
 describe('requirejs-html', ()=>{
   var req, load, xhr, oldXhr;

@@ -8,12 +8,6 @@ export {
   ComponentDirective
 } from './annotations';
 export {
-  Compiler
-} from './compiler';
-export {
-  CompilerConfig
-} from './compiler_config';
-export {
   createObject,
   createNode
 } from './instantiate_helper';
@@ -31,8 +25,3 @@ export {
 export {
   SimpleNodeContainer
 } from './node_container';
-export {
-  load
-} from './requirejs_html';
-
-// TODO: precompiler

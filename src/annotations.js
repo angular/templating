@@ -37,15 +37,10 @@ class ComponentArgs {
   static assert(obj) {
     DirectiveArgs.assert(obj);
     if (obj.template) {
-      // TODO: this should be: assert(obj).is(assert.string, ViewFactory, ViewFactoryPromise).
+      // TODO: this should be: assert(obj).is(ViewFactoryPromise).
       // Can't use this here as:
       // - importing ViewFactory into annotations would lead to cyclic type dependencies
-      // - prettyPrint in assert.js get's into an infinite loop for instances of ViewFactory
-      //   test: use assert(obj).is(assert.string, Object)
-      var type = typeof obj.template;
-      if (type !== 'string' && type !== 'object') {
-        assert.fail('expected either string of object');
-      }
+      assert(obj.template).is(Object);
     }
   }
 }

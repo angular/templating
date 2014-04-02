@@ -3,8 +3,9 @@
 <input type="text" bind-value="user">{{greet(user)}}
 <p>
 <exp-hello ng-if="{{!!user}}"></exp-hello>
-<!-- 
-<exp-hello ng-if bind-ng-if="!!user"></exp-hello>
+<!--
+<exp-hello bind-ng-if="!!user"></exp-hello>
+<exp-hello ng-if="{{!!user}}"></exp-hello>
+<exp-hello ng-if="asdf${user.name}asdf"></exp-hello>
 -->
-
 </p>

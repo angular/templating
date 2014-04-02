@@ -1,6 +1,6 @@
 import {assert} from 'assert';
 import {SelectedElementBindings} from './element_selector';
-import {CompilerConfig} from '../compiler_config';
+import {CompilerConfig} from './compiler_config';
 import {NodeAttrs} from '../types';
 
 export class ArrayOfMarkedText {

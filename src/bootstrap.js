@@ -1,5 +1,5 @@
 import {Injector} from 'di';
-import {Compiler} from './compiler';
+import {Compiler} from './compiler/compiler';
 import {ArrayOfClass} from './types';
 
 // TODO: Create tests for this

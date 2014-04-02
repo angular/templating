@@ -1,4 +1,4 @@
-import {Directive} from './annotations';
+import {Directive} from '../annotations';
 import {assert} from 'assert';
 
 /**

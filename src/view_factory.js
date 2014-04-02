@@ -1,6 +1,5 @@
 import {NodeAttrs} from './types';
 import {NodeContainer} from './node_container';
-import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {assert} from 'assert';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, Directive} from './annotations';
 import {Injector} from 'di';
@@ -10,6 +9,7 @@ import {TreeArray} from './tree_array';
 import {EventHandler} from './event_handler';
 import {reduceTree} from './tree_array';
 import {NgNode} from './ng_node';
+import {AnnotationProvider} from './annotation_provider';
 
 /*
  * A ViewFactory contains a nodes which need to be cloned for each new 
@@ -108,12 +108,11 @@ export class NodeBinderArgs {
 
 export class ElementBinderArgs extends NodeBinderArgs {
   static assert(obj) {
-    obj.decorators && assert(obj.decorators).is(ArrayOfDirectiveClass);
+    if (obj.decorators) {
+      assert(obj.decorators).is(assert.arrayOf(Function));
+    }
     if (obj.component) {
-      assert(obj.component.directive).is(DirectiveClass);
-      // TODO: Can't use .is(ViewFactoryPromise, ViewFactory) as
-      // assert.js will raise a StackOverFlowError!
-      assert(obj.component.viewFactory).is(Object);
+      assert(obj.component).is(Function);
     }
   }
 }
@@ -131,7 +130,7 @@ export class NonElementBinderArgs extends NodeBinderArgs {
   static assert(obj) {    
     if (obj.template) {
       assert(obj.template).is(assert.structure({
-        directive: DirectiveClass,
+        directive: Function,
         viewFactory: ViewFactory
       }));
     }
@@ -157,6 +156,7 @@ class NodeBinder {
   bind(injector:Injector, node:Node):Injector {
     var self = this;
     var view = injector.get(View);
+    var annotationProvider = injector.get(AnnotationProvider);
     
     @Provide(NgNode)
     @Inject(Injector)
@@ -178,8 +178,9 @@ class NodeBinder {
     var ngNode = childInjector.get(NgNode);
     
     directiveClasses.forEach((directiveClass) => {
-      var directiveInstance = childInjector.get(directiveClass.clazz);
-      this._initExportedProperty(ngNode, directiveInstance, directiveClass.annotation.exports || []);
+      var directiveInstance = childInjector.get(directiveClass);
+      var annotation = annotationProvider.annotation(directiveClass, Directive);
+      this._initExportedProperty(ngNode, directiveInstance, annotation.exports || []);
       ngNode.data().directives.push(directiveInstance);
     });
 
@@ -289,18 +290,15 @@ export class ElementBinder extends NodeBinder {
   _collectDirectives(target) {
     target.push(...this.decorators);
     if (this.component) {
-      target.push(this.component.directive);
+      target.push(this.component);
     }
   }
   _bindComponentTemplate(injector:Injector, element:HTMLElement) {
     // use the component instance as new execution context
-    var componentInstance = injector.get(this.component.directive.clazz);
-    if (this.component.viewFactory.then) {
-      // TODO: Test this!
-      this.component.viewFactory.then(createView);
-    } else {
-      createView(this.component.viewFactory);
-    }
+    var componentInstance = injector.get(this.component);
+    var annotationProvider = injector.get(AnnotationProvider);
+    var annotation = annotationProvider.annotation(this.component, Directive);
+    annotation.template.then(createView);
 
     function createView(viewFactory) {
       var view = viewFactory.createChildView(injector, componentInstance);

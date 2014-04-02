@@ -1,12 +1,11 @@
 import {Directive} from '../annotations';
-import {ArrayOfDirectiveClass, DirectiveClass} from '../directive_class';
+import {ArrayOfDirectiveClass, DirectiveClass} from './directive_class';
 import {ElementSelector, SelectedElementBindings} from './element_selector';
 import {assert} from 'assert';
 import {NonElementSelector} from './non_element_selector';
-import {CompilerConfig} from '../compiler_config';
+import {CompilerConfig} from './compiler_config';
 
 export {SelectedElementBindings};
-
 /**
  * Selector has internal data structures which allow it to efficiently match DirectiveTypes 
  * against the Element and its classes and attributes. 

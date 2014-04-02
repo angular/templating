@@ -1,4 +1,3 @@
-import {DirectiveClass} from '../src/directive_class';
 import {DecoratorDirective, TemplateDirective, ComponentDirective, EXECUTION_CONTEXT} from '../src/annotations';
 import {ViewPort, View, RootView} from '../src/view';
 import {ViewFactory, ElementBinder, NonElementBinder} from '../src/view_factory';
@@ -40,12 +39,13 @@ describe('ElementBinder', ()=>{
     });
 
     it('should save the injector and the directive instances on the ngNode', ()=>{
+      @DecoratorDirective
       class SomeDirective {
       }
       createInjector();
       createElementAndBinder({
         decorators: [
-          new DirectiveClass(new DecoratorDirective(), SomeDirective)
+          SomeDirective
         ]
       });
 
@@ -56,12 +56,13 @@ describe('ElementBinder', ()=>{
     });
 
     it('should add exported properties of directives to the element and not cache them in the ngNode', ()=>{      
+      @DecoratorDirective({exports: ['someProp']})
       class SomeDirective {
       }
       createInjector();
       createElementAndBinder({
         decorators: [
-          new DirectiveClass(new DecoratorDirective({exports: ['someProp']}), SomeDirective)
+          SomeDirective
         ]
       });
 
@@ -78,12 +79,13 @@ describe('ElementBinder', ()=>{
     });
 
     it('should not overwrite existing properties when exporting properties of directives', ()=>{      
+      @DecoratorDirective({exports: ['nodeValue']})
       class SomeDirective {
       }
       createInjector();
       createElementAndBinder({
         decorators: [
-          new DirectiveClass(new DecoratorDirective({exports: ['nodeValue']}), SomeDirective)
+          SomeDirective
         ]
       });
 
@@ -91,12 +93,13 @@ describe('ElementBinder', ()=>{
     });
 
     it('should initialize exported properties with the attribute value', ()=>{
+      @DecoratorDirective({exports: ['someProp']})
       class SomeDirective {
       }
       createInjector();
       createElementAndBinder({
         decorators: [
-          new DirectiveClass(new DecoratorDirective({exports: ['someProp']}), SomeDirective)
+          SomeDirective
         ],
         attrs: new NodeAttrs({
           init: {
@@ -200,6 +203,7 @@ describe('ElementBinder', ()=>{
 
     it('should create a new directive instance', () => {
       var createdInstance;
+      @DecoratorDirective()
       class SomeDirective {
         constructor() {
           createdInstance = this;          
@@ -208,7 +212,7 @@ describe('ElementBinder', ()=>{
       createInjector();
       createElementAndBinder({
         decorators: [
-          new DirectiveClass(new DecoratorDirective(), SomeDirective)
+          SomeDirective
         ]
       });
 
@@ -220,24 +224,31 @@ describe('ElementBinder', ()=>{
   describe('component directives', ()=>{
     var createdInstance,
        container,
-       viewFactory;
-    class SomeDirective {
-      constructor() {
-        createdInstance = this;          
-      }
-    }
+       viewFactory,
+       viewFactoryPromise,
+       SomeDirective;
     beforeEach(()=>{
       container = $('<div>a</div>')[0];
       viewFactory = new ViewFactory(container, []);
+      viewFactoryPromise = {
+        then: function(callback) {
+          callback(viewFactory);
+        }
+      };
       createInjector();
+
+      @ComponentDirective({template: viewFactoryPromise})
+      class SomeDirective_ {
+        constructor() {
+          createdInstance = this;          
+        }
+      }
+      SomeDirective = SomeDirective_;
     });
 
     it('should create a new directive instance', () => {
       createElementAndBinder({
-        component: {
-          directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
-          viewFactory: viewFactory
-        }
+        component: SomeDirective
       });
 
       binder.bind(injector, element);
@@ -246,10 +257,7 @@ describe('ElementBinder', ()=>{
 
     it('should append the template to the ShadowDOM', () => {
       createElementAndBinder({
-        component: {
-          directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
-          viewFactory: viewFactory
-        }
+        component: SomeDirective
       });
       var contentHtml = element.innerHTML = '<span id="outer"></span>';
 
@@ -262,49 +270,15 @@ describe('ElementBinder', ()=>{
       spyOn(viewFactory, 'createChildView').and.callThrough();
 
       createElementAndBinder({
-        component: {
-          directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
-          viewFactory: viewFactory
-        }
+        component: SomeDirective
       });
       var childInjector = binder.bind(injector, element);
 
       expect(viewFactory.createChildView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
     });
 
-    describe('viewFactory is a promise', ()=>{
-      var _resolve, _reject, viewFactoryPromise;
-
-      beforeEach(()=>{
-        viewFactoryPromise = new Promise((resolve, reject) =>{
-          _resolve = resolve; _reject = reject;
-        });
-      });
-
-      it('should call the viewFactory eventually', (done)=>{
-        spyOn(viewFactory, 'createChildView').and.callThrough();
-
-        createElementAndBinder({
-          component: {
-            directive: new DirectiveClass(new ComponentDirective(), SomeDirective),
-            viewFactory: viewFactoryPromise
-          }
-        });
-        var childInjector = binder.bind(injector, element);
-        expect(viewFactory.createChildView).not.toHaveBeenCalled();
-
-        viewFactoryPromise.then( ()=> {
-          expect(viewFactory.createChildView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
-          done();
-        });
-        
-        _resolve(viewFactory);
-      });
-
-      // TODO: Error case (reject): log the error via the logger
-      // TODO: Which logger to use?
-    
-    });
+    // TODO: Error case (reject of viewFactoryPromise): log the error via the logger
+    // TODO: Which logger to use?
 
   });
 
@@ -389,20 +363,21 @@ describe('NonElementBinder', () => {
   describe('tempate directives', () => {
     var createdInstance,
        viewFactory;
-    class SomeDirective {
-      constructor() {
-        createdInstance = this;          
-      }
-    }
     beforeEach(()=>{
       viewFactory = new ViewFactory($('<div>a</div>')[0], null);
       createInjector();
     });
 
     it('should create a new directive instance', () => {
+      @TemplateDirective
+      class SomeDirective {
+        constructor() {
+          createdInstance = this;          
+        }
+      }
       createCommentAndNonElementBinder({
         template: {
-          directive: new DirectiveClass(new TemplateDirective(), SomeDirective),
+          directive: SomeDirective,
           viewFactory: viewFactory
         }
       });
@@ -412,9 +387,15 @@ describe('NonElementBinder', () => {
     });
 
     it('should add exported properties of the directive to the node', ()=>{      
+      @TemplateDirective({exports: ['someProp']})
+      class SomeDirective {
+        constructor() {
+          createdInstance = this;          
+        }
+      }
       createCommentAndNonElementBinder({
         template: {
-          directive: new DirectiveClass(new TemplateDirective({exports: ['someProp']}), SomeDirective),
+          directive: SomeDirective,
           viewFactory: viewFactory
         }
       });
@@ -428,9 +409,15 @@ describe('NonElementBinder', () => {
     });
 
     it('should initialize exported properties with the attribute value', ()=>{      
+      @TemplateDirective({exports: ['someProp']})
+      class SomeDirective {
+        constructor() {
+          createdInstance = this;          
+        }
+      }
       createCommentAndNonElementBinder({
         template: {
-          directive: new DirectiveClass(new TemplateDirective({exports: ['someProp']}), SomeDirective),
+          directive: SomeDirective,
           viewFactory: viewFactory
         },
         attrs: new NodeAttrs({
@@ -447,9 +434,12 @@ describe('NonElementBinder', () => {
     });
 
     it('should provide the ViewFactory and ViewPort via DI', () => {
+      @TemplateDirective
+      class SomeDirective {
+      }
       createCommentAndNonElementBinder({
         template: {
-          directive: new DirectiveClass(new TemplateDirective(), SomeDirective),
+          directive: SomeDirective,
           viewFactory: viewFactory
         }
       });

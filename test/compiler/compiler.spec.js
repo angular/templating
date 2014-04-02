@@ -1,14 +1,14 @@
 import {use, inject} from 'di/testing';
-import {Compiler} from '../src/compiler';
-import {Selector} from '../src/selector/selector';
-import {DirectiveClass} from '../src/directive_class';
-import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../src/annotations';
-import {ViewFactory, ElementBinder} from '../src/view_factory';
-import {CompilerConfig} from '../src/compiler_config';
-import {$, $0, $html} form './dom_mocks';
-import {SimpleNodeContainer} from '../src/node_container';
+import {Compiler} from '../../src/compiler/compiler';
+import {Selector} from '../../src/compiler/selector';
+import {DirectiveClass} from '../../src/compiler/directive_class';
+import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../../src/annotations';
+import {ViewFactory, ElementBinder} from '../../src/view_factory';
+import {CompilerConfig} from '../../src/compiler/compiler_config';
+import {$, $0, $html} form '../dom_mocks';
+import {SimpleNodeContainer} from '../../src/node_container';
 
-describe('Compiler', ()=>{
+describe('Compiler', () => {
   var directives,
       binders,
       container,
@@ -101,42 +101,22 @@ describe('Compiler', ()=>{
     });
   });
 
-  describe('compile the template of component directives', () => {
-
-    it('should compile inline templates', ()=>{
-      var template = '{{a}}<span name="1">{{b}}</span>';
-      createSelector([ 
-          new DecoratorDirective({selector: '[name]'}),
-          new ComponentDirective({selector: '[comp]', template: template})
-      ]);
-      compile('<div comp></div>');
-      switchToComponentDirective();
-      expect($html(container.childNodes)).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
-      verifyBinders('({{a}}),1({{b}})');
-    });
+  describe('compile with a component directives', () => {
 
     it('should compile with a given component viewFactory', ()=>{
-      createSelector([
-          new DecoratorDirective({selector: '[name]'})
-      ]);
-      compile('{{a}}<span name="1">{{b}}</span>');
-      var componentViewFactory = new ViewFactory(container, binders);
-
+      var compAnnotation = new ComponentDirective({selector: '[comp]', template: null});
       createSelector([
           new DecoratorDirective({selector: '[name]'}),
-          new ComponentDirective({selector: '[comp]', template: componentViewFactory})
+          compAnnotation
       ]);
       compile('<div comp></div>');
-      switchToComponentDirective();
-
-      expect($html(container.childNodes)).toBe('{{a}}<span name="1" class="ng-binder">{{b}}</span>');
-      verifyBinders('({{a}}),1({{b}})');
+      verifyBinders('(),()');
+      expect(binders[1].component).toBeTruthy();
     });
 
     it('should not use the component for sibling elements', ()=>{
-      var template = '{{a}}<span name="1">{{b}}</span>';
       createSelector([ 
-          new ComponentDirective({selector: '[comp]', template: template})
+          new ComponentDirective({selector: '[comp]', template: null})
       ]);
       compile('<div comp></div><div></div>');
       // root binder and component, nothing else
@@ -401,19 +381,6 @@ describe('Compiler', ()=>{
             viewFactory = nonElementBinder.template.viewFactory;
           }
         });
-      }
-    });
-    expect(viewFactory).toBeTruthy();
-    // update the global variables
-    container = viewFactory.templateContainer;
-    binders = viewFactory.elementBinders;  
-  }
-
-  function switchToComponentDirective() {
-    var viewFactory;
-    binders.forEach(function(binder) {
-      if (binder.component) {
-        viewFactory = binder.component.viewFactory;
       }
     });
     expect(viewFactory).toBeTruthy();

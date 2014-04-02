@@ -1,5 +1,5 @@
 import {TemplateDirective, ComponentDirective, DecoratorDirective} from '../annotations';
-import {DirectiveClass, ArrayOfDirectiveClass} from '../directive_class';
+import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {SelectorPart, ArrayOfSelectorPart} from './selector_part';
 import {NodeAttrs} from '../types';
 

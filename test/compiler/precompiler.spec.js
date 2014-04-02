@@ -1,7 +1,7 @@
 import {compile as traceur} from './traceur-api';
 import {$, $html} from '../dom_mocks';
 import {Injector} from 'di';
-import {precompile, serialize} from '../../src/precompiler';
+import {precompile, serialize} from '../../src/compiler/precompiler';
 import {SimpleNodeContainer} from '../../src/node_container';
 import {DecoratorDirective} from '../../src/annotations';
 
@@ -104,7 +104,7 @@ describe('precompile', ()=>{
     it('should serialize a class of a module', (done) =>{
       var input = new TestClass1();
       input.a = 1;
-      serializeAndEval(input, {'test/precompiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
+      serializeAndEval(input, {'test/compiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
         expect(result instanceof TestClass1).toBe(true);
         expect(result.a).toEqual(1);
         done();
@@ -114,7 +114,7 @@ describe('precompile', ()=>{
     it('should not serialize properties of prototypes', (done) =>{
       TestClass1.prototype.b = 'test';
       var input = new TestClass1();
-      serializeAndEval(input, {'test/precompiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
+      serializeAndEval(input, {'test/compiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
         
         expect(result instanceof TestClass1).toBe(true);
 
@@ -131,7 +131,7 @@ describe('precompile', ()=>{
       input.a = 1;
       input.b = new TestClass1();
       input.b.c = 2;
-      serializeAndEval(input, {'test/precompiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
+      serializeAndEval(input, {'test/compiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
         expect(result instanceof TestClass1).toBe(true);
         expect(result.a).toEqual(1);
         expect(result.b instanceof TestClass1).toBe(true);

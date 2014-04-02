@@ -1,10 +1,10 @@
-import {NodeAttrs, ArrayOfClass, ArrayLikeOfNodes, ArrayOfString} from './types';
-import {NodeContainer, SimpleNodeContainer} from './node_container';
+import {NodeAttrs, ArrayOfClass, ArrayLikeOfNodes, ArrayOfString} from '../types';
+import {NodeContainer, SimpleNodeContainer} from '../node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
-import {ViewFactory, ElementBinder, NonElementBinder} from './view_factory';
-import {Selector, SelectedElementBindings} from './selector/selector';
-import {TemplateDirective} from './annotations';
-import {TreeArray, reduceTree} from './tree_array';
+import {ViewFactory, ElementBinder, NonElementBinder} from '../view_factory';
+import {Selector, SelectedElementBindings} from './selector';
+import {TemplateDirective} from '../annotations';
+import {TreeArray, reduceTree} from '../tree_array';
 import {Inject} from 'di';
 import {CompilerConfig} from './compiler_config';
 
@@ -121,13 +121,13 @@ class CompileRun {
         var matchedBindings = this.selector.matchElement(node);
         var component;
         if (matchedBindings.component) {
-          component = this._compileComponentDirective(matchedBindings.component);
+          component = classFromDirectiveClass(matchedBindings.component);
         } else {
           component = null;
         }
         var binder = new ElementBinder({
           attrs: matchedBindings.attrs,
-          decorators: matchedBindings.decorators,
+          decorators: matchedBindings.decorators.map(classFromDirectiveClass),
           component: component
         });
         var compileElement = new CompileElement(node, binder, parentElement.level + 1);
@@ -189,7 +189,7 @@ class CompileRun {
     return new NonElementBinder({
       attrs: templateNodeAttrs,
       template: {
-        directive: templateDirective,
+        directive: classFromDirectiveClass(templateDirective),
         viewFactory: viewFactory
       }
     });
@@ -201,23 +201,8 @@ class CompileRun {
     parent.removeChild(node);
     return comment;
   }
-  _compileComponentDirective(componentDirective:DirectiveClass) {
-    var template = componentDirective.annotation.template;
-    var viewFactory;
-    if (typeof template === 'string') {
-      // TODO: Allow <module> tags in the inline template as well!
-      var templateContainer = document.createElement('div');
-      templateContainer.innerHTML = template;
-      viewFactory = new CompileRun(this.selector)
-        .compile(templateContainer)
-        .createViewFactory(templateContainer);
-    } else {
-      viewFactory = template;
-    }
-    return {
-      directive: componentDirective,
-      viewFactory: viewFactory
-    };
-  }
 }
 
+function classFromDirectiveClass(directiveClass) {
+  return directiveClass.clazz;
+}

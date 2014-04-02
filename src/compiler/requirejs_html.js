@@ -1,14 +1,55 @@
 import {Injector} from 'di';
 import {Compiler} from './compiler';
 import {CompilerConfig} from './compiler_config';
-import {ViewFactory, ElementBinder} from './view_factory';
+import {ViewFactory, ElementBinder} from '../view_factory';
 
-var injector = new Injector();
-var compiler = injector.get(Compiler);
+var REQJS_PLUGIN_NAME = 'requirejs_html';
 
+patchDefineToUsePluginForHtmlFiles();
+
+// We want to have dependencies like "some.html"
+// to go through our plugin. However, requirejs
+// does not support a general configuration option for this.
+// Therefore we need to patch the "define" function.
+
+// TODO: Test this!
+function patchDefineToUsePluginForHtmlFiles() {
+  var _define = window.define;
+  window.define = function(id, deps, callback) {
+    var args = Array.prototype.slice.call(arguments);
+    var depsIndex = -1;
+    args.forEach(function(arg, index) {
+      if (arg.splice) {
+        depsIndex = index;
+      }
+    });
+    if (depsIndex >= 0) {
+      var deps = args[depsIndex];
+      deps = deps.map(function(depName) {
+        if (depName.endsWith('.html')) {
+          depName = REQJS_PLUGIN_NAME+'!' + depName.substring(0, depName.length - 5);
+        }
+        return depName;
+      });
+      args[depsIndex] = deps;
+    }
+    return _define.apply(this, args);
+  }
+}
+
+define(REQJS_PLUGIN_NAME, function() {
+  return {
+    load: load
+  };
+});
+
+// export this for testing purposes!
 export function load(name, req, onload, config) {
   // TODO: read out the require config and instantiate the
   // compiler here (with the correct CompilerConfig)
+  var injector = new Injector();
+  var compiler = injector.get(Compiler);
+
   onload({
     __esModule: true,
     viewFactory: new Promise(resolver)

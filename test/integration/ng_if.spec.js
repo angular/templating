@@ -1,7 +1,6 @@
 import {inject} from 'di/testing';
 import {Injector} from 'di';
-import {Compiler} from '../../src/compiler';
-import {DirectiveClass} from '../../src/directive_class';
+import {Compiler} from '../../src/compiler/compiler';
 import {NgIf} from './ng_if';
 import {$, $html} from '../dom_mocks';
 
