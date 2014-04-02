@@ -39,7 +39,7 @@ export class View extends LinkedListItem {
       this._fragment = container;
       this.removed = true;
     } else {
-      this._fragment = new DocumentFragment();
+      this._fragment = document.createDocumentFragment();
       this.removed = false;
     }
   }
