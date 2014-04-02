@@ -3,60 +3,19 @@ import {Compiler} from './compiler';
 import {CompilerConfig} from './compiler_config';
 import {ViewFactory, ElementBinder} from '../view_factory';
 
-var REQJS_PLUGIN_NAME = 'requirejs_html';
-
-patchDefineToUsePluginForHtmlFiles();
-
-// We want to have dependencies like "some.html"
-// to go through our plugin. However, requirejs
-// does not support a general configuration option for this.
-// Therefore we need to patch the "define" function.
-
-// TODO: Test this!
-function patchDefineToUsePluginForHtmlFiles() {
-  var _define = window.define;
-  window.define = function(id, deps, callback) {
-    var args = Array.prototype.slice.call(arguments);
-    var depsIndex = -1;
-    args.forEach(function(arg, index) {
-      if (arg.splice) {
-        depsIndex = index;
-      }
-    });
-    if (depsIndex >= 0) {
-      var deps = args[depsIndex];
-      deps = deps.map(function(depName) {
-        if (depName.endsWith('.html')) {
-          depName = REQJS_PLUGIN_NAME+'!' + depName.substring(0, depName.length - 5);
-        }
-        return depName;
-      });
-      args[depsIndex] = deps;
-    }
-    return _define.apply(this, args);
-  }
-}
-
-define(REQJS_PLUGIN_NAME, function() {
-  return {
-    load: load
-  };
-});
-
-// export this for testing purposes!
 export function load(name, req, onload, config) {
-  // TODO: read out the require config and instantiate the
-  // compiler here (with the correct CompilerConfig)
-  var injector = new Injector();
-  var compiler = injector.get(Compiler);
-
+  if (name === 'document') {
+    // special case for bootstrap
+    return loadBootstrapApps(window.document, req, onload, config);
+  }
   onload({
     __esModule: true,
     viewFactory: new Promise(resolver)
   });
 
   function resolver(resolve, reject) {
-    rejectOnError(()=>{
+    rejectOnError(function() {
+      var compiler = createCompiler(config);
       var url = req.toUrl(name+'.html');
       loadText(url, rejectOnError( (error, doc) => {
         if (error) {
@@ -64,7 +23,6 @@ export function load(name, req, onload, config) {
         } else {
           var depNames = findModules(doc);
           req(depNames, rejectOnError(function(...modules) {
-            // TODO: Add try/catch
             var vf = compiler.compileChildNodes(doc, extractClasses(modules));
             resolve(vf);
           }));
@@ -85,6 +43,54 @@ export function load(name, req, onload, config) {
   }
 }
 load.responseTypeContentSupported = isResponseTypeContentSupported();
+
+export function loadBootstrapApps(doc, req, onload, config) {
+  onload({
+    __esModule: true,
+    appViewFactoriesPromise: new Promise(resolver)
+  });
+
+  function resolver(resolve, reject) {
+    rejectOnError(function() {
+      var compiler = createCompiler(config);
+      ready(rejectOnError(function() {
+        var appViewFactories = [];
+        var apps = Array.prototype.slice.call(doc.querySelectorAll('[ng-app]'));
+        var modulesSrc = findModules(doc);
+
+        // TODO: use Sytem.get here
+        require(modulesSrc, rejectOnError(function() {
+          var modules = Array.prototype.slice.call(arguments);
+          apps.forEach(function(appRootElement) {
+            var moduleClasses = extractClasses(modules);
+
+            var vf = compiler.compileNodes([appRootElement], moduleClasses);
+            appViewFactories.push(vf);
+          });
+
+          resolve(appViewFactories);
+        }));
+      }));
+    })();
+
+    function rejectOnError(callback) {
+      return function(...args) {
+        try {
+          return callback(...args);
+        } catch (e) {
+          reject(e);
+          throw e;
+        }
+      }
+    }
+  }
+}
+
+function createCompiler(config) {
+  // TODO: configure the injector given the requirejs config!
+  var rootInjector = new Injector();
+  return rootInjector.get(Compiler);
+}
 
 function loadText(url, callback) {
   var done = false;
@@ -159,3 +165,28 @@ function isResponseTypeContentSupported() {
   }
   return false;
 }
+
+function ready( callback ) {
+  if (!ready.promise) {
+    ready.promise = new Promise(function(resolve, reject) {
+      // Catch cases where $(document).ready() is called after the browser event has already occurred.
+      // we once tried to use readyState "interactive" here, but it caused issues like the one
+      // discovered by ChrisS here: http://bugs.jquery.com/ticket/12282#comment:15
+      if ( document.readyState === "complete" ) {
+        resolve();
+      } else {
+        // Use the handy event callback
+        document.addEventListener( "DOMContentLoaded", completed, false );
+        // A fallback to window.onload, that will always work
+        window.addEventListener( "load", completed, false );
+      }
+
+      function completed() {
+        document.removeEventListener( "DOMContentLoaded", completed, false );
+        window.removeEventListener( "load", completed, false );
+        resolve();
+      }
+   });
+  }
+  ready.promise.then(callback);
+};

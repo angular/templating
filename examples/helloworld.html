@@ -6,6 +6,7 @@
   <script type="text/javascript" src="/node_modules/requirejs/require.js"></script>
   <script type="text/javascript" src="/node_modules/traceur/bin/traceur-runtime.js"></script>
 
+  <script type="text/javascript" src="/utils/loader.js"></script>
   <!-- TODO: include source maps! -->
   <!-- TODO: create standalone repo for examples, e.g. v2_examples -->
 
@@ -26,7 +27,10 @@
           'watchtower': 'node_modules/watchtower/dist/amd/index'
         }
       },
-      deps: ['templating', 'templating_compiler']
+      deps: ['templating'],
+      callback: function(templating) {
+        templating.bootstrap();
+      }
     });
   </script>
 

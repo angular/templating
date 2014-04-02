@@ -1,5 +1,5 @@
 export {
-  boostrap
+  bootstrap
 } from './bootstrap';
 export {
   Directive,
