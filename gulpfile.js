@@ -8,7 +8,13 @@ var through = require('through2');
 var path = {
   src: ['./src/**/*.js'],
   examples: ['./examples/**/*.js'],
-  exampleTemplates: ['./examples/**/*.html']
+  exampleTemplates: ['./examples/**/*.html'],
+  deps: {
+    'watchtower': './node_modules/watchtower/src/**/*.js',
+    'expressionist': './node_modules/expressionist/src/**/*.js',
+    'di': './node_modules/di/src/**/*.js',
+    'rtts-assert': './node_modules/rtts-assert/src/**/*.js'
+  }
 };
 
 function rename(search, replace) {
@@ -31,7 +37,7 @@ gulp.task('build_source_es6', function() {
       .pipe(gulp.dest('dist/es6'));
 });
 
-gulp.task('build_examples', function() {
+gulp.task('build_examples', ['build_deps'], function() {
   gulp.src(path.examples)
       .pipe(traceur(pipe.traceur()))
       .pipe(gulp.dest('temp/examples'));
@@ -44,6 +50,14 @@ gulp.task('build_examples', function() {
       .pipe(rename(/html$/, 'js'))
       .pipe(gulp.dest('test/examples/'));
   **/
+});
+
+gulp.task('build_deps', function() {
+  for (var prop in path.deps) {
+    gulp.src(path.deps[prop])
+        .pipe(traceur(pipe.traceur()))
+        .pipe(gulp.dest('temp/deps/'+prop));
+  }
 });
 
 gulp.task('build_source_cjs', function() {
