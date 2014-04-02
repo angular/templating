@@ -10,7 +10,7 @@ export function load(name, req, onload, config) {
   }
   onload({
     __esModule: true,
-    viewFactory: new Promise(resolver)
+    promise: new Promise(resolver)
   });
 
   function resolver(resolve, reject) {
@@ -23,8 +23,15 @@ export function load(name, req, onload, config) {
         } else {
           var depNames = findModules(doc);
           req(depNames, rejectOnError(function(...modules) {
+            var modulesWithNames = {};
+            modules.forEach(function(module, index) {
+              modulesWithNames[depNames[index]] = module;
+            });
             var vf = compiler.compileChildNodes(doc, extractClasses(modules));
-            resolve(vf);
+            resolve({
+              viewFactory: vf,
+              modules: modulesWithNames
+            });
           }));
         }
       }));
@@ -47,7 +54,7 @@ load.responseTypeContentSupported = isResponseTypeContentSupported();
 export function loadBootstrapApps(doc, req, onload, config) {
   onload({
     __esModule: true,
-    appViewFactoriesPromise: new Promise(resolver)
+    promise: new Promise(resolver)
   });
 
   function resolver(resolve, reject) {
@@ -56,11 +63,15 @@ export function loadBootstrapApps(doc, req, onload, config) {
       ready(rejectOnError(function() {
         var appViewFactories = [];
         var apps = Array.prototype.slice.call(doc.querySelectorAll('[ng-app]'));
-        var modulesSrc = findModules(doc);
+        var depNames = findModules(doc);
 
         // TODO: use Sytem.get here
-        require(modulesSrc, rejectOnError(function() {
-          var modules = Array.prototype.slice.call(arguments);
+        var modulesWithNames = {};
+        require(depNames, rejectOnError(function(...modules) {
+          modules.forEach(function(module, index) {
+            modulesWithNames[depNames[index]] = module;
+          });
+
           apps.forEach(function(appRootElement) {
             var moduleClasses = extractClasses(modules);
 
@@ -68,7 +79,10 @@ export function loadBootstrapApps(doc, req, onload, config) {
             appViewFactories.push(vf);
           });
 
-          resolve(appViewFactories);
+          resolve({
+            viewFactories: appViewFactories,
+            modules: modulesWithNames
+          });
         }));
       }));
     })();
@@ -117,10 +131,15 @@ function loadText(url, callback) {
         callback(new Error('Error loading '+url+': '+xhr.status+' '+xhr.statusText), xhr);
       } else {
         var doc;
+        doc = document.createElement('div');
         if (xhr.responseXML) {
-          doc = xhr.responseXML.body;
+          // Dont' use the <body> tag itself as we can't wrap
+          // it into other divs, ...
+          // TODO: Add a test for this!
+          while (xhr.responseXML.body.firstChild) {
+            doc.appendChild(xhr.responseXML.body.firstChild);
+          }
         } else {
-          doc = document.createElement('div');
           doc.innerHTML = xhr.responseText;
         }
         callback(null, doc);

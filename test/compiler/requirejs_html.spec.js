@@ -1,5 +1,5 @@
 import {load as htmlLoad} from '../../src/compiler/requirejs_html';
-import {viewFactory} from '../../src/compiler/requirejs_html!./atemplate';
+import {promise as aTemplate} from './atemplate.html';
 import {ViewFactory} from '../../src/view_factory';
 
 describe('requirejs-html', ()=>{
@@ -16,7 +16,7 @@ describe('requirejs-html', ()=>{
     oldXhr = window.XMLHttpRequest;
     window.XMLHttpRequest = jasmine.createSpy('xhr').and.returnValue(xhr);
   });
-  
+
   afterEach(()=>{
     window.XMLHttpRequest = oldXhr;
   });
@@ -40,7 +40,7 @@ describe('requirejs-html', ()=>{
 
   it('should normalize the url and load the template via xhr', ()=>{
     req.toUrl.and.returnValue('someNormalizedName');
-    
+
     htmlLoad('someName', req, load);
 
     expect(req.toUrl).toHaveBeenCalledWith('someName.html');
@@ -57,15 +57,17 @@ describe('requirejs-html', ()=>{
     htmlLoad('someName', req, load);
     expect(load).toHaveBeenCalled();
     expect(load.error).not.toHaveBeenCalled();
-    var promise = load.calls.mostRecent().args[0].viewFactory;
+    var promise = load.calls.mostRecent().args[0].promise;
     expect(promise.then).toBeDefined();
 
     returnXhrSuccess('someHtml');
-    promise.then((vf)=>{
-      expect(vf instanceof ViewFactory).toBe(true);
+    promise.then((data)=>{
+      expect(data.viewFactory instanceof ViewFactory).toBe(true);
       done();
     });
-  });  
+  });
+
+  // TODO: test promise.then(data) and data.modules as well!
 
   it('should load the template body if responseType=document is supported', (done)=>{
     req.toUrl.and.returnValue('someNormalizedName');
@@ -75,12 +77,12 @@ describe('requirejs-html', ()=>{
 
     htmlLoad.responseTypeContentSupported = true;
     htmlLoad('someName', req, load);
-    var promise = load.calls.mostRecent().args[0].viewFactory;
+    var promise = load.calls.mostRecent().args[0].promise;
     expect(xhr.responseType).toBe('document');
 
     returnXhrSuccess('someHtml');
-    promise.then((vf)=>{
-      expect(vf.templateContainer.innerHTML).toBe('someHtml');
+    promise.then((data)=>{
+      expect(data.viewFactory.templateContainer.innerHTML).toBe('someHtml');
       done();
     });
   });
@@ -93,12 +95,12 @@ describe('requirejs-html', ()=>{
 
     htmlLoad.responseTypeContentSupported = false;
     htmlLoad('someName', req, load);
-    var promise = load.calls.mostRecent().args[0].viewFactory;
+    var promise = load.calls.mostRecent().args[0].promise;
     expect(xhr.responseType).toBe('text/html');
-    
+
     returnXhrSuccess('someHtml');
-    promise.then((vf)=>{
-      expect(vf.templateContainer.innerHTML).toBe('someHtml');
+    promise.then((data)=>{
+      expect(data.viewFactory.templateContainer.innerHTML).toBe('someHtml');
       done();
     });
   });
@@ -106,15 +108,15 @@ describe('requirejs-html', ()=>{
   // TODO: it should load the modules defines in the <module> tags
 
   describe('errors', ()=>{
-    
+
     it('should detect xhr aborts via onerror', (done)=>{
       req.toUrl.and.returnValue('someNormalizedName');
 
       htmlLoad('someName', req, load);
       xhr.onerror();
-      var promise = load.calls.mostRecent().args[0].viewFactory;
+      var promise = load.calls.mostRecent().args[0].promise;
       promise.catch((e) => {
-        expect(e).toEqual(new Error('Error loading someNormalizedName: aborted'));        
+        expect(e).toEqual(new Error('Error loading someNormalizedName: aborted'));
         done();
       });
     });
@@ -124,7 +126,7 @@ describe('requirejs-html', ()=>{
 
       htmlLoad('someName', req, load);
       xhr.onabort();
-      var promise = load.calls.mostRecent().args[0].viewFactory;
+      var promise = load.calls.mostRecent().args[0].promise;
       promise.catch((e) => {
         expect(e).toEqual(new Error('Error loading someNormalizedName: aborted'));
         done();
@@ -139,17 +141,18 @@ describe('requirejs-html', ()=>{
       xhr.status = 404;
       xhr.statusText = 'NotFound';
       xhr.onreadystatechange();
-      var promise = load.calls.mostRecent().args[0].viewFactory;
+      var promise = load.calls.mostRecent().args[0].promise;
       promise.catch((e) => {
         expect(e).toEqual(new Error('Error loading someNormalizedName: 404 NotFound'));
         done();
       });
     });
   });
-  
+
   it('should work in integration', (done)=>{
-    viewFactory.then((vf) =>{
-      expect(vf.templateContainer.innerHTML.trim()).toBe('<div>someTemplate</div>');
+    aTemplate.then((data) =>{
+      expect(data.viewFactory.templateContainer.innerHTML.trim()).toBe('<div>someTemplate</div>');
+      // TODO: test data.modules as well!
       done();
     });
   });

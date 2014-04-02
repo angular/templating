@@ -6,8 +6,8 @@ import {ArrayOfClass} from './types';
 export function bootstrap() {
   // TODO: Support the ES6 loader here as well!
   require(['document.html'], function(module) {
-    module.appViewFactoriesPromise.then(function(viewFactories) {
-      viewFactories.forEach(function(vf) {
+    module.promise.then(function(viewFactoriesAndModules) {
+      viewFactoriesAndModules.viewFactories.forEach(function(vf) {
         var rootInjector = new Injector();
         var rootView = vf.createRootView(rootInjector, {}, true);
 

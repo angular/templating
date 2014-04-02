@@ -1,4 +1,4 @@
-export function createObject(type, data) {  
+export function createObject(type, data) {
   var res = Object.create(type.prototype, {});
   for (var prop in data) {
     res[prop] = data[prop];

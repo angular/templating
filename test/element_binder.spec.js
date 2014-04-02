@@ -55,7 +55,7 @@ describe('ElementBinder', ()=>{
       expect(ngNode.data().directives).toEqual([childInjector.get(SomeDirective)]);
     });
 
-    it('should add exported properties of directives to the element and not cache them in the ngNode', ()=>{      
+    it('should add exported properties of directives to the element and not cache them in the ngNode', ()=>{
       @DecoratorDirective({exports: ['someProp']})
       class SomeDirective {
       }
@@ -78,7 +78,7 @@ describe('ElementBinder', ()=>{
       expect(element.ngNode.prop('someProp')).toBe('anotherValue');
     });
 
-    it('should not overwrite existing properties when exporting properties of directives', ()=>{      
+    it('should not overwrite existing properties when exporting properties of directives', ()=>{
       @DecoratorDirective({exports: ['nodeValue']})
       class SomeDirective {
       }
@@ -142,7 +142,7 @@ describe('ElementBinder', ()=>{
         view.watchGrp.detectChanges();
 
         element.ngNode.prop('someNodeProp', 'someValue');
-        
+
         view.watchGrp.detectChanges();
         expect(element.ngNode.prop('someNodeProp')).toBe('someValue');
         expect(view.executionContext.someCtxProp).toBe('someValue');
@@ -154,8 +154,8 @@ describe('ElementBinder', ()=>{
 
         element.ngNode.prop('someNodeProp', 'someValue');
         element.ngNode.flush();
-        
-        view.watchGrp.detectChanges();        
+
+        view.watchGrp.detectChanges();
         view.watchGrp.detectChanges();
 
         expect(element.ngNode.isDirty()).toBe(false);
@@ -206,7 +206,7 @@ describe('ElementBinder', ()=>{
       @DecoratorDirective()
       class SomeDirective {
         constructor() {
-          createdInstance = this;          
+          createdInstance = this;
         }
       }
       createInjector();
@@ -232,7 +232,9 @@ describe('ElementBinder', ()=>{
       viewFactory = new ViewFactory(container, []);
       viewFactoryPromise = {
         then: function(callback) {
-          callback(viewFactory);
+          callback({
+            viewFactory: viewFactory
+          });
         }
       };
       createInjector();
@@ -240,7 +242,7 @@ describe('ElementBinder', ()=>{
       @ComponentDirective({template: viewFactoryPromise})
       class SomeDirective_ {
         constructor() {
-          createdInstance = this;          
+          createdInstance = this;
         }
       }
       SomeDirective = SomeDirective_;
@@ -263,7 +265,7 @@ describe('ElementBinder', ()=>{
 
       binder.bind(injector, element);
       expect(element.shadowRoot.innerHTML).toBe($html(container.childNodes));
-      expect(element.innerHTML).toBe(contentHtml);        
+      expect(element.innerHTML).toBe(contentHtml);
     });
 
     it('should call the viewFactory with the component instance as execution context', () => {
@@ -372,7 +374,7 @@ describe('NonElementBinder', () => {
       @TemplateDirective
       class SomeDirective {
         constructor() {
-          createdInstance = this;          
+          createdInstance = this;
         }
       }
       createCommentAndNonElementBinder({
@@ -386,11 +388,11 @@ describe('NonElementBinder', () => {
       expect(createdInstance).toBeTruthy();
     });
 
-    it('should add exported properties of the directive to the node', ()=>{      
+    it('should add exported properties of the directive to the node', ()=>{
       @TemplateDirective({exports: ['someProp']})
       class SomeDirective {
         constructor() {
-          createdInstance = this;          
+          createdInstance = this;
         }
       }
       createCommentAndNonElementBinder({
@@ -408,11 +410,11 @@ describe('NonElementBinder', () => {
       expect(createdInstance.someProp).toBe('anotherValue');
     });
 
-    it('should initialize exported properties with the attribute value', ()=>{      
+    it('should initialize exported properties with the attribute value', ()=>{
       @TemplateDirective({exports: ['someProp']})
       class SomeDirective {
         constructor() {
-          createdInstance = this;          
+          createdInstance = this;
         }
       }
       createCommentAndNonElementBinder({

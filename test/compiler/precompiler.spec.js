@@ -17,47 +17,32 @@ describe('precompile', ()=>{
     var sourceES5 = transpiled.js;
     sourceES5 = sourceES5.replace(/"templating"/g, '"src/index"');
 
-    var define = function(deps, callback) {      
+    var define = function(deps, callback) {
       // TODO: Use the ES6 loader here!
       require(deps, function() {
         var module = callback(...arguments);
-        done(module);        
+        done(module);
       });
     }
     eval(sourceES5);
   }
 
-  describe('compile html into a viewFactory', ()=>{
+  describe('precompile', ()=>{
 
-    it('should compile an empty template', (done)=>{
-      precompile({}, require, '<div></div>').then((sourceES6)=>{
+    // TODO: create a real unit test with fake require, ...
+
+    // TODO: check the error handling, as it does not report errors right now.
+    // -> integrate with diary.js?
+
+    it('should work in integration', (done) => {
+      precompile('/base/test/compiler/atemplate.html').then((sourceES6)=>{
         evalES6Module(sourceES6, function(module) {
-          var rootInjector = new Injector();
-          var view = module.viewFactory.createRootView(rootInjector, {});
-          expect($html(view.nodes)).toBe('<div></div>');
-
+          var viewFactory = module.viewFactory;
+          expect(viewFactory.templateContainer.innerHTML.trim()).toBe('<div>someTemplate</div>');
           done();
         });
       });
     });
-
-    it('should compile a template that contains bindings', (done)=>{
-      precompile({}, require, '<div bind-value="test"></div>').then((sourceES6)=>{
-        evalES6Module(sourceES6, function(module) {
-          var vf = module.viewFactory;
-          var rootInjector = new Injector();
-          var view = vf.createRootView(rootInjector, {});
-          expect($html(view.nodes)).toBe('<div bind-value="test" class="ng-binder"></div>');
-          expect(vf.elementBinders.length).toBe(2);
-          expect(vf.elementBinders[1].attrs.bind).toEqual({'value':'test'});
-
-          done();
-        });
-      });
-    });
-
-    // TODO: it should compile a template that contains directives
-    // -> needs to use the <module> tag there!
 
   });
 
@@ -115,13 +100,13 @@ describe('precompile', ()=>{
       TestClass1.prototype.b = 'test';
       var input = new TestClass1();
       serializeAndEval(input, {'test/compiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
-        
+
         expect(result instanceof TestClass1).toBe(true);
 
         expect(result.b).toBe('test');
         delete TestClass1.prototype.b;
         expect(result.b).toBeUndefined();
-        
+
         done();
       });
     });
@@ -177,7 +162,7 @@ describe('precompile', ()=>{
         expect(result.childNodes[0].nodeName).toBe('DIV');
         done();
       });
-    });    
+    });
   });
 
 });

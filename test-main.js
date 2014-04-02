@@ -17,7 +17,8 @@ require.config({
   baseUrl: '/base',
 
   paths: {
-    'node_modules': './node_modules'
+    'node_modules': './node_modules',
+    'src': './src'
   },
   map: {
     '*': {
@@ -25,12 +26,16 @@ require.config({
       'di': 'node_modules/di/src/index',
       'di/testing': 'node_modules/di/src/testing',
       'watchtower': 'node_modules/watchtower/src/index',
-      'expressionist': 'node_modules/expressionist/src/index'
+      'expressionist': 'node_modules/expressionist/src/index',
+      'templating': 'src/index',
+      'templating_compiler': 'src/index_compiler',
     }
   },
 
   // Dynamically load all test files and ES6 polyfill.
-  deps: allTestFiles.concat(['node_modules/es6-shim/es6-shim']),
+  deps: allTestFiles.concat([
+    'node_modules/es6-shim/es6-shim'
+  ]),
 
   // we have to kickoff jasmine, as it is asynchronous
   callback: window.__karma__.start

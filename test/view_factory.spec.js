@@ -56,7 +56,7 @@ describe('ViewFactory', () => {
     var binders = mockBinders([0]);
     var view = new ViewFactory($('<div></div>')[0], binders)
       .createRootView(injector, {});
-    
+
     expect(binders[0].bind).not.toHaveBeenCalled();
   });
 
@@ -65,7 +65,7 @@ describe('ViewFactory', () => {
     var binders = mockBinders([0,1]);
     var view = new ViewFactory($('<div><a></a><b class="ng-binder"></b></div>')[0], binders)
       .createRootView(injector, {});
-    
+
     expect(binders[1].bind.calls.argsFor(0)[1]).toBe(view.nodes[1]);
   });
 
@@ -74,7 +74,7 @@ describe('ViewFactory', () => {
     var binders = mockBinders([0,1,2,1]);
     var view = new ViewFactory($('<div><a class="ng-binder"><b class="ng-binder"></b></a><a class="ng-binder"></div>')[0], binders)
       .createRootView(injector, {});
-        
+
     expect(binders[1].bind.calls.argsFor(0)[0]).toBe(view.injector);
     expect(binders[2].bind.calls.argsFor(0)[0].parent).toBe(view.injector);
     expect(binders[3].bind.calls.argsFor(0)[0]).toBe(view.injector);
@@ -104,7 +104,7 @@ function mockBinder(level) {
   spyOn(binder, 'bind').and.callFake(function(injector) {
     return binder.childInjector = binder._bind(...arguments);
   });
-  return binder;  
+  return binder;
 }
 
 function mockBinders(levels) {
@@ -122,7 +122,7 @@ function mockNonElementBinder(indexInParent) {
   spyOn(binder, 'bind').and.callFake(function(injector) {
     return binder.childInjector = binder._bind(...arguments);
   });
-  return binder;  
+  return binder;
 }
 
 function mockNonElementBinders(indicesInParent) {

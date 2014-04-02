@@ -1,9 +1,9 @@
 import {ComponentDirective} from 'templating';
-import {viewFactory} from './greet.html';
+import {promise as greetTemplate} from './greet.html';
 
 @ComponentDirective({
   selector: 'exp-hello',
-  template: viewFactory
+  template: greetTemplate
 })
 export class FirstComponent {
   constructor() {

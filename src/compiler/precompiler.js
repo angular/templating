@@ -3,25 +3,24 @@ import {Compiler} from './compiler';
 import {ViewFactory, ElementBinder} from '../view_factory';
 import {NodeAttrs} from '../types';
 
-export function precompile(config, loder, html) {
-  // TODO: How to configure this injector??
-  // TODO: Where to get the CompilerConfig from??
-  var injector = new Injector();
-  var compiler = injector.get(Compiler);
-  var el = document.createElement('div');
-  el.innerHTML = html;
-  var moduleNameWithExports = {
-    'templating': { 
-      'ViewFactory': ViewFactory,
-      'ElementBinder': ElementBinder,
-      'NodeAttrs': NodeAttrs
-    }
-  };
-  // TODO: Load the modules that are specified in the html
-  var vf = compiler.compileChildNodes(el, []);
-  return Promise.resolve(serialize(vf, 'viewFactory', moduleNameWithExports));
-}
+export function precompile(filePath) {
+  return new Promise(resolver);
 
+  function resolver(resolve, reject) {
+    require([filePath], function(module) {
+      module.promise.then(function(viewFactoryWithModules) {
+        var vf = viewFactoryWithModules.viewFactory;
+        var modules = viewFactoryWithModules.modules;
+        modules['templating'] = {
+          'ViewFactory': ViewFactory,
+          'ElementBinder': ElementBinder,
+          'NodeAttrs': NodeAttrs
+        };
+        resolve(serialize(vf, 'viewFactory', modules));
+      }).catch(reject);
+    });
+  }
+}
 
 export function serialize(object, exportName, moduleNameWithExports) {
   var builder = new Builder(),
@@ -30,7 +29,7 @@ export function serialize(object, exportName, moduleNameWithExports) {
       };
   serializeRecurse(builder, imports, object, moduleNameWithExports);
 
-  return serializeImports(imports) + '\n' 
+  return serializeImports(imports) + '\n'
     + 'export var '+exportName+'='+builder.result+';';
 }
 
@@ -59,7 +58,7 @@ function findModuleAndExport(type, moduleNameWithExports) {
 }
 
 function serializeRecurse(builder, imports, object, moduleNameWithExports) {
-  if (object && typeof object === 'object') {      
+  if (object && typeof object === 'object') {
     if (object.constructor === Date) {
       builder.appendLine('new Date('+object.getTime()+')');
     } else if (object.constructor === RegExp) {
@@ -123,9 +122,14 @@ function serializeRecurse(builder, imports, object, moduleNameWithExports) {
     // html
     var clone = node.cloneNode(true);
     var container = document.createElement('div');
-    container.appendChild(node)
+    container.appendChild(node);
     imports['createNode'] = 'templating';
-    builder.appendLine("createNode("+node.nodeType+",'"+container.innerHTML+"')");
+    builder.appendLine("createNode("+node.nodeType+",'"+escapeHTMLAsString(container.innerHTML)+"')");
+  }
+
+  function escapeHTMLAsString(string) {
+    var res = string.replace("'", '"').replace('\n', '');
+    return res;
   }
 }
 

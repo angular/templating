@@ -12,18 +12,18 @@ import {NgNode} from './ng_node';
 import {AnnotationProvider} from './annotation_provider';
 
 /*
- * A ViewFactory contains a nodes which need to be cloned for each new 
- * instance of a view. It also contains a list of ElementBinders 
- * which need to be bound to the cloned instances of the view. 
+ * A ViewFactory contains a nodes which need to be cloned for each new
+ * instance of a view. It also contains a list of ElementBinders
+ * which need to be bound to the cloned instances of the view.
  */
-export class ViewFactory {  
+export class ViewFactory {
   /**
-   * @param templateContainer nodes of the template. 
+   * @param templateContainer nodes of the template.
    *        All elements in those nodes and their child nodes that should be bound have to have
    *        the css class `ng-directive`.
    * @param elementBinders TreeArray of elementBinders for the nodes with the css class `ng-directive`
    *        from `templateNodes`.
-   */  
+   */
   constructor(templateContainer:NodeContainer, elementBinders:TreeArrayOfElementBinder) {
     this.templateContainer = templateContainer;
     this.elementBinders = elementBinders;
@@ -55,14 +55,14 @@ export class ViewFactory {
 
     var boundElements = container.querySelectorAll('.ng-binder');
     reduceTree(this.elementBinders, bindBinder, viewInjector);
-    
+
     return view;
 
     function bindBinder(parentInjector, binder, index) {
       var childInjector,
         element;
       if (index===0) {
-        // the first binder is only a container for NonElementBinders directly on the root 
+        // the first binder is only a container for NonElementBinders directly on the root
         // of the element.
         // Don't call it's bind method!
         element = container;
@@ -82,9 +82,9 @@ export class ViewFactory {
   }
 }
 
-export class ViewFactoryPromise {  
+export class ViewFactoryPromise {
   static assert(obj) {
-    // TODO: How to assert that the result of the promise 
+    // TODO: How to assert that the result of the promise
     // is a ViewFactory?
     assert(obj).is(Promise);
   }
@@ -97,7 +97,7 @@ export class TreeArrayOfElementBinder {
   }
   constructor() {
     assert.fail('type is not instantiable');
-  }  
+  }
 }
 
 export class NodeBinderArgs {
@@ -123,11 +123,11 @@ export class ArrayOfNonElementBinder {
   }
   constructor() {
     assert.fail('type is not instantiable');
-  }  
+  }
 }
 
 export class NonElementBinderArgs extends NodeBinderArgs {
-  static assert(obj) {    
+  static assert(obj) {
     if (obj.template) {
       assert(obj.template).is(assert.structure({
         directive: Function,
@@ -157,7 +157,7 @@ class NodeBinder {
     var self = this;
     var view = injector.get(View);
     var annotationProvider = injector.get(AnnotationProvider);
-    
+
     @Provide(NgNode)
     @Inject(Injector)
     function ngNodeProvider(injector:Injector) {
@@ -172,11 +172,11 @@ class NodeBinder {
     var directiveClasses = [];
     this._collectDirectives(directiveClasses);
 
-    // TODO: We should only force the recreation of the 
+    // TODO: We should only force the recreation of the
     // directives on this ElememtBinder, not all of the directives!
     var childInjector = injector.createChild(providers, [Directive]);
     var ngNode = childInjector.get(NgNode);
-    
+
     directiveClasses.forEach((directiveClass) => {
       var directiveInstance = childInjector.get(directiveClass);
       var annotation = annotationProvider.annotation(directiveClass, Directive);
@@ -214,12 +214,12 @@ class NodeBinder {
         // TODO: check if the expression is assignable and in that case don't call it!
         // TODO: Need to get the AST for this?
         // TODO: Maybe change interface in view: merge evaluate, assign into one function
-        // that returns an object that only has the assign method if the expression is assignable        
+        // that returns an object that only has the assign method if the expression is assignable
         lastValue = data[0];
         try {
           view.assign(expression, lastValue);
         } catch (e) {
-        }        
+        }
       }
 
     }, context);
@@ -250,14 +250,14 @@ class NodeBinder {
 
 /**
  * This class contains the list of directives,
- * on-*, bind-* and {{}} attributes for an element. 
- * 
+ * on-*, bind-* and {{}} attributes for an element.
+ *
  * Given a DOM element and a base injector it will:
  * 1. create a module and install directives into it.
  * 2. create child injector and iterate over directive types to force instantiation of those directives
  * 3. notify EventService of onEvents for this element.
  * 4. initialize the data binding
- * 
+ *
  * Lifetime: immutable for the duration of application.
  */
 export class ElementBinder extends NodeBinder {
@@ -300,11 +300,11 @@ export class ElementBinder extends NodeBinder {
     var annotation = annotationProvider.annotation(this.component, Directive);
     annotation.template.then(createView);
 
-    function createView(viewFactory) {
-      var view = viewFactory.createChildView(injector, componentInstance);
+    function createView(viewFactoryAndModules) {
+      var view = viewFactoryAndModules.viewFactory.createChildView(injector, componentInstance);
       // TODO: Make ShadowDOM optional using custom transclusion
       var root = createShadowRoot(element);
-      view.appendTo(root);      
+      view.appendTo(root);
     }
   }
 }
