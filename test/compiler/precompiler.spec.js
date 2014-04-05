@@ -37,9 +37,10 @@ describe('precompile', ()=>{
     it('should work in integration', (done) => {
       precompile('/base/test/compiler/atemplate.html').then((sourceES6)=>{
         evalES6Module(sourceES6, function(module) {
-          var viewFactory = module.viewFactory;
-          expect(viewFactory.templateContainer.innerHTML.trim()).toBe('<div>someTemplate</div>');
-          done();
+          module.promise.then(function(viewFactory) {
+            expect(viewFactory.templateContainer.innerHTML.trim()).toBe('<div>someTemplate</div>');
+            done();
+          });
         });
       });
     });
@@ -50,13 +51,15 @@ describe('precompile', ()=>{
 
     function serializeAndEval(object, moduleNamesWithExports, done) {
       evalES6Module(serialize(object, 'data', moduleNamesWithExports), function(module) {
-        done(module.data);
+        module.data.then(done, function(e) {
+          dump(e.stack)
+        });
       });
     }
 
     it('should serialize an object', (done) =>{
       var input = {a:1, b:null, c:undefined};
-      serializeAndEval(input, {}, function(result) {
+      serializeAndEval(input, [], function(result) {
         expect(result).toEqual({a:1, b:null, c:undefined});
         done();
       });
@@ -64,7 +67,7 @@ describe('precompile', ()=>{
 
     it('should serialize an array', (done) =>{
       var input = [1,2];
-      serializeAndEval(input, {}, function(result) {
+      serializeAndEval(input, [], function(result) {
         expect(result).toEqual(input);
         done();
       });
@@ -72,7 +75,7 @@ describe('precompile', ()=>{
 
     it('should serialize a Date', (done) =>{
       var input = new Date();
-      serializeAndEval(input, {}, function(result) {
+      serializeAndEval(input, [], function(result) {
         expect(result).toEqual(input);
         done();
       });
@@ -80,16 +83,36 @@ describe('precompile', ()=>{
 
     it('should serialize a Regex', (done) =>{
       var input = /a/;
-      serializeAndEval(input, {}, function(result) {
+      serializeAndEval(input, [], function(result) {
         expect(result).toEqual(input);
         done();
       });
     });
 
-    it('should serialize a class of a module', (done) =>{
+    it('should serialize a class of a module as a static import', (done) =>{
       var input = new TestClass1();
       input.a = 1;
-      serializeAndEval(input, {'test/compiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
+      serializeAndEval(input, [{
+        module: 'test/compiler/precompiler.spec',
+        name: 'TestClass1',
+        type: TestClass1,
+        dynamic: false,
+      }], function(result) {
+        expect(result instanceof TestClass1).toBe(true);
+        expect(result.a).toEqual(1);
+        done();
+      });
+    });
+
+    it('should serialize a class of a module as a dynamic import', (done) =>{
+      var input = new TestClass1();
+      input.a = 1;
+      serializeAndEval(input, [{
+        module: 'test/compiler/precompiler.spec',
+        name: 'TestClass1',
+        type: TestClass1,
+        dynamic: true
+      }], function(result) {
         expect(result instanceof TestClass1).toBe(true);
         expect(result.a).toEqual(1);
         done();
@@ -99,8 +122,12 @@ describe('precompile', ()=>{
     it('should not serialize properties of prototypes', (done) =>{
       TestClass1.prototype.b = 'test';
       var input = new TestClass1();
-      serializeAndEval(input, {'test/compiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
-
+      serializeAndEval(input, [{
+        module: 'test/compiler/precompiler.spec',
+        name: 'TestClass1',
+        type: TestClass1,
+        dynamic: false
+      }], function(result) {
         expect(result instanceof TestClass1).toBe(true);
 
         expect(result.b).toBe('test');
@@ -116,7 +143,12 @@ describe('precompile', ()=>{
       input.a = 1;
       input.b = new TestClass1();
       input.b.c = 2;
-      serializeAndEval(input, {'test/compiler/precompiler.spec': {'TestClass1': TestClass1}}, function(result) {
+      serializeAndEval(input, [{
+        module: 'test/compiler/precompiler.spec',
+        name: 'TestClass1',
+        type: TestClass1,
+        dynamic: false
+      }], function(result) {
         expect(result instanceof TestClass1).toBe(true);
         expect(result.a).toEqual(1);
         expect(result.b instanceof TestClass1).toBe(true);
@@ -128,7 +160,7 @@ describe('precompile', ()=>{
     it('should serialize an element', (done) =>{
       var input = document.createElement('div');
       input.innerHTML = 'someContent';
-      serializeAndEval(input, {}, function(result) {
+      serializeAndEval(input, [], function(result) {
         expect(result.innerHTML).toBe('someContent');
         expect(result.nodeName).toBe('DIV');
         done();
@@ -137,7 +169,7 @@ describe('precompile', ()=>{
 
     it('should serialize a text node', (done) =>{
       var text = document.createTextNode('someText');
-      serializeAndEval(text, {}, function(result) {
+      serializeAndEval(text, [], function(result) {
         expect(result.nodeValue).toBe('someText');
         expect(result.nodeName).toBe('#text');
         done();
@@ -148,7 +180,7 @@ describe('precompile', ()=>{
       var df = document.createDocumentFragment();
       var el = document.createElement('div');
       df.appendChild(el);
-      serializeAndEval(df, {}, function(result) {
+      serializeAndEval(df, [], function(result) {
         expect(result.nodeName).toBe('#document-fragment');
         expect(result.childNodes[0].nodeName).toBe('DIV');
         done();
@@ -157,7 +189,12 @@ describe('precompile', ()=>{
 
     it('should serialize a SimpleNodeContainer', (done) =>{
       var nc = new SimpleNodeContainer([document.createElement('div')]);
-      serializeAndEval(nc, {'templating': {'SimpleNodeContainer': SimpleNodeContainer}}, function(result) {
+      serializeAndEval(nc, [{
+        module: 'templating',
+        name: 'SimpleNodeContainer',
+        type: SimpleNodeContainer,
+        dynamic: true
+      }], function(result) {
         expect(result instanceof SimpleNodeContainer).toBe(true);
         expect(result.childNodes[0].nodeName).toBe('DIV');
         done();

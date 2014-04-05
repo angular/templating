@@ -1,7 +1,8 @@
 import {Injector} from 'di';
 import {Compiler} from './compiler';
-import {ViewFactory, ElementBinder} from '../view_factory';
+module viewFactoryModule from '../view_factory';
 import {NodeAttrs} from '../types';
+import {createObject, createNode} form '../instantiate_helper';
 
 export function precompile(filePath) {
   return new Promise(resolver);
@@ -11,53 +12,47 @@ export function precompile(filePath) {
       module.promise.then(function(viewFactoryWithModules) {
         var vf = viewFactoryWithModules.viewFactory;
         var modules = viewFactoryWithModules.modules;
-        modules['templating'] = {
-          'ViewFactory': ViewFactory,
-          'ElementBinder': ElementBinder,
-          'NodeAttrs': NodeAttrs
-        };
-        resolve(serialize(vf, 'viewFactory', modules));
+        var moduleNameWithExports = [];
+        for (var exportName in viewFactoryModule) {
+          modules.push({
+            module: 'templating',
+            name: exportName,
+            type: viewFactoryModule[exportName],
+            dynamic: false
+          });
+        }
+        modules.push({
+          module: 'templating',
+          name: 'NodeAttrs',
+          type: NodeAttrs,
+          dynamic: false
+        });
+        // TODO: Check/improve the error handling,
+        // as errors don't show up in the tests.
+        resolve(serialize(vf, 'promise', modules));
       }).catch(reject);
     });
   }
 }
 
 export function serialize(object, exportName, moduleNameWithExports) {
-  var builder = new Builder(),
-      imports = {
-        'createObject': 'templating'
-      };
-  serializeRecurse(builder, imports, object, moduleNameWithExports);
+  var builder = new Builder(moduleNameWithExports);
+  moduleNameWithExports.push({
+    module: 'templating', name: 'createObject', type: createObject, dynamic: false
+  });
+  moduleNameWithExports.push({
+    module: 'templating', name: 'createNode', type: createNode, dynamic: false
+  });
+  // TODO: Make this nicer...
+  builder.createObjectVar = builder.addImport(createObject);
+  builder.createNodeVar = builder.addImport(createNode);
+  serializeRecurse(builder, object);
 
-  return serializeImports(imports) + '\n'
-    + 'export var '+exportName+'='+builder.result+';';
+  return builder.build(exportName);
 }
 
-function serializeImports(imports) {
-  var importLines = [];
-  for (var varName in imports) {
-    importLines.push('import {'+varName+'} from "'+imports[varName]+'";');
-  }
-  return importLines.join('\n');
-}
 
-function findModuleAndExport(type, moduleNameWithExports) {
-  var currType;
-  for (var moduleName in moduleNameWithExports) {
-    for (var exportName in moduleNameWithExports[moduleName]) {
-      currType = moduleNameWithExports[moduleName][exportName];
-      if (currType === type) {
-        return {
-          moduleName: moduleName,
-          exportName: exportName
-        };
-      }
-    }
-  }
-  return null;
-}
-
-function serializeRecurse(builder, imports, object, moduleNameWithExports) {
+function serializeRecurse(builder, object) {
   if (object && typeof object === 'object') {
     if (object.constructor === Date) {
       builder.appendLine('new Date('+object.getTime()+')');
@@ -65,86 +60,141 @@ function serializeRecurse(builder, imports, object, moduleNameWithExports) {
       builder.appendLine('/'+object.source+'/');
     } else if (object.constructor === Array) {
       builder.appendLine('[');
-      serializeArray(object);
+      serializeArray(builder, object);
       builder.appendLine(']');
     } else if (object.nodeName) {
-      serializeNode(object);
+      serializeNode(builder, object);
     } else if (object.constructor === Object) {
       builder.appendLine('{');
-      serializeDirectProps(object);
+      serializeDirectProps(builder, object);
       builder.appendLine('}');
     } else {
-      var moduleAndExport = findModuleAndExport(object.constructor, moduleNameWithExports);
-      if (moduleAndExport) {
-        imports[moduleAndExport.exportName] = moduleAndExport.moduleName;
-        imports['createObject'] = 'templating';
-        builder.appendLine('createObject('+moduleAndExport.exportName+',{');
-        serializeDirectProps(object);
-        builder.appendLine('})');
-      } else {
-        throw new Error('No module provided for objects of type '+object.constructor);
-      }
+      var exportName = builder.addImport(object.constructor);
+      builder.appendLine(builder.createObjectVar + '('+exportName+',{');
+      serializeDirectProps(builder, object);
+      builder.appendLine('})');
     }
   } else {
     builder.appendLine(JSON.stringify(object));
   }
+}
 
-
-  function serializeDirectProps(object) {
-    var first = true;
-    for (var prop in object) {
-      if (object.hasOwnProperty(prop)) {
-        if (!first) {
-          builder.append(',');
-        } else {
-          first = false;
-        }
-        builder.append('"'+prop+'":');
-        serializeRecurse(builder, imports, object[prop], moduleNameWithExports);
-      }
-    }
-  }
-
-  function serializeArray(object) {
-    var first = true;
-    for (var i=0; i<object.length; i++) {
+function serializeDirectProps(builder, object) {
+  var first = true;
+  for (var prop in object) {
+    if (object.hasOwnProperty(prop)) {
       if (!first) {
         builder.append(',');
       } else {
         first = false;
       }
-      serializeRecurse(builder, imports, object[i], moduleNameWithExports);
+      builder.append('"'+prop+'":');
+      serializeRecurse(builder, object[prop]);
     }
-  }
-
-  function serializeNode(node) {
-    // clone the node as we move it into another place to be able to convert it into
-    // html
-    var clone = node.cloneNode(true);
-    var container = document.createElement('div');
-    container.appendChild(node);
-    imports['createNode'] = 'templating';
-    builder.appendLine("createNode("+node.nodeType+",'"+escapeHTMLAsString(container.innerHTML)+"')");
-  }
-
-  function escapeHTMLAsString(string) {
-    var res = string.replace("'", '"').replace('\n', '');
-    return res;
   }
 }
 
+function serializeArray(builder, object) {
+  var first = true;
+  for (var i=0; i<object.length; i++) {
+    if (!first) {
+      builder.append(',');
+    } else {
+      first = false;
+    }
+    serializeRecurse(builder, object[i]);
+  }
+}
 
+function serializeNode(builder, node) {
+  // clone the node as we move it into another place to be able to convert it into
+  // html
+  var clone = node.cloneNode(true);
+  var container = document.createElement('div');
+  container.appendChild(node);
+  builder.appendLine(builder.createNodeVar+"("+node.nodeType+",'"+escapeHTMLAsString(container.innerHTML)+"')");
+}
+
+function escapeHTMLAsString(string) {
+  var res = string.replace("'", '"').replace('\n', '');
+  return res;
+}
+
+// TODO: Move more of the logic to build objects,
+// functions calls, ... into this Builder class!
 class Builder {
-  constructor() {
+  constructor(moduleNameWithExports) {
     this.result = '';
+    this.imports = [];
+    this.moduleNameWithExports = moduleNameWithExports;
+  }
+  addImport(type) {
+    // TODO: Make this faster!
+    var self = this;
+    var importVariable = this.moduleNameWithExports.reduce(function(importVariable, exported) {
+      if (importVariable) {
+        return importVariable;
+      }
+      if (exported.type === type) {
+        var variable = 'imp_'+self.imports.length;
+        self.imports.push({
+          module: exported.module,
+          name: exported.name,
+          dynamic: exported.dynamic,
+          variable: variable
+        });
+        return variable;
+      } else {
+        return null;
+      }
+    }, null);
+    if (!importVariable) {
+      throw new Error('No module provided for objects of type '+type);
+    }
+    return importVariable;
   }
   appendLine(string) {
-    return this.append(string+'\n');
+    this.append(string+'\n');
     return this;
   }
   append(string) {
     this.result += string;
     return this
+  }
+  _serializeStaticImports() {
+    var importLines = [];
+    this.imports.forEach((imported) => {
+      if (!imported.dynamic) {
+        importLines.push('import {'+imported.name+' as '+
+          imported.variable+'} from "'+imported.module+'";');
+      }
+    });
+    return importLines.join('\n');
+  }
+  _serializeDynamicImports(body) {
+    var modules = [];
+    var moduleVars = [];
+    var importedNames = [];
+    this.imports.forEach((imported, index) => {
+      if (imported.dynamic) {
+        modules.push(imported.module);
+        var moduleVar = 'mod'+index;
+        moduleVars.push(moduleVar);
+        importedNames.push('var '+imported.variable+'='+(moduleVar + '.' + imported.name)+';');
+      }
+    });
+    if (!importedNames.length) {
+      return body;
+    }
+    // TODO: Use Sytem.import here!
+    var res = 'require(["' + modules.join('","') + '"],' +
+       ' function(' + moduleVars.join(',') + ') {\n' + importedNames.join('\n');
+    return res + '\n ' + body + '\n});';
+  }
+  build(exportName) {
+    return this._serializeStaticImports() + '\n'
+      + 'export var '+exportName+'= new Promise(function(resolve) { \n'
+      + this._serializeDynamicImports('resolve(' + this.result+');')+'; });'
   }
 }
 

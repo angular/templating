@@ -23,9 +23,14 @@ export function load(name, req, onload, config) {
         } else {
           var depNames = findModules(doc);
           req(depNames, rejectOnError(function(...modules) {
-            var modulesWithNames = {};
+            var modulesWithNames = [];
             modules.forEach(function(module, index) {
-              modulesWithNames[depNames[index]] = module;
+              modulesWithNames.push({
+                module: moduleNames[index],
+                name: depNames[index],
+                type: modules[index][depNames[index]],
+                dynamic: true
+              });
             });
             var vf = compiler.compileChildNodes(doc, extractClasses(modules));
             resolve({
