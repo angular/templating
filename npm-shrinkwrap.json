@@ -22,6 +22,11 @@
       "from": "git://github.com/angular/expressionist.js#deps-from-source",
       "dependencies": {}
     },
+    "zone.js": {
+      "version": "0.1.1",
+      "from": "git://github.com/angular/zone.js",
+      "dependencies": {}
+    },
     "es6-shim": {
       "version": "0.9.3",
       "from": "es6-shim@0.9.3",

@@ -7,14 +7,18 @@ export function bootstrap() {
   // TODO: Support the ES6 loader here as well!
   require(['document.html'], function(module) {
     module.promise.then(function(viewFactoriesAndModules) {
-      viewFactoriesAndModules.viewFactories.forEach(function(vf) {
-        var rootInjector = new Injector();
-        var rootView = vf.createRootView(rootInjector, {}, true);
-
-        // TODO: Integrate with Zone.js and remove the setInterval!
-        window.setInterval(function(){
-          rootView.digest();
-        }, 100);
+      viewFactoriesAndModules.viewFactories.forEach((viewFactory) => {
+        var rootView;
+        window.zone.fork({
+          onZoneLeave: function () {
+            if (rootView) {
+              rootView.digest();
+            }
+          }
+        }).run(function() {
+          var rootInjector = new Injector();
+          rootView = viewFactory.createRootView(rootInjector, {}, true);
+        });
       });
     });
   });
