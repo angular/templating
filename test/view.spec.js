@@ -8,8 +8,8 @@ import {RootWatchGroup} from 'watchtower';
 describe('View', () => {
   var viewPort;
   var $rootElement;
-  var anchorHtml = '<!-- anchor -->', 
-      aHtml = '<span>A</span>a', 
+  var anchorHtml = '<!-- anchor -->',
+      aHtml = '<span>A</span>a',
       bHtml = '<span>B</span>b',
       cHtml = '<span>C</span>c',
       dHtml = '<span>D</span>d',
@@ -67,7 +67,7 @@ describe('View', () => {
       var container = document.createDocumentFragment();
       var injector = new Injector();
       var v1 = new RootView(container, injector);
-      
+
       expect(v1.parentView).toBe(null);
       expect(v1.rootView).toBe(v1);
 
@@ -86,7 +86,7 @@ describe('View', () => {
       var v1 = new RootView(container, injector);
       expect(v1.parser).toBeDefined();
       expect(v1.watchParser).toBeDefined();
-      
+
       var v2 = new View(v1, container, injector);
       expect(v2.parser).toBe(v1.parser);
       expect(v2.watchParser).toBe(v1.watchParser);
@@ -97,7 +97,7 @@ describe('View', () => {
       var injector = new Injector();
       var v1 = new RootView(container, injector);
       expect(v1.watchGrp.constructor).toBe(RootWatchGroup);
-      
+
       var v2 = new View(v1, container, injector);
       expect(v2.watchGrp._parentWatchGroup).toBe(v1.watchGrp);
     });
@@ -143,7 +143,7 @@ describe('View', () => {
 
       expectChildNodesToEqual([aHtml, anchorHtml]);
     });
-  
+
     it('should prepend in non empty hole', () => {
       viewPort.prepend(b);
       viewPort.prepend(a);
@@ -166,7 +166,7 @@ describe('View', () => {
       viewPort.append(a);
       viewPort.append(c);
       viewPort.insertBefore(b,c);
-      
+
       expectChildNodesToEqual([aHtml, bHtml, cHtml, anchorHtml]);
     });
 
@@ -185,7 +185,7 @@ describe('View', () => {
       viewPort.append(a);
       viewPort.append(c);
       viewPort.insertAfter(b,a);
-      
+
       expectChildNodesToEqual([aHtml, bHtml, cHtml, anchorHtml]);
     });
 
@@ -273,12 +273,12 @@ describe('View', () => {
 
     it('should watch the expression in the view executionContext if no context is given', ()=>{
       var callback = jasmine.createSpy('callback');
-      a.watch('someProp', callback);      
+      a.watch('someProp', callback);
 
       a.executionContext.someProp = 'someValue';
       a.digest();
       expect(callback).toHaveBeenCalledWith('someValue', undefined);
-      
+
       a.executionContext.someProp = 'anotherValue';
       a.digest();
       expect(callback).toHaveBeenCalledWith('anotherValue', 'someValue');
@@ -292,7 +292,7 @@ describe('View', () => {
       context.someProp = 'someValue';
       a.digest();
       expect(callback).toHaveBeenCalledWith('someValue', undefined);
-      
+
       context.someProp = 'anotherValue';
       a.digest();
       expect(callback).toHaveBeenCalledWith('anotherValue', 'someValue');
@@ -311,12 +311,39 @@ describe('View', () => {
   });
 
   describe('digest', ()=>{
-    
+
     it('should check the watchGrp for changes', () => {
       spyOn(a.watchGrp, 'detectChanges');
       a.digest();
       expect(a.watchGrp.detectChanges).toHaveBeenCalled();
     });
+
+    it('should detect changes that are done by a reaction function', ()=>{
+      var anotherPropValue;
+      a.watch('someProp', function(value) {
+        a.executionContext.anotherProp = value;
+      });
+      a.watch('anotherProp', function(value) {
+        anotherPropValue = value;
+      });
+      a.executionContext.someProp = 'someValue';
+      a.digest();
+      expect(a.executionContext.anotherProp).toBe('someValue');
+      expect(anotherPropValue).toBe('someValue');
+    });
+
+    it('should detect change cycles', ()=>{
+      var anotherPropValue;
+      a.watch('someProp', function(value) {
+        a.executionContext.anotherProp = value+1;
+      });
+      a.watch('anotherProp', function(value) {
+        a.executionContext.someProp = value+1;
+      });
+      a.executionContext.someProp = 1;
+      expect(()=>{ a.digest(); }).toThrow(new Error('Model did not stabilize.'));
+    });
+
 
     it('should flush all dirty nodes and then remove them from the list', ()=>{
       var node = document.createElement('a');
@@ -330,7 +357,7 @@ describe('View', () => {
       a.digest();
 
       expect(ngNode.flush).toHaveBeenCalled();
-      expect(a.dirtyNodes).toEqual([]);        
+      expect(a.dirtyNodes).toEqual([]);
     });
   });
 
@@ -355,19 +382,19 @@ describe('View', () => {
       a.destroy();
 
       expect(()=>{
-        viewPort.append(a);  
-      }).toThrow(expectedError);
-      
-      expect(()=>{
-        viewPort.remove(a);  
+        viewPort.append(a);
       }).toThrow(expectedError);
 
       expect(()=>{
-        viewPort.remove(a);  
+        viewPort.remove(a);
       }).toThrow(expectedError);
 
       expect(()=>{
-        a.watch('someExpr', null);  
+        viewPort.remove(a);
+      }).toThrow(expectedError);
+
+      expect(()=>{
+        a.watch('someExpr', null);
       }).toThrow(expectedError);
 
       expect(()=>{

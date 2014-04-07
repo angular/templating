@@ -26,7 +26,7 @@ export function load(name, req, onload, config) {
             var modulesWithNames = [];
             modules.forEach(function(module, index) {
               modulesWithNames.push({
-                module: moduleNames[index],
+                module: modules[index],
                 name: depNames[index],
                 type: modules[index][depNames[index]],
                 dynamic: true

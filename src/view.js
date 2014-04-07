@@ -11,8 +11,8 @@ import { WatchGroup, RootWatchGroup} from 'watchtower';
 import { NgNode, ArrayOfNgNode } from './ng_node';
 
 /*
- * View represents a DOM with bound Directives. 
- * Views are added to the ViewPort by the template directives 
+ * View represents a DOM with bound Directives.
+ * Views are added to the ViewPort by the template directives
  * such as ng-if and ng-repeat.
  */
 export class View extends LinkedListItem {
@@ -105,7 +105,18 @@ export class RootView extends View {
     this.dirtyNodes = [];
   }
   digest() {
-    this.watchGrp.detectChanges();
+    // TODO: Make the TTL configurable!
+    var ttl = 5, count;
+    do {
+      if (ttl == 0) {
+        // TODO: Add change log information to the error, see
+        // https://github.com/angular/angular.dart/blob/master/lib/core/scope.dart
+        throw new Error('Model did not stabilize.');
+      }
+      ttl--;
+      count = this.watchGrp.detectChanges();
+    } while (count);
+
     while (this.dirtyNodes.length) {
       this.dirtyNodes.pop().flush();
     }
