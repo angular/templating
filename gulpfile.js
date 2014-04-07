@@ -96,8 +96,9 @@ var rename = function(search, replace) {
 
 // Move to package.json?
 var GITHUB_REPOS = [
-  'angular/watchtower.js#set-up-assert',
-  'angular/expressionist.js#deps-from-source',
+  'angular/watchtower.js',
+  'angular/expressionist.js',
+  'angular/zone.js',
   'vojtajina/traceur-compiler#add-es6-pure-transformer-dist'
 ];
 

@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "dependencies": {
     "di": {
-      "version": "2.0.0-pre-6",
-      "from": "di@2.0.0-pre-6",
+      "version": "2.0.0-pre-7",
+      "from": "di@2.0.0-pre-7",
       "dependencies": {}
     },
     "traceur": {
@@ -14,17 +14,17 @@
     },
     "watchtower": {
       "version": "0.0.1",
-      "from": "git://github.com/angular/watchtower.js#set-up-assert",
-      "dependencies": {}
-    },
-    "expressionist": {
-      "version": "0.0.1",
-      "from": "git://github.com/angular/expressionist.js#deps-from-source",
+      "from": "git://github.com/angular/watchtower.js#master",
       "dependencies": {}
     },
     "zone.js": {
       "version": "0.1.1",
-      "from": "git://github.com/angular/zone.js",
+      "from": "git://github.com/angular/zone.js#master",
+      "dependencies": {}
+    },
+    "expressionist": {
+      "version": "0.0.1",
+      "from": "git://github.com/angular/expressionist.js#master",
       "dependencies": {}
     },
     "es6-shim": {
