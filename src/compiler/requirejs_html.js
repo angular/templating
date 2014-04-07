@@ -4,153 +4,66 @@ import {CompilerConfig} from './compiler_config';
 import {ViewFactory, ElementBinder} from '../view_factory';
 
 export function load(name, req, onload, config) {
+  var promise;
   if (name === 'document') {
     // special case for bootstrap
-    return loadBootstrapApps(window.document, req, onload, config);
+    promise = createDocumentPromise();
+  } else {
+    promise = createDefaultPromise();
   }
   onload({
     __esModule: true,
-    promise: new Promise(resolver)
+    promise: promise
   });
 
-  function resolver(resolve, reject) {
-    rejectOnError(function() {
+  function createDefaultPromise() {
+    var url = req.toUrl(name+'.html');
+    var _doc;
+    return loadText(url).then(function(doc) {
+      var depNames = findModules(doc);
+      _doc = doc;
+      return requirePromise(req, depNames);
+    }).then(function({moduleNames, modules}) {
+      var exports = findExports(moduleNames, modules);
+      var moduleClasses = extractClasses(modules);
       var compiler = createCompiler(config);
-      var url = req.toUrl(name+'.html');
-      loadText(url, rejectOnError( (error, doc) => {
-        if (error) {
-          reject(error);
-        } else {
-          var depNames = findModules(doc);
-          req(depNames, rejectOnError(function(...modules) {
-            var modulesWithNames = [];
-            modules.forEach(function(module, index) {
-              modulesWithNames.push({
-                module: modules[index],
-                name: depNames[index],
-                type: modules[index][depNames[index]],
-                dynamic: true
-              });
-            });
-            var vf = compiler.compileChildNodes(doc, extractClasses(modules));
-            resolve({
-              viewFactory: vf,
-              modules: modulesWithNames
-            });
-          }));
-        }
-      }));
-    })();
+      var vf = compiler.compileChildNodes(_doc, moduleClasses);
 
-    function rejectOnError(callback) {
-      return function(...args) {
-        try {
-          return callback(...args);
-        } catch (e) {
-          reject(e);
-          throw e;
-        }
-      }
-    }
+      return {
+        viewFactory: vf,
+        modules: exports
+      };
+    });
   }
+
+  function createDocumentPromise() {
+    var doc = window.document;
+    return ready().then(function() {
+      var depNames = findModules(doc);
+      return requirePromise(window.require, depNames);
+    }).then(function({moduleNames, modules}) {
+      var exports = findExports(moduleNames, modules);
+      var moduleClasses = extractClasses(modules);
+      var compiler = createCompiler(config);
+      var apps = Array.prototype.slice.call(doc.querySelectorAll('[ng-app]'));
+      var viewFactories = apps.map(function(appRootElement) {
+        return compiler.compileNodes([appRootElement], moduleClasses);
+      });
+
+      return {
+        viewFactories: viewFactories,
+        modules: exports
+      };
+    });
+  }
+
 }
 load.responseTypeContentSupported = isResponseTypeContentSupported();
-
-export function loadBootstrapApps(doc, req, onload, config) {
-  onload({
-    __esModule: true,
-    promise: new Promise(resolver)
-  });
-
-  function resolver(resolve, reject) {
-    rejectOnError(function() {
-      var compiler = createCompiler(config);
-      ready(rejectOnError(function() {
-        var appViewFactories = [];
-        var apps = Array.prototype.slice.call(doc.querySelectorAll('[ng-app]'));
-        var depNames = findModules(doc);
-
-        // TODO: use Sytem.get here
-        var modulesWithNames = {};
-        require(depNames, rejectOnError(function(...modules) {
-          modules.forEach(function(module, index) {
-            modulesWithNames[depNames[index]] = module;
-          });
-
-          apps.forEach(function(appRootElement) {
-            var moduleClasses = extractClasses(modules);
-
-            var vf = compiler.compileNodes([appRootElement], moduleClasses);
-            appViewFactories.push(vf);
-          });
-
-          resolve({
-            viewFactories: appViewFactories,
-            modules: modulesWithNames
-          });
-        }));
-      }));
-    })();
-
-    function rejectOnError(callback) {
-      return function(...args) {
-        try {
-          return callback(...args);
-        } catch (e) {
-          reject(e);
-          throw e;
-        }
-      }
-    }
-  }
-}
 
 function createCompiler(config) {
   // TODO: configure the injector given the requirejs config!
   var rootInjector = new Injector();
   return rootInjector.get(Compiler);
-}
-
-function loadText(url, callback) {
-  var done = false;
-  var xhr = new window.XMLHttpRequest();
-  xhr.open('GET', url, true);
-  if (load.responseTypeContentSupported) {
-    xhr.responseType = 'document';
-  } else {
-    xhr.responseType = 'text/html';
-  }
-  xhr.onreadystatechange = onreadystatechange;
-  xhr.onabort = xhr.onerror = function() {
-    if (!done) {
-      done = true;
-      callback(new Error('Error loading '+url+': aborted'), xhr);
-    }
-  }
-  xhr.send();
-
-  function onreadystatechange() {
-    if (xhr.readyState === 4) {
-      done = true;
-      if (xhr.status !== 200) {
-        callback(new Error('Error loading '+url+': '+xhr.status+' '+xhr.statusText), xhr);
-      } else {
-        var doc;
-        doc = document.createElement('div');
-        if (xhr.responseXML) {
-          // Dont' use the <body> tag itself as we can't wrap
-          // it into other divs, ...
-          // TODO: Add a test for this!
-          while (xhr.responseXML.body.firstChild) {
-            doc.appendChild(xhr.responseXML.body.firstChild);
-          }
-        } else {
-          doc.innerHTML = xhr.responseText;
-        }
-        callback(null, doc);
-      }
-    }
-  }
 }
 
 function findModules(doc) {
@@ -177,6 +90,17 @@ function extractClasses(modules) {
   return res;
 }
 
+function findExports(moduleNames, modules) {
+  return modules.map(function(module, index) {
+    return {
+      module: modules[index],
+      name: moduleNames[index],
+      type: modules[index][moduleNames[index]],
+      dynamic: true
+    };
+  });
+}
+
 function isResponseTypeContentSupported() {
   if (!window.XMLHttpRequest)
     return false;
@@ -190,7 +114,7 @@ function isResponseTypeContentSupported() {
   return false;
 }
 
-function ready( callback ) {
+function ready( ) {
   if (!ready.promise) {
     ready.promise = new Promise(function(resolve, reject) {
       // Catch cases where $(document).ready() is called after the browser event has already occurred.
@@ -212,5 +136,61 @@ function ready( callback ) {
       }
    });
   }
-  ready.promise.then(callback);
+  return ready.promise;
 };
+
+function requirePromise(require, moduleNames) {
+  return new Promise(function(resolve, reject) {
+    // TODO: Support ES6 here
+    require(moduleNames, function(...modules) {
+      resolve({moduleNames, modules});
+    });
+  });
+}
+
+function loadText(url) {
+  return new Promise(resolver);
+
+  function resolver(resolve, reject) {
+    var done = false;
+    var xhr = new window.XMLHttpRequest();
+    xhr.open('GET', url, true);
+    if (load.responseTypeContentSupported) {
+      xhr.responseType = 'document';
+    } else {
+      xhr.responseType = 'text/html';
+    }
+    xhr.onreadystatechange = onreadystatechange;
+    xhr.onabort = xhr.onerror = function() {
+      if (!done) {
+        done = true;
+        reject(new Error('Error loading '+url+': aborted'), xhr);
+      }
+    }
+    xhr.send();
+
+    function onreadystatechange() {
+      if (xhr.readyState === 4) {
+        done = true;
+        if (xhr.status !== 200) {
+          reject(new Error('Error loading '+url+': '+xhr.status+' '+xhr.statusText), xhr);
+        } else {
+          var doc;
+          doc = document.createElement('div');
+          if (xhr.responseXML) {
+            // Dont' use the <body> tag itself as we can't wrap
+            // it into other divs, ...
+            // TODO: Add a test for this!
+            while (xhr.responseXML.body.firstChild) {
+              doc.appendChild(xhr.responseXML.body.firstChild);
+            }
+          } else {
+            doc.innerHTML = xhr.responseText;
+          }
+          resolve(doc);
+        }
+      }
+    }
+
+  }
+}
