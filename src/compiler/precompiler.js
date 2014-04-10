@@ -1,38 +1,52 @@
-import {Injector} from 'di';
+import {Injector, Inject} from 'di';
 import {Compiler} from './compiler';
 module viewFactoryModule from '../view_factory';
 import {NodeAttrs} from '../types';
 import {createObject, createNode} form '../instantiate_helper';
+import {ModuleLoader} from '../module_loader';
 
-export function precompile(filePath) {
-  return new Promise(resolver);
+@Inject(ModuleLoader)
+export function Precompile(moduleLoader) {
+  return precompile;
 
-  function resolver(resolve, reject) {
-    require([filePath], function(module) {
-      module.promise.then(function(viewFactoryWithModules) {
-        var vf = viewFactoryWithModules.viewFactory;
-        var modules = viewFactoryWithModules.modules;
-        var moduleNameWithExports = [];
-        for (var exportName in viewFactoryModule) {
-          modules.push({
-            module: 'templating',
-            name: exportName,
-            type: viewFactoryModule[exportName],
-            dynamic: false
-          });
-        }
-        modules.push({
-          module: 'templating',
-          name: 'NodeAttrs',
-          type: NodeAttrs,
-          dynamic: false
-        });
-        // TODO: Check/improve the error handling,
-        // as errors don't show up in the tests.
-        resolve(serialize(vf, 'promise', modules));
-      }).catch(reject);
+  function precompile(filePath) {
+    return moduleLoader([filePath]).then(function(modules) {
+      var module = modules[0];
+      return module.promise;
+    }).then(function(viewFactoryWithModules) {
+      var vf = viewFactoryWithModules.viewFactory;
+      var modulesWithNames = viewFactoryWithModules.modules;
+      var exports = [];
+      for (var moduleName in modulesWithNames) {
+        collectExports(moduleName, modulesWithNames[moduleName], true, exports);
+      }
+      collectExports('templating', viewFactoryModule, false, exports);
+      exports.push({
+        module: 'templating',
+        name: 'NodeAttrs',
+        type: NodeAttrs,
+        dynamic: false
+      });
+      // TODO: Check/improve the error handling,
+      // as errors don't show up in the tests.
+      var res = serialize(vf, 'promise', exports);
+      return res;
     });
   }
+
+}
+
+function collectExports(moduleName, module, dynamic, target) {
+  target = target || [];
+  for (var exportName in module) {
+    target.push({
+      module: moduleName,
+      name: exportName,
+      type: module[exportName],
+      dynamic: dynamic
+    });
+  }
+  return target;
 }
 
 export function serialize(object, exportName, moduleNameWithExports) {
@@ -107,12 +121,19 @@ function serializeArray(builder, object) {
 }
 
 function serializeNode(builder, node) {
-  // clone the node as we move it into another place to be able to convert it into
-  // html
-  var clone = node.cloneNode(true);
-  var container = document.createElement('div');
-  container.appendChild(node);
-  builder.appendLine(builder.createNodeVar+"("+node.nodeType+",'"+escapeHTMLAsString(container.innerHTML)+"')");
+  var html;
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    html = node.outerHTML;
+  } else {
+    // clone the node as we move it into another place to be able to convert it into
+    // html
+    var clone = node.cloneNode(true);
+    var container = document.createElement('div');
+    container.appendChild(node);
+    html = container.innerHTML;
+  }
+
+  builder.appendLine(builder.createNodeVar+"("+node.nodeType+",'"+escapeHTMLAsString(html)+"')");
 }
 
 function escapeHTMLAsString(string) {
@@ -186,7 +207,8 @@ class Builder {
     if (!importedNames.length) {
       return body;
     }
-    // TODO: Use Sytem.import here!
+    // TODO: Use ModuleLoader here (can't right now as
+    //   ModuleLoader needs an Injector...)
     var res = 'require(["' + modules.join('","') + '"],' +
        ' function(' + moduleVars.join(',') + ') {\n' + importedNames.join('\n');
     return res + '\n ' + body + '\n});';

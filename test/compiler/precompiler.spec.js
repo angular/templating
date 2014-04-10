@@ -1,9 +1,11 @@
 import {compile as traceur} from './traceur-api';
 import {$, $html} from '../dom_mocks';
 import {Injector} from 'di';
-import {precompile, serialize} from '../../src/compiler/precompiler';
+import {inject} from 'di/testing';
+import {Precompile, serialize} from '../../src/compiler/precompiler';
 import {SimpleNodeContainer} from '../../src/node_container';
 import {DecoratorDirective} from '../../src/annotations';
+import {ModuleLoader} from '../../src/module_loader';
 
 describe('precompile', ()=>{
 
@@ -18,10 +20,11 @@ describe('precompile', ()=>{
     sourceES5 = sourceES5.replace(/"templating"/g, '"src/index"');
 
     var define = function(deps, callback) {
-      // TODO: Use the ES6 loader here!
-      require(deps, function() {
-        var module = callback(...arguments);
-        done(module);
+      inject(ModuleLoader, (moduleLoader)=>{
+        moduleLoader(deps).then(function(depModules) {
+          var module = callback(...depModules);
+          done(module);
+        });
       });
     }
     eval(sourceES5);
@@ -29,17 +32,20 @@ describe('precompile', ()=>{
 
   describe('precompile', ()=>{
 
-    // TODO: create a real unit test with fake require, ...
+    // TODO: Add more unit tests...
 
     // TODO: check the error handling, as it does not report errors right now.
     // -> integrate with diary.js?
 
     it('should work in integration', (done) => {
-      precompile('/base/test/compiler/atemplate.html').then((sourceES6)=>{
-        evalES6Module(sourceES6, function(module) {
-          module.promise.then(function(viewFactory) {
-            expect(viewFactory.templateContainer.innerHTML.trim()).toBe('<div>someTemplate</div>');
-            done();
+      inject(Precompile, (precompile)=>{
+        precompile('test/compiler/atemplate.html').then((sourceES6)=>{
+          evalES6Module(sourceES6, function(module) {
+            module.promise.then(function(viewFactory) {
+              expect(viewFactory.templateContainer.innerHTML.trim())
+                .toBe('<module src="./amodule"></module><div>someTemplate</div>');
+              done();
+            });
           });
         });
       });
