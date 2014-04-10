@@ -18,22 +18,11 @@ export class NgIf {
     this.parentView = parentView;
     this._ngIf = null;
     this.view = null;
-    Object.defineProperty(this, 'ngIf', {
-      get: function() {
-        return this.ngIfGetter();
-      },
-      set: function(value) {
-        this.ngIfSetter(value);
-      }
-    });
   }
-  /* TODO: not working with traceur right now
-  set ngIf(value) {}
-  */
-  ngIfGetter() {
+  get ngIf() {
     return this._ngIf;
   }
-  ngIfSetter(value) {
+  set ngIf(value) {
     if (typeof value === 'string') {
       // parse initial attribute
       value = value === 'true';
