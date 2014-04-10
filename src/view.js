@@ -67,22 +67,16 @@ export class View extends LinkedListItem {
     // -> they should be defined in the modules that the template
     //    imports resp. in the data that is given to compile()!
     var filters = null;
-    // TODO: Cache expressions
-    // -> can't cache the watchAst, but
-    //    we could cache the expression AST, then change watchParser to
-    //    get the expression AST as an input, and not the expression string!
     var watchAst = this.watchParser.parse(expression, filters, false, context);
     this.watchGrp.watch(watchAst, callback);
   }
   assign(expression:string, value=null, context:Object=null) {
     this._checkDestroyed();
-    // TODO: Cache the expressions!
     var parsedExpr = this.parser.parse(expression);
     parsedExpr.bind(context || this.executionContext).assign(value);
   }
   evaluate(expression:string, context:Object=null) {
     this._checkDestroyed();
-    // TODO: Cache the expressions!
     var parsedExpr = this.parser.parse(expression);
     return parsedExpr.bind(context || this.executionContext).eval();
   }
