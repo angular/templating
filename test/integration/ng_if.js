@@ -7,7 +7,7 @@ import {ViewFactory} from '../../src/view_factory';
 
 @TemplateDirective({
   selector: '[ng-if]',
-  exports: ['ngIf']
+  observe: ['ngIf']
 })
 export class NgIf {
   @Inject(ViewFactory, ViewPort, View, Injector)
@@ -16,18 +16,13 @@ export class NgIf {
     this.viewFactory = viewFactory;
     this.injector = injector;
     this.parentView = parentView;
-    this._ngIf = null;
     this.view = null;
   }
-  get ngIf() {
-    return this._ngIf;
-  }
-  set ngIf(value) {
+  ngIfChanged(value) {
     if (typeof value === 'string') {
       // parse initial attribute
       value = value === 'true';
     }
-    this._ngIf = value;
     if (!value && this.view) {
       this.viewPort.remove(this.view);
       this.view = null;

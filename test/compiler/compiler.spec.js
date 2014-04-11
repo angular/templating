@@ -115,7 +115,7 @@ describe('Compiler', () => {
     });
 
     it('should not use the component for sibling elements', ()=>{
-      createSelector([ 
+      createSelector([
           new ComponentDirective({selector: '[comp]', template: null})
       ]);
       compile('<div comp></div><div></div>');
@@ -130,9 +130,9 @@ describe('Compiler', () => {
     describe('on a non template element', ()=>{
 
       it('should create the correct template viewFactory and template nodes', ()=>{
-        createSelector([ 
+        createSelector([
           new DecoratorDirective({selector: '[name]'}),
-          new TemplateDirective({selector: '[tpl]'}) 
+          new TemplateDirective({selector: '[tpl]'})
         ]);
         // template directive is on root node
         compile('<div tpl>a</div>');
@@ -149,7 +149,7 @@ describe('Compiler', () => {
         switchToTemplateDirective();
         verifyBinders('()');
         expect($html(container.childNodes)).toBe('<span tpl="">a</span>');
-        
+
         // template is after another text node
         compile('<div>a<span tpl>b</span></div>');
         verifyBinders('(),(<!--template anchor-->)');
@@ -161,7 +161,7 @@ describe('Compiler', () => {
         // template has other directives on same node
         compile('<div><span tpl name="1">a</span></div>');
         verifyBinders('(),(<!--template anchor-->)');
-        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
+        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
         switchToTemplateDirective();
         verifyBinders('(),1()');
         expect($html(container.childNodes)).toBe('<span tpl="" name="1" class="ng-binder">a</span>');
@@ -175,9 +175,9 @@ describe('Compiler', () => {
 
       });
 
-      it('should split the nodeAttrs and keep the attributes for the exported properties on the template directive', ()=>{
-        createSelector([ 
-          new TemplateDirective({selector: '[tpl]', exports: ['tpl', 'b']}) 
+      it('should split the nodeAttrs and keep the attributes for the observed properties on the template directive', ()=>{
+        createSelector([
+          new TemplateDirective({selector: '[tpl]', observe: ['tpl', 'b']})
         ]);
         compile('<div tpl="a" bind-b="c" x="y" bind-d="e" on-f="g"></div>');
 
@@ -208,9 +208,9 @@ describe('Compiler', () => {
     describe('on a template element', ()=>{
 
       it('should create the correct template viewFactory and template nodes', ()=>{
-        createSelector([ 
+        createSelector([
           new DecoratorDirective({selector: '[name]'}),
-          new TemplateDirective({selector: '[tpl]'}) 
+          new TemplateDirective({selector: '[tpl]'})
         ]);
 
         // template directive is on root node
@@ -228,7 +228,7 @@ describe('Compiler', () => {
         switchToTemplateDirective();
         verifyBinders('()');
         expect($html(container.childNodes)).toBe('a');
-        
+
         // template is after another text node
         compile('<div>a<template tpl>b</template></div>');
         verifyBinders('(),(<!--template anchor-->)');
@@ -236,12 +236,12 @@ describe('Compiler', () => {
         switchToTemplateDirective();
         verifyBinders('()');
         expect($html(container.childNodes)).toBe('b');
-       
+
         // template has other directives on same node
         // (should be ignored)
         compile('<div><template tpl name="1">a</template></div>');
         verifyBinders('(),(<!--template anchor-->)');
-        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');        
+        expect($html(container.childNodes)).toBe('<div class="ng-binder"><!--template anchor--></div>');
         switchToTemplateDirective();
         verifyBinders('()');
         expect($html(container.childNodes)).toBe('a');
@@ -255,8 +255,8 @@ describe('Compiler', () => {
       });
 
       it('should use the nodeAttrs of the template element', ()=>{
-        createSelector([ 
-          new TemplateDirective({selector: '[tpl]'}) 
+        createSelector([
+          new TemplateDirective({selector: '[tpl]'})
         ]);
         compile('<template tpl="a" bind-b="c" on-d="e"></tempate>');
         var templateBinder = binders[0].nonElementBinders[0];
@@ -286,7 +286,7 @@ describe('Compiler', () => {
       directives.push(clazz);
 
       function clazz() {}
-    });    
+    });
 
     function extractAttrSelector(directiveAnnotation) {
       if (!directiveAnnotation) {
@@ -325,7 +325,7 @@ describe('Compiler', () => {
       var nonElementBindersAsString = [];
       elementBinder.nonElementBinders.forEach(function(nonElementBinder, textIndex) {
         // Note: It's important to select the text/comment node
-        // only by the index in the binders array and the indexInParent 
+        // only by the index in the binders array and the indexInParent
         // of NonElementBinders, as this is what the ViewFactory
         // also does.
         var node = element.childNodes[nonElementBinder.indexInParent];
@@ -338,7 +338,7 @@ describe('Compiler', () => {
           var attrValue = element.getAttribute(attrName);
           if (attrValue) {
             annotationValues+=attrValue;
-          }          
+          }
         }
       }
       structureAsString.push(annotationValues + '(' + nonElementBindersAsString.join(',') + ')');
@@ -386,6 +386,6 @@ describe('Compiler', () => {
     expect(viewFactory).toBeTruthy();
     // update the global variables
     container = viewFactory.templateContainer;
-    binders = viewFactory.elementBinders;  
+    binders = viewFactory.elementBinders;
   }
 });

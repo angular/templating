@@ -5,8 +5,8 @@ class DirectiveArgs {
     if (obj.selector) {
       assert(obj.selector).is(assert.string);
     }
-    if (obj.exports) {
-      assert(obj.exports).is(assert.arrayOf(assert.string));
+    if (obj.observe) {
+      assert(obj.observe).is(assert.arrayOf(assert.string));
     }
   }
 }
@@ -16,8 +16,8 @@ export class Directive {
     if (data) {
       for (var prop in data) {
         this[prop] = data[prop];
-      }    
-    }    
+      }
+    }
   }
 }
 
@@ -47,6 +47,6 @@ class ComponentArgs {
 
 export class ComponentDirective extends Directive {
   constructor(data:ComponentArgs=null) {
-    super(data);   
+    super(data);
   }
 }

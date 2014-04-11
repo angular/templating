@@ -8,174 +8,313 @@ export class ArrayOfNgNode {
 
 export class NgNode {
   constructor(node:Node, data:Object=null) {
+    this.data = data;
+    this.nativeNode = node;
+    this._flushQueue = ()=>{};
+
+    mixinPropertyProxy(this);
+    if (node.style) {
+      mixinStyleProxy(this);
+    }
+    if (node.classList) {
+      mixinClassListProxy(this);
+    }
     node.ngNode = this;
-    this._node = node;
-    this._data = data;
+  }
+  setFlushQueue(queueAdder) {
+    this._flushQueue = queueAdder;
+  }
+}
+mixinPropertyProxyProto(NgNode.prototype);
+
+
+// --------------------- ClassListProxy ------------------
+function mixinClassListProxy(ngNode) {
+  ngNode.classList = new ClassListProxy(ngNode);
+}
+
+class ClassListProxy {
+  constructor(ngNode) {
     this._dirty = false;
-    this._classes = {
-      cache: null,
-      changed: {},
-      accessors: {}
-    };
+    this._ngNode = ngNode;
+    this._cache = {};
+    var className = ngNode.nativeNode.className || '';
+    className.split(/\s*/).forEach((token) => {
+      this._cache[token] = true;
+    });
+  }
+  _set(newValue, tokens) {
+    if (!this._dirty) {
+      this._ngNode._flushQueue(this._flush.bind(this));
+    }
+    this._dirty = true;
+    tokens.forEach((token) => {
+      this._cache[token] = newValue;
+    });
+  }
+  _flush() {
+    var tokens = [];
+    for (var prop in this._cache) {
+      if (this._cache[prop]) {
+        tokens.push(prop);
+      }
+    }
+    this._ngNode.nativeNode.className = tokens.join(' ');
+    this._dirty = false;
+  }
+  add(...tokens) {
+    this._set(true, tokens);
+  }
+  remove(...tokens) {
+    this._set(false, tokens);
+  }
+  contains(token:string) {
+    return !!this._cache[token];
+  }
+  toggle(token:string, force:boolean = null) {
+    var newValue;
+    if (force !== null) {
+      newValue = !!force;
+    } else {
+      newValue = !this.contains(token);
+    }
+    this._set(newValue, [token]);
+  }
+}
+
+
+// --------------------- StyleProxy ------------------
+function mixinStyleProxy(ngNode) {
+  ngNode.style = new StyleProxy(ngNode);
+}
+
+class StyleProxy {
+  constructor(ngNode) {
     this._props = {
       cache: {},
       changed: {},
-      accessors: {},
-      notCacheable: {}
-    }
-    this._styles = {
-      cache: {},
-      changed: {},
-      accessors: {},
-      notCacheable: {}
-    }
-    this._installPropertyChangeEventListeners();
+      ngNode: ngNode,
+      nativeObj: ngNode.nativeNode.style
+    };
   }
-  _installPropertyChangeEventListeners() {
-    var self = this;
-    this._node.addEventListener('propchange', (e)=>{
-      clearCache(e.properties || []);
+}
+(function() {
+  // mixin the properties for styles.
+  // Note: The style properties are the same on all elements,
+  // so we can mixin them into the StyleProxy prototype!
+  var accessors = {};
+  var el = document.createElement('span');
+  for (var prop in el.style) {
+    accessors[prop] = createCachedAccessor(prop);
+  }
+  Object.defineProperties(StyleProxy.prototype, accessors);
+})();
+
+// --------------------- propertyProxy ------------------
+function mixinPropertyProxyProto(targetProto) {
+  targetProto.observeProp = function(propName, callback) {
+    var listeners = this._props.changeListeners[propName];
+    if (!listeners) {
+      listeners = [];
+      this._props.changeListeners[propName] = listeners;
+    }
+    listeners.push({callback: callback});
+  }
+  targetProto.addProperties = function(properties) {
+    properties.forEach((propName) => {
+      if (!(propName in this)) {
+        Object.defineProperty(this, propName, createCachedAccessor(propName));
+      }
     });
+  }
+}
 
-    if (this._node.nodeName === 'INPUT') {
-      var listener = createClearCacheListener(['value']);
-      this._node.addEventListener('input', listener);
-      this._node.addEventListener('change', listener);
-      this._node.addEventListener('keypress', listener);
-    } else if (this._node.nodeName === 'SELECT') {
-      var listener = createClearCacheListener(['value']);
-      this._node.addEventListener('change', listener);      
-    } else if (this._node.nodeName === 'OPTION') {
-      var listener = createClearCacheListener(['selected']);
-      this._node.parentNode.addEventListener('change', listener);
-    }
+function mixinPropertyProxy(ngNode) {
+  var node = ngNode.nativeNode;
+  var accessors = {};
+  var ngApi = getNgApi(ngNode.nativeNode);
+  for (var prop in ngApi) {
+    accessors[prop] = createCachedAccessor(prop);
+    var ngApiSpec = ngApi[prop];
+    var events = ngApiSpec.events || [];
+    events.forEach((eventName) => {
+      node.addEventListener(eventName, ()=>{
+        clearCacheAndReadFromNative(ngNode, [prop]);
+      })
+    });
+  }
+  Object.defineProperties(ngNode, accessors);
+  // TODO: mixin non native methods as well!
+  node.addEventListener('propchange', (e)=>{
+    clearCacheAndReadFromNative(ngNode, e.properties || []);
+  });
+  ngNode._props = {
+    cache: {},
+    changed: {},
+    changeListeners: {},
+    ngNode: ngNode,
+    nativeObj: ngNode.nativeNode
+  };
+}
 
-    function createClearCacheListener(props) {
-      return () => { clearCache(props); };
-    }
+HTMLInputElement.prototype.ngApi = {
+  'value': {events: ['input', 'change', 'keypress']}
+};
 
-    function clearCache(props) {
-      props.forEach((prop) => {
-        delete self._props.cache[prop];
-        delete self._props.changed[prop];
-      });
-    }
-  }
-  nativeNode() {
-    return this._node;
-  }
-  data() {
-    return this._data;
-  }
-  isDirty() {
-    return this._dirty;
-  }
-  _setDirty() {    
-    if (!this.isDirty()) {
-      this._dirty = true;      
-      if (this._data && this._data.view) {
-        // TODO: Test this!
-        this._data.view.rootView.dirtyNodes.push(this);
-      }
-    }
-  }
-  flush() {
-    this._dirty = false;
+HTMLSelectElement.prototype.ngApi = {
+  'value': {events: ['change']}
+};
 
-    var changedClasses = this._flushClasses();
-    var changedProps = this._flushGeneric(this._node, this._props);
-    var changedStyles = this._flushGeneric(this._node.style, this._styles);
-    return {
-      classes: changedClasses,
-      props: changedProps,
-      styles: changedStyles
+Text.prototype.ngApi = {
+  'textContent': {}
+}
+
+function createNodePropAccessor(name) {
+  var cache = createNodePropAccessor.cache = createNodePropAccessor.cache || {};
+  var res = cache[name];
+  if (!res) {
+    res = {
+      get: function() {
+        return this.ngNode[name];
+      },
+      set: function(value) {
+        this.ngNode[name] = value;
+      },
+      enumerable: true,
+      configurable: false
+    }
+    cache[name] = res;
+  }
+  return res;
+}
+
+export function getNgApi(node:Node) {
+  var nativeProps = getNativeProps(node.nodeName);
+  var props = Object.getOwnPropertyNames(node);
+  var res = {};
+  props.forEach((propName) => {
+    if (!nativeProps[propName]) {
+      res[propName] = {};
+    }
+  });
+  mergeDefinedNgApis(node, res);
+  return res;
+}
+
+function mergeDefinedNgApis(proto, res) {
+  if (proto === Object.prototype) {
+    return res;
+  }
+  if (proto.hasOwnProperty('ngApi')) {
+    var ngApi = proto.ngApi;
+    for (var prop in ngApi) {
+      res[prop] = ngApi[prop];
     }
   }
-  clazz(classes:string, ...values) {
-    if (values.length === 0) {
-      this._ensureClassCache();
-      return classes.split(' ').reduce((state, className) => {
-        return state && !!this._classes.cache[className];
-      }, true);
+  return mergeDefinedNgApis(proto.__proto__, res);
+}
+
+function getNativeProps(tagName) {
+  var tagName = tagName;
+  var cache = getNativeProps.cache = getNativeProps.cache || {};
+  var res = cache[tagName];
+  if (!res) {
+    var node;
+    if (tagName === '#comment') {
+      node = document.createComment('test');
+    } else if (tagName === '#text') {
+      node = document.createTextNode('test');
     } else {
-      var value = values[0];
-      this._ensureClassCache();
-      classes.split(' ').forEach((className) => {
-        this._classes.cache[className] = !!value;
-        this._classes.changed[className] = true;
-      });
-      this._setDirty();
-      return this;
+      node = document.createElement(tagName);
     }
+    res = {};
+    Object.getOwnPropertyNames(node).forEach((propName) => {
+      res[propName] = true;
+    });
+    cache[tagName] = res;
   }
-  _ensureClassCache() {
-    if (!this._classes.cache) {
-      var cache = this._classes.cache = {};
-      (this._node.className||'').split(/\s*/).forEach((className) => {
-        cache[className] = true;
-      });
+  return res;
+}
+
+// ---------------------------- utils ---------
+function createCachedAccessor(propName) {
+  var cache = createCachedAccessor.cache = createCachedAccessor.cache || {};
+  var res = cache[propName];
+  if (!res) {
+    res = {
+      get: function() {
+        return getCachedValue(this, propName);
+      },
+      set: function(value) {
+        setCachedValue(this, propName, value);
+      },
+      enumerable: true,
+      configurable: false
     }
+    cache[propName] = res;
   }
-  _flushClasses() {
-    var changedValues = {}
-    var nativeClasses = [];
-    var changed = false;    
-    for (var name in this._classes.cache) {
-      var value = this._classes.cache[name];
-      if (this._classes.changed[name]) {
-        changed = true;
-        changedValues[name] = value;
-      }
-      nativeClasses.push(name);
+  return res;
+}
+
+function getCachedValue(self, propName) {
+  var nativeObj = self._props.nativeObj;
+  if (!(propName in self._props.cache)) {
+    self._props.cache[propName] = nativeObj[propName];
+  }
+  return self._props.cache[propName];
+}
+
+function setCachedValue(self, propName, value) {
+  var nativeObj = self._props.nativeObj;
+  var oldValue = getCachedValue(self, propName);
+  if (oldValue === value) {
+    return;
+  }
+  if (isEmpty(self._props.changed)) {
+    self._props.ngNode._flushQueue(()=>{
+      flushCachedValues(self);
+    });
+  }
+  callChangeListeners(self, propName, value, oldValue);
+
+  self._props.cache[propName] = value;
+  self._props.changed[propName] = true;
+}
+
+function flushCachedValues(self) {
+  for (var name in self._props.changed) {
+    self._props.nativeObj[name] = self._props.cache[name];
+  }
+  self._props.changed = {};
+}
+
+
+function clearCacheAndReadFromNative(self, props) {
+  props.forEach((prop) => {
+    var oldValue = self[prop];
+    delete self._props.cache[prop];
+    delete self._props.changed[prop];
+    // reading out the value will fill the cache again.
+    var value = self[prop];
+    if (value !== oldValue) {
+      callChangeListeners(self, prop, value, oldValue);
     }
-    this._classes.changed = {};
-    if (changed) {
-      this._node.className = nativeClasses.join(' ');
-    }
-    return changedValues;
+  });
+}
+
+function callChangeListeners(self, propName, value, oldValue) {
+  var listeners = self._props.changeListeners && self._props.changeListeners[propName];
+  if (!listeners) {
+    return;
   }
-  propCacheable(name:string, cacheable = undefined) {
-    if (cacheable === undefined) {
-      return !this._props.notCacheable[name];
-    }
-    this._props.notCacheable[name] = !cacheable;
-    return this;
+  listeners.forEach((entry) => {
+    entry.callback(value, oldValue);
+  });
+}
+
+function isEmpty(obj) {
+  for (var prop in obj) {
+    return false;
   }
-  prop(name:string, ...values) {
-    return this._accessGeneric(this._node, this._props, name, values);
-  }
-  css(name:string, ...values) {
-    return this._accessGeneric(this._node.style, this._styles, name, values);
-  }
-  _accessGeneric(nativeObj, localObj, name:string, values) {
-    var notCacheable = localObj.notCacheable[name];
-    if (values.length === 0) {
-      if (notCacheable) {
-        return nativeObj[name];
-      }
-      if (!(name in localObj.cache)) {
-        localObj.cache[name] = nativeObj[name];
-      }
-      return localObj.cache[name];
-    } else {
-      var value = values[0];
-      if (notCacheable) {
-        nativeObj[name] = value;
-        return this;
-      }
-      localObj.cache[name] = value;
-      localObj.changed[name] = true;
-      this._setDirty();
-      return this;      
-    }
-  }
-  _flushGeneric(nativeObj, localObj) {
-    var changedValues = {};
-    for (var name in localObj.changed) {
-      nativeObj[name] = localObj.cache[name];
-      changedValues[name] = localObj.cache[name];
-    }
-    localObj.changed = {};
-    return changedValues;
-  }
+  return true;
 }

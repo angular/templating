@@ -19,25 +19,25 @@ describe('ngIf', ()=>{
 
   it('should not show the content initially if the attribute value is falsy', ()=>{
     compile('<a ng-if=""></a>');
-    expect(anchor.ngIf).toBe(false);
+    expect(anchor.ngIf).toBeFalsy();
     expect($html(container.childNodes)).toBe('<!--template anchor-->')
   });
 
   it('should show the content initially if the attribute value is truthy', ()=>{
     compile('<a ng-if="true"></a>');
-    expect(anchor.ngIf).toBe(true);
+    expect(anchor.ngNode.ngIf).toBe('true');
     expect($html(container.childNodes)).toBe('<a ng-if="true"></a><!--template anchor-->')
   });
 
-  it('should show the content when the value is true', ()=>{
+  it('should show the content when the value is changed to true', ()=>{
     compile('<a ng-if=""></a>');
-    anchor.ngIf = true;
+    anchor.ngNode.ngIf = true;
     expect($html(container.childNodes)).toBe('<a ng-if=""></a><!--template anchor-->')
   });
 
-  it('should hide the content when the value is falsy', ()=>{
-    compile('<a ng-if=""></a>');
-    anchor.ngIf = false;
+  it('should hide the content when the value is changed to false', ()=>{
+    compile('<a ng-if="true"></a>');
+    anchor.ngNode.ngIf = false;
     expect($html(container.childNodes)).toBe('<!--template anchor-->')
   });
 

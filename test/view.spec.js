@@ -345,19 +345,14 @@ describe('View', () => {
     });
 
 
-    it('should flush all dirty nodes and then remove them from the list', ()=>{
-      var node = document.createElement('a');
-      var ngNode = new NgNode(node, {
-        view: a
-      });
-      spyOn(ngNode, 'flush');
-      ngNode.prop('textContent', 'someText');
-      expect(a.dirtyNodes).toEqual([ngNode]);
+    it('should flush all listeners in the queue and then remove them from the list', ()=>{
+      var spy = jasmine.createSpy('flush');
+      a.flushQueue.push(spy);
 
       a.digest();
 
-      expect(ngNode.flush).toHaveBeenCalled();
-      expect(a.dirtyNodes).toEqual([]);
+      expect(spy).toHaveBeenCalled();
+      expect(a.flushQueue.length).toBe(0);
     });
   });
 

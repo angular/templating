@@ -28,8 +28,8 @@ describe('expressions', ()=>{
     expect(context.boundValue).toBe('someValue');
 
     input.value = 'anotherValue';
-    
-    triggerEvent(input, 'change');    
+
+    triggerEvent(input, 'change');
     rootView.digest();
 
     expect(context.boundValue).toBe('anotherValue');
@@ -43,5 +43,5 @@ function triggerEvent(node, evtName, data) {
   for (var prop in data) {
     evt[prop] = data[prop];
   }
-  node.dispatchEvent(evt);  
+  node.dispatchEvent(evt);
 }

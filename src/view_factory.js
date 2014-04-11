@@ -137,7 +137,7 @@ export class NonElementBinderArgs extends NodeBinderArgs {
   }
 }
 
-class NodeBinder {
+export class NodeBinder {
   constructor(data:NodeBinderArgs = {}) {
     this.attrs = data.attrs || new NodeAttrs();
   }
@@ -176,12 +176,14 @@ class NodeBinder {
     // directives on this ElememtBinder, not all of the directives!
     var childInjector = injector.createChild(providers, [Directive]);
     var ngNode = childInjector.get(NgNode);
+    var flushQueue = view.rootView.flushQueue;
+    ngNode.setFlushQueue(flushQueue.push.bind(flushQueue));
 
     directiveClasses.forEach((directiveClass) => {
       var directiveInstance = childInjector.get(directiveClass);
       var annotation = annotationProvider.annotation(directiveClass, Directive);
-      this._initExportedProperty(ngNode, directiveInstance, annotation.exports || []);
-      ngNode.data().directives.push(directiveInstance);
+      this._initObservedProperties(ngNode, directiveInstance, annotation.observe || []);
+      ngNode.data.directives.push(directiveInstance);
     });
 
     var attrName;
@@ -197,48 +199,26 @@ class NodeBinder {
 
   }
   _setupBidiBinding(view, ngNode, property, expression) {
-    var context = Object.create(view.executionContext, {
-      $node: {
-        value: ngNode
-      }
-    });
-    var lastValue = undefined;
-    view.watch('[$node.prop("'+property+'"), '+expression+']', function(data) {
-      data = data || [];
-      if (data[1] !== lastValue) {
-        // view change
-        lastValue = data[1];
-        ngNode.prop(property, lastValue);
-      } else if (data[0] !== lastValue) {
-        // node change
-        // TODO: check if the expression is assignable and in that case don't call it!
-        // TODO: Need to get the AST for this?
-        // TODO: Maybe change interface in view: merge evaluate, assign into one function
-        // that returns an object that only has the assign method if the expression is assignable
-        lastValue = data[0];
-        try {
-          view.assign(expression, lastValue);
-        } catch (e) {
-        }
-      }
-
-    }, context);
-  }
-  _initExportedProperty(ngNode, directiveInstance, exportedProps) {
-    var node = ngNode.nativeNode();
-    var self = this;
-    exportedProps.forEach(function(propName) {
-      if (propName in node) {
-        throw new Error('The directive '+JSON.stringify(directiveClass)+' tries to export the property '+propName+
-          ' although the property is already present');
-      }
-      Object.defineProperty(node, propName, {
-        get: () => { return directiveInstance[propName]; },
-        set: (value) => { directiveInstance[propName] = value; }
+    if (view.isAssignable(expression)) {
+      ngNode.observeProp(property, function(newValue) {
+        // Note: This is called in sync!
+        // Therfore we don't get into cycle problems.
+        view.assign(expression, newValue);
       });
-      ngNode.propCacheable(propName, false);
+    }
+    view.watch(expression, function(newValue) {
+      ngNode[property] = newValue;
+    });
+  }
+  _initObservedProperties(ngNode, directiveInstance, observedProps) {
+    var self = this;
+    ngNode.addProperties(observedProps);
+    observedProps.forEach(function(propName) {
+      ngNode.observeProp(propName, function(propValue, oldPropValue) {
+        directiveInstance[propName+'Changed'](propValue, oldPropValue);
+      });
       if (propName in self.attrs.init) {
-        node[propName] = self.attrs.init[propName];
+        ngNode[propName] = self.attrs.init[propName];
       }
     });
   }
@@ -344,7 +324,7 @@ export class NonElementBinder extends NodeBinder {
     @Provide(ViewPort)
     @Inject(NgNode)
     function viewPortProvider(ngNode) {
-      return new ViewPort(ngNode.nativeNode());
+      return new ViewPort(ngNode.nativeNode);
     }
     @Provide(ViewFactory)
     function viewFactoryProvider() {

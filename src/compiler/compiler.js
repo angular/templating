@@ -9,11 +9,11 @@ import {Inject} from 'di';
 import {CompilerConfig} from './compiler_config';
 
 /*
- * Compiler walks the DOM and calls Selector.match on each node in the tree. 
- * It collects the resulting ElementBinders and stores them in tree which mimics 
- * the DOM structure for easy invocation of ElementBinder.bind on view clone. 
+ * Compiler walks the DOM and calls Selector.match on each node in the tree.
+ * It collects the resulting ElementBinders and stores them in tree which mimics
+ * the DOM structure for easy invocation of ElementBinder.bind on view clone.
  * The resulting list of ElementBinders as well as the templ Node is returned as a ViewFactory.
- * 
+ *
  * Lifetime: immutable for the duration of application.
  */
 export class Compiler {
@@ -21,7 +21,7 @@ export class Compiler {
   constructor(config:CompilerConfig) {
     this.config = config;
   }
-  
+
   compileNodes(nodes:ArrayLikeOfNodes, directives: ArrayOfClass):ViewFactory {
     return this.compileChildNodes(new SimpleNodeContainer(nodes), directives);
   }
@@ -32,7 +32,7 @@ export class Compiler {
   // on the container!
   compileChildNodes(container:NodeContainer, directives:ArrayOfClass):ViewFactory {
     var directiveClasses = this.config.directiveClassesForDirectives(directives);
-    return this._compileChildNodes(container, 
+    return this._compileChildNodes(container,
       new Selector(directiveClasses, this.config)
     );
   }
@@ -78,7 +78,7 @@ class CompileRun {
     return this;
   }
   createViewFactory(container:NodeContainer) {
-    var binders = [];    
+    var binders = [];
     reduceTree(this.compileElements, collectNonEmptyBindersAndCalcBinderTreeLevel, -1);
 
     return new ViewFactory(container, binders);
@@ -100,19 +100,19 @@ class CompileRun {
       } else {
         newLevel = parentLevel;
       }
-      return newLevel;      
+      return newLevel;
     }
   }
   compileRecurse(container:NodeContainer, parentElement:CompileElement) {
     // variables that are used inside of the inner functions
-    var 
+    var
       nodes = container.childNodes,
       nodeCount = nodes.length,
       nodeIndex,
       nodeType,
       node,
       nonElementBinder;
-    
+
     for (nodeIndex=0; nodeIndex<nodeCount; nodeIndex++) {
       node = nodes[nodeIndex];
       nodeType = node.nodeType;
@@ -141,7 +141,7 @@ class CompileRun {
         }
       } else if (nodeType == Node.TEXT_NODE) {
         nonElementBinder = this._compileTextNode(node, nodeIndex);
-      } 
+      }
       if (nonElementBinder) {
         parentElement.binder.addNonElementBinder(nonElementBinder, nodeIndex);
       }
@@ -153,14 +153,14 @@ class CompileRun {
       return new NonElementBinder({
         // TODO: Test this!
         attrs: new NodeAttrs({
-          bind: {'nodeValue': this.selector.matchText(node)}
+          bind: {'textContent': this.selector.matchText(node)}
         })
-      });          
-    }    
+      });
+    }
   }
   _compileTemplateDirective(node:HTMLElement, templateDirective:DirectiveClass,
     compileElement:CompileElement):NonElementBinder {
-    
+
     this._replaceNodeWithComment(node, 'template anchor');
 
     var initialCompiledTemplateElement = null;
@@ -168,20 +168,20 @@ class CompileRun {
     var templateNodeAttrs = compileElement.binder.attrs;
 
     var viewFactoryRoot = templateContainer;
-    if (node.nodeName !== 'TEMPLATE') {        
+    if (node.nodeName !== 'TEMPLATE') {
       viewFactoryRoot = document.createDocumentFragment();
       viewFactoryRoot = node.ownerDocument.createDocumentFragment();
       viewFactoryRoot.appendChild(node);
       if (compileElement.binder.hasBindings()) {
         // not a template element and the original element contains
-        // other directives or bindings, besides the template directive. 
+        // other directives or bindings, besides the template directive.
         // Then add the compileElement as
         // part of the template.
         initialCompiledTemplateElement = compileElement;
       }
       // split the attributes into those for the comment node and
       // those for the template element
-      templateNodeAttrs = compileElement.binder.attrs.split(templateDirective.annotation.exports || []);
+      templateNodeAttrs = compileElement.binder.attrs.split(templateDirective.annotation.observe || []);
     }
     var viewFactory = new CompileRun(this.selector, initialCompiledTemplateElement)
       .compile(templateContainer)

@@ -70,10 +70,16 @@ export class View extends LinkedListItem {
     var watchAst = this.watchParser.parse(expression, filters, false, context);
     this.watchGrp.watch(watchAst, callback);
   }
+  // TODO: Maybe change interface in view: merge evaluate, assign into one function
+  // that returns an object that only has the assign method if the expression is assignable
   assign(expression:string, value=null, context:Object=null) {
     this._checkDestroyed();
     var parsedExpr = this.parser.parse(expression);
     parsedExpr.bind(context || this.executionContext).assign(value);
+  }
+  isAssignable(expression:string) {
+    var parsedExpr = this.parser.parse(expression);
+    return !!parsedExpr.isAssignable;
   }
   evaluate(expression:string, context:Object=null) {
     this._checkDestroyed();
@@ -96,7 +102,7 @@ export class View extends LinkedListItem {
 export class RootView extends View {
   constructor(container:NodeContainer, injector:Injector, executionContext:Object = {}) {
     super(null, container, injector, executionContext);
-    this.dirtyNodes = [];
+    this.flushQueue = [];
   }
   digest() {
     // TODO: Make the TTL configurable!
@@ -111,8 +117,8 @@ export class RootView extends View {
       count = this.watchGrp.detectChanges();
     } while (count);
 
-    while (this.dirtyNodes.length) {
-      this.dirtyNodes.pop().flush();
+    while (this.flushQueue.length) {
+      this.flushQueue.pop()();
     }
   }
 
