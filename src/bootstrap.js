@@ -4,9 +4,9 @@ import {ArrayOfClass} from './types';
 import {Global} from './global';
 import {DocumentReady} from './document_ready';
 
-export function bootstrap() {
+export function bootstrap(compileTemplatesOnTheFly = true) {
   var injector = new Injector();
-  injector.get(Bootstrap)();
+  injector.get(Bootstrap)(compileTemplatesOnTheFly);
 }
 
 // TODO: Create tests for this
@@ -14,9 +14,9 @@ export function bootstrap() {
 export function Bootstrap(global, moduleLoader, documentReady) {
   return bootstrap;
 
-  function bootstrap() {
+  function bootstrap(compileTemplatesOnTheFly) {
     return documentReady.then(function() {
-      return moduleLoader([getLastPathPart(global.location.href)]);
+      return moduleLoader([getLastPathPart(global.location.pathname)]);
     }).then(function(modules) {
       var module = modules[0];
       return module.promise;
@@ -40,8 +40,10 @@ export function Bootstrap(global, moduleLoader, documentReady) {
         }).run(function() {
           var rootInjector = new Injector();
           rootView = viewFactory.createRootView(rootInjector, {}, true);
-          // TODO(vojta): only do this for server-side pre-compiled templates
-          rootView.appendTo(document.body)
+
+          if (!compileTemplatesOnTheFly) {
+            rootView.appendTo(document.body)
+          }
         });
       });
       return appViewFactories;

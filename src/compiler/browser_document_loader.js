@@ -6,12 +6,11 @@ import {DocumentLoader} from './document_loader';
 @Provide(DocumentLoader)
 export function BrowserDocumentLoader(global) {
   var responseTypeContentSupported = calcResponseTypeContentSupported();
-  var urlResolver = global.document.createElement('a');
 
   return loadDocument;
 
   function loadDocument(url) {
-    if (resolveUrl(url) === global.location.href) {
+    if (url === global.location.pathname) {
       return global.Promise.resolve(global.document);
     }
 
@@ -55,11 +54,6 @@ export function BrowserDocumentLoader(global) {
         }
       }
     }
-  }
-
-  function resolveUrl(url) {
-    urlResolver.href = url;
-    return urlResolver.href;
   }
 
   function calcResponseTypeContentSupported() {

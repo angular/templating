@@ -6,13 +6,13 @@
 
   <script type="text/javascript" src="/node_modules/requirejs/require.js"></script>
   <script type="text/javascript" src="/node_modules/traceur/bin/traceur-runtime.js"></script>
-  <!-- TODO(vojta): add a get param to switch between on the fly / server-side pre-compiled -->
-  <!-- <script type="text/javascript" src="/utils/loader.js"></script> -->
 
   <!-- TODO: include source maps! -->
   <!-- TODO: create standalone repo for examples, e.g. v2_examples -->
 
   <script>
+    var COMPILE_TEMPLATES_ON_THE_FLY = /compile_templates/.test(location.search);
+
     require.config({
       baseUrl: '/temp/examples',
       paths: {
@@ -30,9 +30,9 @@
           'watchtower': 'deps/watchtower/dist/amd/index'
         }
       },
-      deps: ['templating'],
+      deps: ['templating', COMPILE_TEMPLATES_ON_THE_FLY ? '/utils/loader.js' : null],
       callback: function(templating) {
-        templating.bootstrap();
+        templating.bootstrap(COMPILE_TEMPLATES_ON_THE_FLY);
       }
     });
   </script>
