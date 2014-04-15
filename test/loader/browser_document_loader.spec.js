@@ -28,7 +28,7 @@ describe('BrowserDocumentLoader', ()=>{
         implementation: document.implementation
       },
       location: {
-        href: ''
+        pathname: ''
       },
       Promise: window.Promise
     };
@@ -57,24 +57,16 @@ describe('BrowserDocumentLoader', ()=>{
   }
 
   it('should return window.document if the given url resolves to '+
-    'location.href', (done)=>{
-    global.location.href = location.href;
+    'location.pathname', (done)=>{
+    global.location.pathname = '/some.html';
 
     inject(BrowserDocumentLoader, (documentLoader)=>{
-      // Don't hand in location.href, but only the last path part,
-      // so we test that the documentLoader is resolving the url!
-      var promise = documentLoader(getLastPathPart(location.href));
+      var promise = documentLoader('/some.html');
       promise.then(function(doc) {
         expect(doc).toBe(global.document);
         done();
       });
     });
-
-    function getLastPathPart(path) {
-      var parts = path.split('/');
-      return parts[parts.length-1];
-    }
-
   });
 
   it('should create a GET xhr with the given url', ()=>{
