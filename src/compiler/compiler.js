@@ -170,6 +170,7 @@ class CompileRun {
     var viewFactoryRoot = templateContainer;
     if (node.nodeName !== 'TEMPLATE') {        
       viewFactoryRoot = document.createDocumentFragment();
+      viewFactoryRoot = node.ownerDocument.createDocumentFragment();
       viewFactoryRoot.appendChild(node);
       if (compileElement.binder.hasBindings()) {
         // not a template element and the original element contains
@@ -197,6 +198,7 @@ class CompileRun {
   _replaceNodeWithComment(node, commentText) {
     var parent = node.parentNode;
     var comment = document.createComment(commentText);
+    var comment = node.ownerDocument.createComment(commentText);
     parent.insertBefore(comment, node);
     parent.removeChild(node);
     return comment;

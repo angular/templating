@@ -1,11 +1,10 @@
 import {compile as traceur} from './traceur-api';
 import {$, $html} from '../dom_mocks';
-import {Injector} from 'di';
-import {inject} from 'di/testing';
+import {inject, use} from 'di/testing';
 import {Precompile, serialize} from '../../src/compiler/precompiler';
 import {SimpleNodeContainer} from '../../src/node_container';
-import {DecoratorDirective} from '../../src/annotations';
 import {ModuleLoader} from '../../src/module_loader';
+import {BrowserDocumentLoader} from '../../src/compiler/browser_document_loader';
 
 describe('precompile', ()=>{
 
@@ -39,19 +38,30 @@ describe('precompile', ()=>{
     // -> integrate with diary.js?
 
     it('should work in integration', (done) => {
-      inject(Precompile, (precompile)=>{
-        precompile('test/compiler/atemplate.html').then((sourceES6)=>{
-          evalES6Module(sourceES6, function(module) {
-            module.promise.then(function(viewFactory) {
-              expect(viewFactory.templateContainer.innerHTML.trim())
-                .toBe('<module src="./amodule"></module>\n\n<div>someTemplate</div>');
-              done();
+      use(BrowserDocumentLoader);
+
+      inject(Precompile, (precompile) => {
+        // Fetch the template with RequireJS, using the compile_ng_template plugin.
+        requirejs(['compile_ng_template!test/compiler/atemplate'], function(requireMod) {
+          requireMod.promise.then(function(mod) {
+            expect(mod.viewFactory.templateContainer.innerHTML.trim())
+                  .toBe('<module src="./amodule"></module>\n\n<div>someTemplate</div>');
+
+            // Let's serialize into ES6, transpile with Traceur into ES5, and evaluate ;-)
+            var es6Source = precompile(null, mod.viewFactory, mod.modules);
+            evalES6Module(es6Source, function(requireMod) {
+              requireMod.promise.then(function(mod) {
+                expect(mod.viewFactory.templateContainer.innerHTML.trim())
+                  .toBe('<module src="./amodule"></module>\n\n<div>someTemplate</div>');
+                done();
+              });
             });
+          }, function(e) {
+            console.log(e.stack);
           });
         });
       });
     });
-
   });
 
   describe('serialize', ()=>{

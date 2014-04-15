@@ -3,35 +3,39 @@ import {Compiler} from './compiler';
 module viewFactoryModule from '../view_factory';
 import {NodeAttrs} from '../types';
 import {createObject, createNode} form '../instantiate_helper';
-import {ModuleLoader} from '../module_loader';
+import {SimpleNodeContainer} from '../node_container';
 
-@Inject(ModuleLoader)
-export function Precompile(moduleLoader) {
+@Inject()
+export function Precompile() {
   return precompile;
 
-  function precompile(filePath) {
-    return moduleLoader([filePath]).then(function(modules) {
-      var module = modules[0];
-      return module.promise;
-    }).then(function(viewFactoryWithModules) {
-      var vf = viewFactoryWithModules.viewFactory;
-      var modulesWithNames = viewFactoryWithModules.modules;
-      var exports = [];
-      for (var moduleName in modulesWithNames) {
-        collectExports(moduleName, modulesWithNames[moduleName], true, exports);
-      }
-      collectExports('templating', viewFactoryModule, false, exports);
-      exports.push({
-        module: 'templating',
-        name: 'NodeAttrs',
-        type: NodeAttrs,
-        dynamic: false
-      });
-      // TODO: Check/improve the error handling,
-      // as errors don't show up in the tests.
-      var res = serialize(vf, 'promise', exports);
-      return res;
+  function precompile(appViewFactories, viewFactory, modules) {
+    var exports = [];
+    for (var moduleName in modules) {
+      collectExports(moduleName, modules[moduleName], true, exports);
+    }
+
+    collectExports('templating', viewFactoryModule, false, exports);
+    exports.push({
+      module: 'templating',
+      name: 'NodeAttrs',
+      type: NodeAttrs,
+      dynamic: false
     });
+
+    exports.push({
+      module: 'templating',
+      name: 'SimpleNodeContainer',
+      type: SimpleNodeContainer,
+      dynamic: false
+    });
+
+    // TODO: Check/improve the error handling,
+    // as errors don't show up in the tests.
+    return serialize({
+      appViewFactories: appViewFactories,
+      viewFactory: viewFactory
+    }, 'promise', exports);
   }
 
 }
@@ -88,6 +92,10 @@ function serializeRecurse(builder, object) {
       serializeDirectProps(builder, object);
       builder.appendLine('})');
     }
+  } else if (typeof object === 'function') {
+    // TODO(vojta): add a unit test for this
+    var exportName = builder.addImport(object);
+    builder.appendLine(exportName);
   } else {
     builder.appendLine(JSON.stringify(object));
   }
@@ -128,7 +136,7 @@ function serializeNode(builder, node) {
     // clone the node as we move it into another place to be able to convert it into
     // html
     var clone = node.cloneNode(true);
-    var container = document.createElement('div');
+    var container = node.ownerDocument.createElement('div');
     container.appendChild(node);
     html = container.innerHTML;
   }

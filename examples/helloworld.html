@@ -6,7 +6,8 @@
 
   <script type="text/javascript" src="/node_modules/requirejs/require.js"></script>
   <script type="text/javascript" src="/node_modules/traceur/bin/traceur-runtime.js"></script>
-  <script type="text/javascript" src="/utils/loader.js"></script>
+  <!-- TODO(vojta): add a get param to switch between on the fly / server-side pre-compiled -->
+  <!-- <script type="text/javascript" src="/utils/loader.js"></script> -->
 
   <!-- TODO: include source maps! -->
   <!-- TODO: create standalone repo for examples, e.g. v2_examples -->
@@ -16,12 +17,13 @@
       baseUrl: '/temp/examples',
       paths: {
         'deps': '/node_modules',
-        'dist': '/dist'
+        'dist': '/dist',
+        'examples': '/temp/examples'
       },
       map: {
         '*': {
           'templating': 'dist/amd/index',
-          'templating_compiler': 'dist/amd/index_compiler',
+          'compile_ng_template': 'dist/amd/compiler/requirejs_html',
           'di': 'deps/di/dist/amd/index',
           'rtts-assert': 'deps/rtts-assert/dist/amd/assert',
           'expressionist': 'deps/expressionist/dist/amd/index',
@@ -35,7 +37,7 @@
     });
   </script>
 
-  <module src="helloworld"></module>
+  <module src="./helloworld"></module>
 </head>
 <body ng-app>
 

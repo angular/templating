@@ -32,13 +32,21 @@ export function Bootstrap(global, moduleLoader, documentReady) {
             if (rootView) {
               rootView.digest();
             }
+          },
+          onError: function(err) {
+            // TODO(vojta): nice error handling for Tobias
+            console.log(err.stack)
           }
         }).run(function() {
           var rootInjector = new Injector();
           rootView = viewFactory.createRootView(rootInjector, {}, true);
+          // TODO(vojta): only do this for server-side pre-compiled templates
+          rootView.appendTo(document.body)
         });
       });
       return appViewFactories;
+    }, function(e) {
+      console.log(e.stack)
     });
   }
 }

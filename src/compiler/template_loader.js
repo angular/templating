@@ -2,12 +2,13 @@ import {Inject} from 'di';
 import {Compiler} from './compiler';
 import {ModuleLoader} from '../module_loader';
 import {DocumentLoader} from './document_loader';
+import {Precompile} from './precompiler';
 
-@Inject(DocumentLoader, ModuleLoader, Compiler)
-export function TemplateLoader(documentLoader, moduleLoader, compiler) {
+@Inject(DocumentLoader, ModuleLoader, Compiler, Precompile)
+export function TemplateLoader(documentLoader, moduleLoader, compiler, precompile) {
   return loadTemplate;
 
-  function loadTemplate(templateUrl, moduleBasePath = null) {
+  function loadTemplate(templateUrl, moduleBasePath = null, serialize = false) {
     var _doc;
     return documentLoader(templateUrl).then(function(doc) {
       var moduleNames = findModuleNames(doc, moduleBasePath || templateUrl);
@@ -22,7 +23,8 @@ export function TemplateLoader(documentLoader, moduleLoader, compiler) {
         });
         return {
           appViewFactories: viewFactories,
-          modules: modules
+          modules: modules,
+          es6Source: serialize ? precompile(viewFactories, null, modules) : null
         };
       } else {
         // We need to convert the <body> tag into a div
@@ -35,7 +37,8 @@ export function TemplateLoader(documentLoader, moduleLoader, compiler) {
         var vf = compiler.compileChildNodes(div, moduleClasses);
         return {
           viewFactory: vf,
-          modules: modules
+          modules: modules,
+          es6Source: serialize ? precompile(null, vf, modules) : null
         };
       }
     });
