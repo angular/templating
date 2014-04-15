@@ -21,7 +21,7 @@ describe('TemplateLoader', ()=>{
 
   describe('url template', ()=>{
 
-    function simulate(modules, templateHtml, done) {
+    function simulate(modules, templateUrl, templateHtml, done) {
       moduleLoader.and.callFake(function(moduleNames) {
         return Promise.resolve(
           moduleNames.filter((moduleName) => {
@@ -37,13 +37,14 @@ describe('TemplateLoader', ()=>{
       doc.close();
       documentLoader.and.returnValue(Promise.resolve(doc));
       inject(TemplateLoader, (templateLoader)=>{
-        templateLoader('someUrl').then(done);
+        templateLoader(templateUrl).then(done);
       });
     }
 
     it('should return a viewFactory with the correct templateContainer', (done)=>{
       simulate(
         {},
+        'someUrl.html',
         'someHtml',
         function(data) {
           expect(data.viewFactory instanceof ViewFactory).toBe(true);
@@ -57,6 +58,7 @@ describe('TemplateLoader', ()=>{
     it('should return a viewFactory with only <body> children moved into a <div>', (done)=>{
       simulate(
         {},
+        'someUrl.html',
         '<html><body>someHtml</body></html>',
         function(data) {
           expect(data.viewFactory instanceof ViewFactory).toBe(true);
@@ -74,6 +76,7 @@ describe('TemplateLoader', ()=>{
       };
       simulate(
         modules,
+        'someUrl.html',
         '<module src="someModuleA"></module><module src="someModuleB"></module>',
         function(data) {
           expect(data.modules.someModuleA).toBe(modules.someModuleA);
@@ -85,10 +88,23 @@ describe('TemplateLoader', ()=>{
 
     it('should load modules with relative paths relative to the template path', (done)=>{
       simulate(
-        {'someUrl/.././someModuleA': {}},
+        {'some/someModuleA': {}},
+        'some/url.html',
         '<module src="./someModuleA"></module>someHtml',
         function(data) {
-          expect(data.modules['someUrl/.././someModuleA']).toBeTruthy();
+          expect(data.modules['some/someModuleA']).toBeTruthy();
+          done();
+        }
+      );
+    });
+
+    it('should load modules with relative paths relative to the template path without slash', (done)=>{
+      simulate(
+        {'./someModuleA': {}},
+        'someUrl.html',
+        '<module src="./someModuleA"></module>someHtml',
+        function(data) {
+          expect(data.modules['./someModuleA']).toBeTruthy();
           done();
         }
       );
@@ -96,7 +112,8 @@ describe('TemplateLoader', ()=>{
 
     it('should load modules with non relative paths independent of the template path', (done)=>{
       simulate(
-        {someModuleA: {}},
+        {'someModuleA': {}},
+        'someUrl.html',
         '<module src="someModuleA"></module>someHtml',
         function(data) {
           expect(data.modules['someModuleA']).toBeTruthy();

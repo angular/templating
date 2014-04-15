@@ -78,10 +78,14 @@ export function TemplateLoader(documentLoader, moduleLoader, compiler) {
   }
 
   function adjustRelativeModulePath(path, basePath) {
-    var res = path;
     if (path.charAt(0) === '.') {
-      res = basePath+'/../'+path;
+      if (basePath.indexOf('/') === -1) {
+        return path;
+      }
+
+      return basePath.replace(/\/[^\/]*$/, '') + path.substring(1);
     }
-    return res;
+
+    return path;
   }
 }

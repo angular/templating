@@ -11,7 +11,7 @@ describe('requirejs-html', ()=>{
       }).then(function(data) {
         expect(data.viewFactory.templateContainer.innerHTML.trim())
           .toBe('<module src="./amodule"></module>\n\n<div>someTemplate</div>');
-        expect(data.modules['test/compiler/atemplate/.././amodule'].anExport).toBe(true);
+        expect(data.modules['test/compiler/amodule'].anExport).toBe(true);
         done();
       });
     });
