@@ -14,6 +14,7 @@ describe('precompile', ()=>{
       modules: 'amd'
     });
     if (transpiled.errors.length) {
+      // TODO(vojta): this promise-land eats exceptions, fix that
       throw new Error('in lines:\n'+sourceES6+'\n'+transpiled.errors);
     }
     var sourceES5 = transpiled.js;
@@ -43,7 +44,7 @@ describe('precompile', ()=>{
           evalES6Module(sourceES6, function(module) {
             module.promise.then(function(viewFactory) {
               expect(viewFactory.templateContainer.innerHTML.trim())
-                .toBe('<module src="./amodule"></module><div>someTemplate</div>');
+                .toBe('<module src="./amodule"></module>\n\n<div>someTemplate</div>');
               done();
             });
           });

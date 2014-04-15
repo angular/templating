@@ -137,8 +137,7 @@ function serializeNode(builder, node) {
 }
 
 function escapeHTMLAsString(string) {
-  var res = string.replace("'", '"').replace('\n', '');
-  return res;
+  return string.replace("'", '"').replace(/\n/g, '\\n');
 }
 
 // TODO: Move more of the logic to build objects,
