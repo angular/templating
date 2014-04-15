@@ -88,9 +88,10 @@ gulp.task('serve', connect.server({
 
 var clientify = require('clientify');
 var rename = function(search, replace) {
-  return through.obj(function(file, enc, cb) {
+  return through.obj(function(file, enc, done) {
     file.path = file.path.replace(search, replace);
     this.push(file);
+    done();
   });
 };
 
