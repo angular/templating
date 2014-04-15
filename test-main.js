@@ -28,7 +28,7 @@ require.config({
       'watchtower': 'node_modules/watchtower/src/index',
       'expressionist': 'node_modules/expressionist/src/index',
       'templating': 'src/index',
-      'templating_compiler': 'src/index_compiler',
+      'compile_ng_template': 'src/compiler/requirejs_html',
     }
   },
 

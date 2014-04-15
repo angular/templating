@@ -8,7 +8,8 @@ export function createObject(type, data) {
 
 export function createNode(nodeType, html) {
   var el = document.createElement('div');
-  el.innerHTML = html;
+  // TODO(vojta): fix this
+  el.innerHTML = html.replace(/body/g, 'div');
   var res;
   if (nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
     res = document.createDocumentFragment();

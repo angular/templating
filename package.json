@@ -34,7 +34,7 @@
     "requirejs": "^2.1.11",
     "through2": "^0.4.1",
     "gulp-util": "~2.2.14",
-    "jsdom": "~0.10.3"
+    "jsdom": "~0.10.5"
   },
   "scripts": {
     "test": "karma start --single-run"

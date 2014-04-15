@@ -10,8 +10,8 @@ describe('requirejs-html', ()=>{
         return modules[0].promise;
       }).then(function(data) {
         expect(data.viewFactory.templateContainer.innerHTML.trim())
-          .toBe('<module src="./amodule"></module><div>someTemplate</div>');
-        expect(data.modules['test/compiler/atemplate/.././amodule'].anExport).toBe(true);
+          .toBe('<module src="./amodule"></module>\n\n<div>someTemplate</div>');
+        expect(data.modules['test/compiler/amodule'].anExport).toBe(true);
         done();
       });
     });

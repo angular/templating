@@ -298,7 +298,9 @@ export class ElementBinder extends NodeBinder {
     var componentInstance = injector.get(this.component);
     var annotationProvider = injector.get(AnnotationProvider);
     var annotation = annotationProvider.annotation(this.component, Directive);
-    annotation.template.then(createView);
+    annotation.template.then(createView, function(e) {
+      console.log(e.stack)
+    });
 
     function createView(viewFactoryAndModules) {
       var view = viewFactoryAndModules.viewFactory.createChildView(injector, componentInstance);
