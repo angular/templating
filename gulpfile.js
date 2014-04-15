@@ -56,7 +56,7 @@ gulp.task('build_deps', function() {
   for (var prop in path.deps) {
     gulp.src(path.deps[prop])
         .pipe(traceur(pipe.traceur()))
-        .pipe(gulp.dest('temp/deps/'+prop));
+        .pipe(gulp.dest('node_modules/' + prop + '/dist/amd'));
   }
 });
 

@@ -15,17 +15,17 @@
     require.config({
       baseUrl: '/temp/examples',
       paths: {
-        'deps': '/temp/deps',
+        'deps': '/node_modules',
         'dist': '/dist'
       },
       map: {
         '*': {
           'templating': 'dist/amd/index',
           'templating_compiler': 'dist/amd/index_compiler',
-          'di': 'deps/di/index',
-          'rtts-assert': 'deps/rtts-assert/assert',
-          'expressionist': 'deps/expressionist/index',
-          'watchtower': 'deps/watchtower/index'
+          'di': 'deps/di/dist/amd/index',
+          'rtts-assert': 'deps/rtts-assert/dist/amd/assert',
+          'expressionist': 'deps/expressionist/dist/amd/index',
+          'watchtower': 'deps/watchtower/dist/amd/index'
         }
       },
       deps: ['templating'],
