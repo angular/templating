@@ -143,6 +143,8 @@ gulp.task('templates', function() {
   global.Node = window.Node;
   global.Comment = window.Comment;
   global.HTMLElement = window.HTMLElement;
+  global.HTMLInputElement = window.HTMLInputElement;
+  global.HTMLSelectElement = window.HTMLSelectElement;
   global.Text = window.Text;
 
   // Patch RequireJS (to run all *.html files through the compile_ng_template plugin).
