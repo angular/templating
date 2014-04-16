@@ -41,7 +41,7 @@ export function Bootstrap(global, moduleLoader, documentReady) {
           var rootInjector = new Injector();
           rootView = viewFactory.createRootView(rootInjector, {}, true);
           // TODO(vojta): only do this for server-side pre-compiled templates
-          rootView.appendTo(document.body)
+          // rootView.appendTo(document.body)
         });
       });
       return appViewFactories;
