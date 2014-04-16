@@ -181,7 +181,13 @@ class CompileRun {
       }
       // split the attributes into those for the comment node and
       // those for the template element
-      templateNodeAttrs = compileElement.binder.attrs.split(templateDirective.annotation.observe || []);
+      var bindAttrs = templateDirective.annotation.bind || {};
+      var bindAttrNames = [];
+      for (var bindAttrName in bindAttrs) {
+        bindAttrNames.push(bindAttrName);
+      }
+
+      templateNodeAttrs = compileElement.binder.attrs.split(bindAttrNames);
     }
     var viewFactory = new CompileRun(this.selector, initialCompiledTemplateElement)
       .compile(templateContainer)

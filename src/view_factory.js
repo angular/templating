@@ -182,45 +182,77 @@ export class NodeBinder {
     directiveClasses.forEach((directiveClass) => {
       var directiveInstance = childInjector.get(directiveClass);
       var annotation = annotationProvider.annotation(directiveClass, Directive);
-      this._initObservedProperties(ngNode, directiveInstance, annotation.observe || []);
+      this._setupDirectiveObserve(view, ngNode, directiveInstance, annotation.observe || {});
+      this._setupDirectiveBind(view, ngNode, directiveInstance, annotation.bind || {});
       ngNode.data.directives.push(directiveInstance);
     });
 
+    var eventHandler = childInjector.get(EventHandler);
+    this._setupViewContextNodeBindings(view, ngNode, eventHandler);
+    return childInjector;
+  }
+  _setupViewContextNodeBindings(view, ngNode, eventHandler) {
     var attrName;
     for (attrName in this.attrs.bind) {
-      this._setupBidiBinding(view, ngNode, attrName, this.attrs.bind[attrName]);
+      ngNode.addProperties([attrName]);
+      this._setupBidiBinding({
+        view, ngNode,
+        property: attrName,
+        expression: this.attrs.bind[attrName],
+        context: view.executionContext,
+        initNodeFromContext: true
+      });
     }
 
-    var eventHandler = childInjector.get(EventHandler);
     for (attrName in this.attrs.event) {
-      eventHandler.listen(node, attrName, this.attrs.event[attrName]);
+      eventHandler.listen(ngNode.nativeNode, attrName, this.attrs.event[attrName]);
     }
-    return childInjector;
-
   }
-  _setupBidiBinding(view, ngNode, property, expression) {
+  _setupBidiBinding({view, ngNode, property, expression, context,
+      initNodeFromContext = false, initContextFromNode = false }) {
+    if (initNodeFromContext) {
+      ngNode[property] = view.evaluate(expression, context);
+    } else if (initContextFromNode) {
+      view.assign(expression, ngNode[property], context);
+    }
     if (view.isAssignable(expression)) {
       ngNode.observeProp(property, function(newValue) {
         // Note: This is called in sync!
         // Therfore we don't get into cycle problems.
-        view.assign(expression, newValue);
+        view.assign(expression, newValue, context);
       });
     }
     view.watch(expression, function(newValue) {
       ngNode[property] = newValue;
-    });
+    }, context);
+
   }
-  _initObservedProperties(ngNode, directiveInstance, observedProps) {
+  _setupDirectiveObserve(view, ngNode, directiveInstance, observedExpressions) {
     var self = this;
-    ngNode.addProperties(observedProps);
-    observedProps.forEach(function(propName) {
-      ngNode.observeProp(propName, function(propValue, oldPropValue) {
-        directiveInstance[propName+'Changed'](propValue, oldPropValue);
-      });
-      if (propName in self.attrs.init) {
-        ngNode[propName] = self.attrs.init[propName];
+    for (var expression in observedExpressions) {
+      initObservedProp(expression, observedExpressions[expression]);
+    }
+
+    function initObservedProp(expression, methodName) {
+      view.watch(expression, function(newValue, oldValue) {
+        directiveInstance[methodName](newValue, oldValue);
+      }, directiveInstance);
+    }
+  }
+  _setupDirectiveBind(view, ngNode, directiveInstance, boundExpressions) {
+    for (var propName in boundExpressions) {
+      ngNode.addProperties([propName]);
+      if (propName in this.attrs.init) {
+        ngNode[propName] = this.attrs.init[propName];
       }
-    });
+      this._setupBidiBinding({
+        view, ngNode,
+        property: propName,
+        expression: boundExpressions[propName],
+        context: directiveInstance,
+        initContextFromNode: true
+      });
+    }
   }
   _collectDirectives(target) {
   }

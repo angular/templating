@@ -25,6 +25,7 @@ describe('ngIf', ()=>{
 
   it('should show the content initially if the attribute value is truthy', ()=>{
     compile('<a ng-if="true"></a>');
+    view.digest();
     expect(anchor.ngNode.ngIf).toBe('true');
     expect($html(container.childNodes)).toBe('<a ng-if="true"></a><!--template anchor-->')
   });
@@ -32,6 +33,7 @@ describe('ngIf', ()=>{
   it('should show the content when the value is changed to true', ()=>{
     compile('<a ng-if=""></a>');
     anchor.ngNode.ngIf = true;
+    view.digest();
     expect($html(container.childNodes)).toBe('<a ng-if=""></a><!--template anchor-->')
   });
 

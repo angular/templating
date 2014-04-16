@@ -6,7 +6,14 @@ class DirectiveArgs {
       assert(obj.selector).is(assert.string);
     }
     if (obj.observe) {
-      assert(obj.observe).is(assert.arrayOf(assert.string));
+      for (var prop in obj.observe) {
+        assert(obj.observe[prop]).is(assert.string);
+      }
+    }
+    if (obj.bind) {
+      for (var prop in obj.bind) {
+        assert(obj.bind[prop]).is(assert.string);
+      }
     }
   }
 }

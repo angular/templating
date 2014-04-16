@@ -7,7 +7,8 @@ import {ViewFactory} from '../../src/view_factory';
 
 @TemplateDirective({
   selector: '[ng-if]',
-  observe: ['ngIf']
+  bind: {'ngIf': 'ngIf'},
+  observe: {'ngIf': 'ngIfChanged'}
 })
 export class NgIf {
   @Inject(ViewFactory, ViewPort, View, Injector)

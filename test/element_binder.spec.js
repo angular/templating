@@ -13,9 +13,9 @@ var injector,
   view;
 
 describe('NodeBinder', ()=>{
-  var node;
+  var node, childInjector;
 
-  function createNodeAndBinder({attrs = null, directives = [], diProviders = []}) {
+  function init({attrs = null, directives = [], diProviders = [], context = {}}) {
     class BinderClass extends NodeBinder {
       constructor(args) {
         super(args);
@@ -27,22 +27,20 @@ describe('NodeBinder', ()=>{
         target.push(...diProviders);
       }
     }
-    binder = new BinderClass({attrs: attrs});
+    createInjector(context);
+    var nodeAttrs = attrs ? new NodeAttrs(attrs) : null;
+    binder = new BinderClass({attrs: nodeAttrs});
     node = $('<div></div>')[0];
+    childInjector = binder.bind(injector, node);
   }
 
   it('should create a child injector', ()=>{
-    createInjector();
-    createNodeAndBinder({});
-    var childInjector = binder.bind(injector, node);
+    init({});
     expect(childInjector.parent).toBe(injector);
   });
 
   it('should provide the ngNode via DI', () => {
-    createInjector();
-    createNodeAndBinder({});
-
-    var childInjector = binder.bind(injector, node);
+    init({});
     expect(childInjector.get(NgNode).nativeNode).toBe(node);
   });
 
@@ -51,105 +49,140 @@ describe('NodeBinder', ()=>{
     class SomeDirective {
     }
 
-    createInjector();
-    createNodeAndBinder({
+    init({
       directives: [SomeDirective]
     });
 
-    var childInjector = binder.bind(injector, node);
     var ngNode = node.ngNode;
     expect(ngNode.data.injector).toBe(childInjector);
     expect(ngNode.data.directives).toEqual([childInjector.get(SomeDirective)]);
   });
 
-  it('should observe properties', ()=>{
-    @DecoratorDirective({observe: ['someProp']})
-    class SomeDirective {
-      somePropChanged(value) {
-        this.someProp = value;
+  describe('observe in directive annotation', ()=>{
+
+    it('should call the method when the expression changed', ()=>{
+      var receivedProp;
+      @DecoratorDirective({ observe: {'someProp+"Test"': 'somePropChanged' }})
+      class SomeDirective {
+        somePropChanged(value) {
+          receivedProp = value;
+        }
       }
-    }
-    createInjector();
-    createNodeAndBinder({
-      directives: [SomeDirective]
+      init({
+        directives: [SomeDirective]
+      });
+
+      var directiveInstance = childInjector.get(SomeDirective);
+      directiveInstance.someProp = '1';
+      view.digest();
+      expect(receivedProp).toBe('1Test');
+      directiveInstance.someProp = '2';
+      view.digest();
+      expect(receivedProp).toBe('2Test');
     });
 
-    var childInjector = binder.bind(injector, node);
-    var directiveInstance = childInjector.get(SomeDirective);
-    node.ngNode.someProp = 'someNewValue';
-    expect(directiveInstance.someProp).toBe('someNewValue');
   });
 
-  it('should initialize observed properties with the attribute value', ()=>{
-    @DecoratorDirective({observe: ['someProp']})
+  describe('bind in directive annotation', ()=>{
+    var directiveInstance;
+
+    @DecoratorDirective({bind: {'someNodeProp': 'dir.someProp'}})
     class SomeDirective {
-      somePropChanged(value) {
-        this.someProp = value;
+      constructor() {
+        this.dir = {};
       }
     }
-    createInjector();
-    createNodeAndBinder({
-      directives: [SomeDirective],
-      attrs: new NodeAttrs({
-        init: {
-          'someProp': 'someValue'
-        }
-      })
+
+    it('should update the directive when the node changes', ()=>{
+      init({
+        directives: [SomeDirective]
+      });
+      directiveInstance = childInjector.get(SomeDirective);
+
+      node.ngNode.someNodeProp = 'someValue';
+      expect(directiveInstance.dir.someProp).toBe('someValue');
     });
 
-    var childInjector = binder.bind(injector, node);
-    var directiveInstance = childInjector.get(SomeDirective);
-    expect(directiveInstance.someProp).toBe('someValue');
-    expect(node.ngNode.someProp).toBe('someValue');
+    it('should update the node when the directive changes', ()=>{
+      init({
+        directives: [SomeDirective]
+      });
+      directiveInstance = childInjector.get(SomeDirective);
+
+      directiveInstance.dir.someProp = 'someValue';
+      view.digest();
+      expect(node.ngNode.someNodeProp).toBe('someValue');
+    });
+
+    it('should initialize observed nodes with the attribute value', ()=>{
+      init({
+        directives: [SomeDirective],
+        attrs: {
+          init: {
+            'someNodeProp': 'someValue'
+          }
+        }
+      });
+      directiveInstance = childInjector.get(SomeDirective);
+
+      expect(directiveInstance.dir.someProp).toBe('someValue');
+      expect(node.ngNode.someNodeProp).toBe('someValue');
+    });
+
   });
 
   describe('data binding', () => {
-    beforeEach(()=>{
-      createInjector();
-      var nodeAttrs = new NodeAttrs({
-        bind: {
-          'someNodeProp': 'someCtxProp'
-        }
-      });
-      createNodeAndBinder({
-        attrs: nodeAttrs
-      });
-    });
 
     it('should update the ngNode when the expression changes', ()=>{
-      binder.bind(injector, node);
-      view.watchGrp.detectChanges();
+      init({
+        attrs: {
+          bind: { 'someNodeProp': 'someCtxProp' }
+        }
+      });
 
       view.executionContext.someCtxProp = 'someValue';
-      view.watchGrp.detectChanges();
+      view.digest();
       expect(node.ngNode.someNodeProp).toBe('someValue');
       expect(view.executionContext.someCtxProp).toBe('someValue');
     });
 
     it('should update the expression when ngNode changes', ()=>{
-      node.someNodeProp = '';
-      binder.bind(injector, node);
+      init({
+        attrs: {
+          bind: { 'someNodeProp': 'someCtxProp' }
+        }
+      });
       node.ngNode.someNodeProp = 'someValue';
 
       expect(node.ngNode.someNodeProp).toBe('someValue');
       expect(view.executionContext.someCtxProp).toBe('someValue');
     });
 
+    it('should initialize the ngNode from the execution context', ()=>{
+      init({
+        attrs: {
+          bind: {
+            'someNodeProp': 'someCtxProp'
+          },
+          init: {
+            'someNodeProp': 'someNodeInitValue'
+          }
+        },
+        context: { someCtxProp: 'someExecInitValue' }
+      });
+
+      expect(node.ngNode.someNodeProp).toBe('someExecInitValue');
+      expect(view.executionContext.someCtxProp).toBe('someExecInitValue');
+    });
   });
 
   it('should initialize event handling', ()=>{
-    createInjector();
-    var nodeAttrs = new NodeAttrs({
-      event: {
-        'click': 'someExpr'
-      }
-    });
-    createNodeAndBinder({
-      attrs: nodeAttrs
-    });
     spyOn(EventHandler.prototype, 'listen');
-
-    binder.bind(injector, node);
+    init({
+      attrs: {
+        event: { 'click': 'someExpr' }
+      }
+    })
     expect(EventHandler.prototype.listen).toHaveBeenCalledWith(node, 'click', 'someExpr');
 
   });
@@ -157,7 +190,20 @@ describe('NodeBinder', ()=>{
 });
 
 describe('ElementBinder', ()=>{
-  var element;
+  var element, childInjector;
+
+  function init({decorators = [], component = null, context = {}, innerHTML = ''}) {
+    binder = new ElementBinder({
+      decorators: decorators,
+      component: component
+    });
+    element = $('<div></div>')[0];
+    element.innerHTML = innerHTML;
+    element.shadowRoot = document.createElement('div');
+    element.createShadowRoot = jasmine.createSpy('createShadowRoot').and.returnValue(element.shadowRoot);
+    createInjector(context);
+    childInjector = binder.bind(injector, element);
+  }
 
   function createElementAndBinder(binderData) {
     binder = new ElementBinder(binderData);
@@ -176,14 +222,12 @@ describe('ElementBinder', ()=>{
           createdInstance = this;
         }
       }
-      createInjector();
-      createElementAndBinder({
+      init({
         decorators: [
           SomeDirective
         ]
       });
 
-      binder.bind(injector, element);
       expect(createdInstance).toBeTruthy();
     });
   });
@@ -194,6 +238,7 @@ describe('ElementBinder', ()=>{
        viewFactory,
        viewFactoryPromise,
        SomeDirective;
+
     beforeEach(()=>{
       container = $('<div>a</div>')[0];
       viewFactory = new ViewFactory(container, []);
@@ -204,7 +249,6 @@ describe('ElementBinder', ()=>{
           });
         }
       };
-      createInjector();
 
       @ComponentDirective({template: viewFactoryPromise})
       class SomeDirective_ {
@@ -216,21 +260,20 @@ describe('ElementBinder', ()=>{
     });
 
     it('should create a new directive instance', () => {
-      createElementAndBinder({
+      init({
         component: SomeDirective
       });
 
-      binder.bind(injector, element);
       expect(createdInstance).toBeTruthy();
     });
 
     it('should append the template to the ShadowDOM', () => {
-      createElementAndBinder({
-        component: SomeDirective
+      var contentHtml = '<span id="outer"></span>';
+      init({
+        component: SomeDirective,
+        innerHTML: contentHtml
       });
-      var contentHtml = element.innerHTML = '<span id="outer"></span>';
 
-      binder.bind(injector, element);
       expect(element.shadowRoot.innerHTML).toBe($html(container.childNodes));
       expect(element.innerHTML).toBe(contentHtml);
     });
@@ -238,12 +281,13 @@ describe('ElementBinder', ()=>{
     it('should call the viewFactory with the component instance as execution context', () => {
       spyOn(viewFactory, 'createChildView').and.callThrough();
 
-      createElementAndBinder({
+      init({
         component: SomeDirective
       });
-      var childInjector = binder.bind(injector, element);
-
-      expect(viewFactory.createChildView).toHaveBeenCalledWith(childInjector, childInjector.get(SomeDirective));
+      expect(viewFactory.createChildView).toHaveBeenCalledWith(
+        childInjector,
+        childInjector.get(SomeDirective)
+      );
     });
 
     // TODO: Error case (reject of viewFactoryPromise): log the error via the logger
@@ -254,7 +298,27 @@ describe('ElementBinder', ()=>{
 });
 
 describe('NonElementBinder', () => {
-  var node;
+  var node, viewFactory, createdInstance, childInjector;
+
+  function init({template = null}) {
+    node = document.createComment('comment');
+    binder = new NonElementBinder({
+      template: template
+    });
+    createInjector();
+    childInjector = binder.bind(injector, node);
+  }
+
+  beforeEach(()=>{
+    viewFactory = new ViewFactory($('<div>a</div>')[0], null);
+  });
+
+  @TemplateDirective
+  class SomeDirective {
+    constructor() {
+      createdInstance = this;
+    }
+  }
 
   function createCommentAndNonElementBinder(data) {
     node = document.createComment('comment');
@@ -262,53 +326,35 @@ describe('NonElementBinder', () => {
   }
 
   describe('tempate directives', () => {
-    var createdInstance,
-       viewFactory;
-    beforeEach(()=>{
-      viewFactory = new ViewFactory($('<div>a</div>')[0], null);
-      createInjector();
-    });
-
     it('should create a new directive instance', () => {
-      @TemplateDirective
-      class SomeDirective {
-        constructor() {
-          createdInstance = this;
-        }
-      }
-      createCommentAndNonElementBinder({
+      init({
         template: {
           directive: SomeDirective,
           viewFactory: viewFactory
         }
       });
 
-      binder.bind(injector, node);
       expect(createdInstance).toBeTruthy();
     });
 
     it('should provide the ViewFactory and ViewPort via DI', () => {
-      @TemplateDirective
-      class SomeDirective {
-      }
-      createCommentAndNonElementBinder({
+      init({
         template: {
           directive: SomeDirective,
           viewFactory: viewFactory
         }
       });
 
-      var childBinder = binder.bind(injector, node);
-      expect(childBinder.get(ViewPort)).toEqual(new ViewPort(node));
-      expect(childBinder.get(ViewFactory)).toBe(viewFactory);
+      expect(childInjector.get(ViewPort)).toEqual(new ViewPort(node));
+      expect(childInjector.get(ViewFactory)).toBe(viewFactory);
     });
   });
 });
 
-function createInjector() {
+function createInjector(context = {}) {
   @Provide(View)
   function viewProvider(injector:Injector) {
-    return new RootView(document.createElement('a'), injector);
+    return new RootView(document.createElement('a'), injector, context);
   }
 
   injector = new Injector([viewProvider]);

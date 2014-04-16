@@ -175,9 +175,9 @@ describe('Compiler', () => {
 
       });
 
-      it('should split the nodeAttrs and keep the attributes for the observed properties on the template directive', ()=>{
+      it('should split the nodeAttrs and keep the attributes for the bound properties on the template directive', ()=>{
         createSelector([
-          new TemplateDirective({selector: '[tpl]', observe: ['tpl', 'b']})
+          new TemplateDirective({selector: '[tpl]', bind: {'tpl': 'someProp', 'b':'someOtherProp'}})
         ]);
         compile('<div tpl="a" bind-b="c" x="y" bind-d="e" on-f="g"></div>');
 
