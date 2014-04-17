@@ -1,6 +1,5 @@
 import {NodeContainer} from './types';
-import {LinkedList} from './linked_list';
-import {LinkedListItem} from './linked_list';
+import {LinkedList, LinkedListItem} from './util/linked_list';
 import {Injector} from 'di';
 
 import {WatchParser, Parser} from 'expressionist';

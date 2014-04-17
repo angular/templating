@@ -1,5 +1,5 @@
 import {Inject} from 'di';
-import {Global} from './global';
+import {Global} from '../global';
 
 // TODO: Support ES6 loader here as well!
 @Inject(Global)

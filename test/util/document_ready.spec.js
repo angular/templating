@@ -1,6 +1,6 @@
 import {inject, use} from 'di/testing';
-import {DocumentReady} from '../src/document_ready';
-import {Global} from '../src/global';
+import {DocumentReady} from '../../src/util/document_ready';
+import {Global} from '../../src/global';
 
 describe('DocumentReady', ()=>{
   var global;

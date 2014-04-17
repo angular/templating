@@ -4,7 +4,7 @@ import {Selector} from '../../src/compiler/selector';
 import {DirectiveClass} from '../../src/compiler/directive_class';
 import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../../src/annotations';
 import {$, $0, $html} form '../dom_mocks';
-import {SimpleNodeContainer} from '../../src/simple_node_container';
+import {SimpleNodeContainer} from '../../src/util/simple_node_container';
 
 describe('Compiler', () => {
   var directives,

@@ -4,13 +4,13 @@ import {
   NodeContainer,
   CompiledTemplate
 } from '../types';
-import {SimpleNodeContainer} from '../simple_node_container';
+import {SimpleNodeContainer} from '../util/simple_node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {Selector, SelectedElementBindings} from './selector';
 import {Directive, TemplateDirective} from '../annotations';
-import {TreeArray, reduceTree} from '../tree_array';
+import {TreeArray, reduceTree} from '../util/tree_array';
 import {Inject} from 'di';
-import {AnnotationProvider} from '../annotation_provider';
+import {AnnotationProvider} from '../util/annotation_provider';
 
 /*
  * Compiler walks the DOM and calls Selector.match on each node in the tree.

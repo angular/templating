@@ -1,8 +1,8 @@
 import {Injector, Inject} from 'di';
-import {ModuleLoader} from './module_loader';
+import {ModuleLoader} from './util/module_loader';
 import {ArrayOfClass} from './types';
 import {Global} from './global';
-import {DocumentReady} from './document_ready';
+import {DocumentReady} from './util/document_ready';
 import {ViewFactory} from './view_factory';
 
 export function bootstrap() {
@@ -41,7 +41,6 @@ export function Bootstrap(global, moduleLoader, documentReady) {
         }).run(function() {
           var rootInjector = new Injector();
           var viewFactory = rootInjector.get(ViewFactory);
-          console.log(template);
           rootView = viewFactory.createRootView({
             template: template
           });

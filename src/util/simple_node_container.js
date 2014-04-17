@@ -1,4 +1,4 @@
-import {ArrayLikeOfNodes, NodeContainer} from './types';
+import {ArrayLikeOfNodes, NodeContainer} from '../types';
 
 /**
  * A node container just like DocumentFragment,

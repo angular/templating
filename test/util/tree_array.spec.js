@@ -1,4 +1,4 @@
-import {reduceTree} from '../src/tree_array';
+import {reduceTree} from '../../src/util/tree_array';
 
 describe('tree array', () => {
   describe('reduceTree', ()=>{

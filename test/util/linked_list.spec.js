@@ -1,6 +1,5 @@
 import {use, inject} from 'di/testing';
-import {LinkedList} from '../src/linked_list';
-import {LinkedListItem} from '../src/linked_list';
+import {LinkedList, LinkedListItem} from '../../src/util/linked_list';
 
 describe('LinkedList', () => {
   class TestItem extends LinkedListItem {
@@ -34,7 +33,7 @@ describe('LinkedList', () => {
 
     it('should append in empty list', () => {
       list.append(a);
-      
+
       expect(serialize(list)).toEqual('a');
       expect(list.head).toBe(a);
       expect(list.tail).toBe(a);
@@ -58,9 +57,9 @@ describe('LinkedList', () => {
 
       expect(serialize(list)).toEqual('a');
       expect(list.head).toBe(a);
-      expect(list.tail).toBe(a);      
+      expect(list.tail).toBe(a);
     });
-  
+
     it('should prepend in non empty list', () => {
       list.prepend(b);
       list.prepend(a);
@@ -87,7 +86,7 @@ describe('LinkedList', () => {
       list.append(a);
       list.append(c);
       list.insertBefore(b,c);
-      
+
       expect(serialize(list)).toEqual('abc');
       expect(list.head).toBe(a);
       expect(list.tail).toBe(c);
@@ -110,7 +109,7 @@ describe('LinkedList', () => {
       list.append(a);
       list.append(c);
       list.insertAfter(b,a);
-      
+
       expect(serialize(list)).toEqual('abc');
       expect(list.head).toBe(a);
       expect(list.tail).toBe(c);

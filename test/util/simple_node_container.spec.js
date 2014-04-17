@@ -1,5 +1,5 @@
-import {SimpleNodeContainer, ArrayLikeOfNodes, matchesSelector} from '../src/simple_node_container';
-import {$, $html} from './dom_mocks';
+import {SimpleNodeContainer, ArrayLikeOfNodes, matchesSelector} from '../../src/util/simple_node_container';
+import {$, $html} from '../dom_mocks';
 
 describe('node container', ()=>{
 

@@ -1,6 +1,6 @@
 import {Inject} from 'di';
-import {Compiler} from './compiler';
-import {ModuleLoader} from '../module_loader';
+import {Compiler} from '../compiler/compiler';
+import {ModuleLoader} from '../util/module_loader';
 import {DocumentLoader} from './document_loader';
 import {Precompile} from './precompiler';
 

@@ -1,5 +1,5 @@
 import {assert} from 'rtts-assert';
-import {TreeArray} from './types';
+import {TreeArray} from '../types';
 
 /**
  * The reduce() method applies a function against an accumulator and all

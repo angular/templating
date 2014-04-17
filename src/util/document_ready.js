@@ -1,5 +1,5 @@
 import {Inject} from 'di';
-import {Global} from './global';
+import {Global} from '../global';
 
 @Inject(Global)
 export function DocumentReady(global) {

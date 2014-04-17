@@ -1,5 +1,5 @@
 import {inject, use} from 'di/testing';
-import {BrowserDocumentLoader} form '../../src/compiler/browser_document_loader';
+import {BrowserDocumentLoader} form '../../src/loader/browser_document_loader';
 import {Global} from '../../src/global';
 import {$html} form '../dom_mocks';
 

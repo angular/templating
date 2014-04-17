@@ -9,9 +9,8 @@ import {
 import {Injector} from 'di';
 import {Inject, Provide} from 'di';
 import {View, RootView, ViewPort} from './view';
-import {TreeArray} from './tree_array';
-import {reduceTree} from './tree_array';
-import {AnnotationProvider} from './annotation_provider';
+import {reduceTree} from './util/tree_array';
+import {AnnotationProvider} from './util/annotation_provider';
 import {AbstractNodeBinder, ElementBinder, NonElementBinder} form './types';
 import {NgNode} from './ng_node';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, Directive} from './annotations';

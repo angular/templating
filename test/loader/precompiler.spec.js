@@ -1,9 +1,9 @@
 import {compile as traceur} from './traceur-api';
 import {$, $html} from '../dom_mocks';
 import {inject, use} from 'di/testing';
-import {Precompile} from '../../src/compiler/precompiler';
-import {SimpleNodeContainer} from '../../src/simple_node_container';
-import {ModuleLoader} from '../../src/module_loader';
+import {Precompile} from '../../src/loader/precompiler';
+import {SimpleNodeContainer} from '../../src/util/simple_node_container';
+import {ModuleLoader} from '../../src/util/module_loader';
 import {Compiler} from '../../src/compiler/compiler';
 
 describe('precompile', ()=>{

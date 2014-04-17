@@ -1,7 +1,7 @@
 import {use, inject} form 'di/testing';
-import {DocumentLoader} from '../../src/compiler/document_loader';
-import {ModuleLoader} from '../../src/module_loader';
-import {TemplateLoader} from '../../src/compiler/template_loader';
+import {DocumentLoader} from '../../src/loader/document_loader';
+import {ModuleLoader} from '../../src/util/module_loader';
+import {TemplateLoader} from '../../src/loader/template_loader';
 import {CompiledTemplate} from '../../src/types';
 import {assert} from 'rtts-assert';
 
