@@ -1,4 +1,5 @@
 import {assert} from 'rtts-assert';
+import {CompiledTemplatePromise} from './types';
 
 class DirectiveArgs {
   static assert(obj) {
@@ -44,10 +45,7 @@ class ComponentArgs {
   static assert(obj) {
     DirectiveArgs.assert(obj);
     if (obj.template) {
-      // TODO: this should be: assert(obj).is(ViewFactoryPromise).
-      // Can't use this here as:
-      // - importing ViewFactory into annotations would lead to cyclic type dependencies
-      assert(obj.template).is(Object);
+      assert(obj.template).is(CompiledTemplatePromise);
     }
   }
 }

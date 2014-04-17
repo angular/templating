@@ -3,10 +3,8 @@ import {Compiler} from '../../src/compiler/compiler';
 import {Selector} from '../../src/compiler/selector';
 import {DirectiveClass} from '../../src/compiler/directive_class';
 import {TemplateDirective, DecoratorDirective, ComponentDirective} from '../../src/annotations';
-import {ViewFactory, ElementBinder} from '../../src/view_factory';
-import {CompilerConfig} from '../../src/compiler/compiler_config';
 import {$, $0, $html} form '../dom_mocks';
-import {SimpleNodeContainer} from '../../src/node_container';
+import {SimpleNodeContainer} from '../../src/simple_node_container';
 
 describe('Compiler', () => {
   var directives,
@@ -25,12 +23,15 @@ describe('Compiler', () => {
   describe('compileNodes', ()=>{
     it('should call compileChildNodes with a SimpleNodeContainer', ()=>{
       inject(Compiler, (compiler) => {
-        var vf = new ViewFactory($('<div></div>')[0], []);
-        spyOn(compiler, 'compileChildNodes').and.returnValue(vf);
+        var compiledTemplate = {
+          container: $('<div></div>')[0],
+          binders: []
+        };
+        spyOn(compiler, 'compileChildNodes').and.returnValue(compiledTemplate);
         var directives = [];
         var nodes = [];
 
-        expect(compiler.compileNodes(nodes, directives)).toBe(vf);
+        expect(compiler.compileNodes(nodes, directives)).toBe(compiledTemplate);
         expect(compiler.compileChildNodes).toHaveBeenCalledWith(new SimpleNodeContainer(nodes), directives);
       });
     });
@@ -303,7 +304,7 @@ describe('Compiler', () => {
   function compile(html) {
     inject(Compiler, (compiler)=>{
       container = $('<div>'+html+'</div>')[0];
-      binders = compiler.compileChildNodes(container, directives).elementBinders;
+      binders = compiler.compileChildNodes(container, directives).binders;
     });
   }
 
@@ -373,19 +374,19 @@ describe('Compiler', () => {
   }
 
   function switchToTemplateDirective() {
-    var viewFactory;
+    var compiledTemplate;
     binders.forEach(function(binder) {
       if (binder.nonElementBinders) {
         binder.nonElementBinders.forEach(function(nonElementBinder) {
           if (nonElementBinder.template) {
-            viewFactory = nonElementBinder.template.viewFactory;
+            compiledTemplate = nonElementBinder.template.compiledTemplate;
           }
         });
       }
     });
-    expect(viewFactory).toBeTruthy();
+    expect(compiledTemplate).toBeTruthy();
     // update the global variables
-    container = viewFactory.templateContainer;
-    binders = viewFactory.elementBinders;
+    container = compiledTemplate.container;
+    binders = compiledTemplate.binders;
   }
 });

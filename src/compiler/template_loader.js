@@ -18,13 +18,13 @@ export function TemplateLoader(documentLoader, moduleLoader, compiler, precompil
       var moduleClasses = extractClasses(modules);
       var apps = Array.prototype.slice.call(_doc.querySelectorAll('[ng-app]'));
       if (apps.length) {
-        var viewFactories = apps.map(function(appRootElement) {
+        var appTemplates = apps.map(function(appRootElement) {
           return compiler.compileNodes([appRootElement], moduleClasses);
         });
         return {
-          appViewFactories: viewFactories,
+          appTemplates: appTemplates,
           modules: modules,
-          es6Source: serialize ? precompile(viewFactories, null, modules) : null
+          es6Source: serialize ? precompile(appTemplates, null, modules) : null
         };
       } else {
         // We need to convert the <body> tag into a div
@@ -34,11 +34,11 @@ export function TemplateLoader(documentLoader, moduleLoader, compiler, precompil
         while (_doc.body.firstChild) {
           div.appendChild(_doc.body.firstChild);
         }
-        var vf = compiler.compileChildNodes(div, moduleClasses);
+        var template = compiler.compileChildNodes(div, moduleClasses);
         return {
-          viewFactory: vf,
+          template: template,
           modules: modules,
-          es6Source: serialize ? precompile(null, vf, modules) : null
+          es6Source: serialize ? precompile(null, template, modules) : null
         };
       }
     });

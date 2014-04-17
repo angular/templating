@@ -1,229 +1,147 @@
-import {Injector, Inject} from 'di';
-import {Compiler} from './compiler';
-module viewFactoryModule from '../view_factory';
-import {NodeAttrs} from '../types';
-import {createObject, createNode} form '../instantiate_helper';
-import {SimpleNodeContainer} from '../node_container';
+import {Inject} from 'di';
+import {Global} from '../global';
 
-@Inject()
-export function Precompile() {
+@Inject(Global)
+export function Precompile(global) {
   return precompile;
 
-  function precompile(appViewFactories, viewFactory, modules) {
-    var exports = [];
-    for (var moduleName in modules) {
-      collectExports(moduleName, modules[moduleName], true, exports);
-    }
-
-    collectExports('templating', viewFactoryModule, false, exports);
-    exports.push({
-      module: 'templating',
-      name: 'NodeAttrs',
-      type: NodeAttrs,
-      dynamic: false
-    });
-
-    exports.push({
-      module: 'templating',
-      name: 'SimpleNodeContainer',
-      type: SimpleNodeContainer,
-      dynamic: false
-    });
+  function precompile(appTemplates, template, modules) {
+    var usedModulePaths = [];
 
     // TODO: Check/improve the error handling,
     // as errors don't show up in the tests.
-    return serialize({
-      appViewFactories: appViewFactories,
-      viewFactory: viewFactory
-    }, 'promise', exports);
-  }
-
-}
-
-function collectExports(moduleName, module, dynamic, target) {
-  target = target || [];
-  for (var exportName in module) {
-    target.push({
-      module: moduleName,
-      name: exportName,
-      type: module[exportName],
-      dynamic: dynamic
+    var builder = new Builder(modules, usedModulePaths, global);
+    builder.serializeRecurse({
+      appTemplates: appTemplates,
+      template: template
     });
-  }
-  return target;
-}
-
-export function serialize(object, exportName, moduleNameWithExports) {
-  var builder = new Builder(moduleNameWithExports);
-  moduleNameWithExports.push({
-    module: 'templating', name: 'createObject', type: createObject, dynamic: false
-  });
-  moduleNameWithExports.push({
-    module: 'templating', name: 'createNode', type: createNode, dynamic: false
-  });
-  // TODO: Make this nicer...
-  builder.createObjectVar = builder.addImport(createObject);
-  builder.createNodeVar = builder.addImport(createNode);
-  serializeRecurse(builder, object);
-
-  return builder.build(exportName);
-}
-
-
-function serializeRecurse(builder, object) {
-  if (object && typeof object === 'object') {
-    if (object.constructor === Date) {
-      builder.appendLine('new Date('+object.getTime()+')');
-    } else if (object.constructor === RegExp) {
-      builder.appendLine('/'+object.source+'/');
-    } else if (object.constructor === Array) {
-      builder.appendLine('[');
-      serializeArray(builder, object);
-      builder.appendLine(']');
-    } else if (object.nodeName) {
-      serializeNode(builder, object);
-    } else if (object.constructor === Object) {
-      builder.appendLine('{');
-      serializeDirectProps(builder, object);
-      builder.appendLine('}');
-    } else {
-      var exportName = builder.addImport(object.constructor);
-      builder.appendLine(builder.createObjectVar + '('+exportName+',{');
-      serializeDirectProps(builder, object);
-      builder.appendLine('})');
+    var serializedTemplates = builder.build();
+    var serializedModulePaths = '';
+    if (usedModulePaths.length) {
+      serializedModulePaths = '"'+usedModulePaths.join('","')+'"';
     }
-  } else if (typeof object === 'function') {
-    // TODO(vojta): add a unit test for this
-    var exportName = builder.addImport(object);
-    builder.appendLine(exportName);
-  } else {
-    builder.appendLine(JSON.stringify(object));
+
+    // build result with a template string...
+    return `
+function createNode(innerHTML) {
+  var d = document.createElement('div');
+  d.innerHTML = innerHTML;
+  return d;
+}
+
+export var promise = new Promise(function(resolve) {
+  require([${serializedModulePaths}], function(...modules) {
+    resolve(
+      ${serializedTemplates}
+    )
+  });
+});
+`
   }
 }
 
-function serializeDirectProps(builder, object) {
-  var first = true;
-  for (var prop in object) {
-    if (object.hasOwnProperty(prop)) {
+class Builder {
+  constructor(modulesWithPath, usedModulePaths, global) {
+    this.result = '';
+    this.global = global;
+    this.modulesWithPath = modulesWithPath;
+    this.usedModulePaths = usedModulePaths;
+  }
+  serializeRecurse(object) {
+    if (object && typeof object === 'object') {
+      if (object.constructor === Array) {
+        this._appendLine('[');
+        this._serializeArray(object);
+        this._appendLine(']');
+      } else if (object.nodeType) {
+        this._serializeNode(object);
+      } else {
+        this._appendLine('{');
+        this._serializeDirectProps(object);
+        this._appendLine('}');
+      }
+    } else if (typeof object === 'function') {
+      // TODO(vojta): add a unit test for this
+      this._appendLine(this._findModuleExport(object));
+    } else {
+      this._appendLine(JSON.stringify(object));
+    }
+  }
+  _serializeDirectProps(object) {
+    var first = true;
+    for (var prop in object) {
+      if (object.hasOwnProperty(prop)) {
+        if (!first) {
+          this._append(',');
+        } else {
+          first = false;
+        }
+        this._append('"'+prop+'":');
+        this.serializeRecurse(object[prop]);
+      }
+    }
+  }
+  _serializeArray(object) {
+    var first = true;
+    for (var i=0; i<object.length; i++) {
       if (!first) {
-        builder.append(',');
+        this._append(',');
       } else {
         first = false;
       }
-      builder.append('"'+prop+'":');
-      serializeRecurse(builder, object[prop]);
+      this.serializeRecurse(object[i]);
     }
   }
-}
-
-function serializeArray(builder, object) {
-  var first = true;
-  for (var i=0; i<object.length; i++) {
-    if (!first) {
-      builder.append(',');
-    } else {
-      first = false;
-    }
-    serializeRecurse(builder, object[i]);
-  }
-}
-
-function serializeNode(builder, node) {
-  var html;
-  if (node.nodeType === Node.ELEMENT_NODE) {
-    html = node.outerHTML;
-  } else {
+  _serializeNode(node) {
     // clone the node as we move it into another place to be able to convert it into
     // html
     var clone = node.cloneNode(true);
-    var container = node.ownerDocument.createElement('div');
-    container.appendChild(node);
-    html = container.innerHTML;
-  }
+    var container = this.global.document.createElement('div');
+    // get the nodes of the container into an array,
+    // so they don't change while we append them somewhere else.
+    // This is needed as e.g. a SimpleNodeContainer does not have
+    // a live childNodes array, but a normal element does.
+    var nodes = Array.prototype.slice.call(clone.childNodes);
+    nodes.forEach((node)=>{
+      container.appendChild(node);
+    });
+    var html = container.innerHTML;
 
-  builder.appendLine(builder.createNodeVar+"("+node.nodeType+",'"+escapeHTMLAsString(html)+"')");
+    this._appendLine("createNode('"+escapeHTMLAsString(html)+"')");
+  }
+  _findModuleExport(type) {
+    var modulePath;
+    var exportName;
+    for (modulePath in this.modulesWithPath) {
+      for (exportName in this.modulesWithPath[modulePath]) {
+        if (this.modulesWithPath[modulePath][exportName] === type) {
+          break;
+        }
+      }
+    }
+    if (!modulePath) {
+      throw new Error('No module provided for type '+type);
+    }
+    var existingIndex = this.usedModulePaths.indexOf(modulePath);
+    if (existingIndex === -1) {
+      existingIndex = this.usedModulePaths.length;
+      this.usedModulePaths.push(modulePath);
+    }
+    return 'modules['+existingIndex+']["'+exportName+'"]';
+  }
+  _appendLine(string) {
+    this._append(string+'\n');
+    return this;
+  }
+  _append(string) {
+    this.result += string;
+    return this
+  }
+  build(exportName) {
+    return this.result;
+  }
 }
 
 function escapeHTMLAsString(string) {
   return string.replace("'", '"').replace(/\n/g, '\\n');
 }
-
-// TODO: Move more of the logic to build objects,
-// functions calls, ... into this Builder class!
-class Builder {
-  constructor(moduleNameWithExports) {
-    this.result = '';
-    this.imports = [];
-    this.moduleNameWithExports = moduleNameWithExports;
-  }
-  addImport(type) {
-    // TODO: Make this faster!
-    var self = this;
-    var importVariable = this.moduleNameWithExports.reduce(function(importVariable, exported) {
-      if (importVariable) {
-        return importVariable;
-      }
-      if (exported.type === type) {
-        var variable = 'imp_'+self.imports.length;
-        self.imports.push({
-          module: exported.module,
-          name: exported.name,
-          dynamic: exported.dynamic,
-          variable: variable
-        });
-        return variable;
-      } else {
-        return null;
-      }
-    }, null);
-    if (!importVariable) {
-      throw new Error('No module provided for objects of type '+type);
-    }
-    return importVariable;
-  }
-  appendLine(string) {
-    this.append(string+'\n');
-    return this;
-  }
-  append(string) {
-    this.result += string;
-    return this
-  }
-  _serializeStaticImports() {
-    var importLines = [];
-    this.imports.forEach((imported) => {
-      if (!imported.dynamic) {
-        importLines.push('import {'+imported.name+' as '+
-          imported.variable+'} from "'+imported.module+'";');
-      }
-    });
-    return importLines.join('\n');
-  }
-  _serializeDynamicImports(body) {
-    var modules = [];
-    var moduleVars = [];
-    var importedNames = [];
-    this.imports.forEach((imported, index) => {
-      if (imported.dynamic) {
-        modules.push(imported.module);
-        var moduleVar = 'mod'+index;
-        moduleVars.push(moduleVar);
-        importedNames.push('var '+imported.variable+'='+(moduleVar + '.' + imported.name)+';');
-      }
-    });
-    if (!importedNames.length) {
-      return body;
-    }
-    // TODO: Use ModuleLoader here (can't right now as
-    //   ModuleLoader needs an Injector...)
-    var res = 'require(["' + modules.join('","') + '"],' +
-       ' function(' + moduleVars.join(',') + ') {\n' + importedNames.join('\n');
-    return res + '\n ' + body + '\n});';
-  }
-  build(exportName) {
-    return this._serializeStaticImports() + '\n'
-      + 'export var '+exportName+'= new Promise(function(resolve) { \n'
-      + this._serializeDynamicImports('resolve(' + this.result+');')+'; });'
-  }
-}
-

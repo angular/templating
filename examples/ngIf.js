@@ -1,20 +1,17 @@
 import {TemplateDirective} from 'templating';
-import {Injector} from 'di';
 import {Inject} from 'di';
-import {View, ViewPort} from 'templating';
-import {ViewFactory} from 'templating';
+import {View, ViewPort, BoundViewFactory} from 'templating';
 
 @TemplateDirective({
   selector: '[ng-if]',
-  observe: {'ngIf': 'ngIfChanged'},
-  bind: {'ngIf': 'ngIf'}
+  bind: {'ngIf': 'ngIf'},
+  observe: {'ngIf': 'ngIfChanged'}
 })
 export class NgIf {
-  @Inject(ViewFactory, ViewPort, View, Injector)
-  constructor(viewFactory, viewPort, parentView, injector) {
+  @Inject(BoundViewFactory, ViewPort, View)
+  constructor(viewFactory, viewPort, parentView) {
     this.viewPort = viewPort;
     this.viewFactory = viewFactory;
-    this.injector = injector;
     this.parentView = parentView;
     this.view = null;
   }
@@ -28,7 +25,7 @@ export class NgIf {
       this.view = null;
     }
     if (value) {
-      this.view = this.viewFactory.createChildView(this.injector, this.parentView.executionContext);
+      this.view = this.viewFactory.createView();
       this.viewPort.append(this.view);
     }
   }

@@ -16,12 +16,8 @@ export {
 } from './view';
 export {
   ViewFactory,
-  ElementBinder,
-  NonElementBinder
+  BoundViewFactory
 } from './view_factory';
 export {
-  NodeAttrs
-} from './types';
-export {
   SimpleNodeContainer
-} from './node_container';
+} from './simple_node_container';

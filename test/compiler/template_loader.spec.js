@@ -2,7 +2,8 @@ import {use, inject} form 'di/testing';
 import {DocumentLoader} from '../../src/compiler/document_loader';
 import {ModuleLoader} from '../../src/module_loader';
 import {TemplateLoader} from '../../src/compiler/template_loader';
-import {ViewFactory} from '../../src/view_factory';
+import {CompiledTemplate} from '../../src/types';
+import {assert} from 'rtts-assert';
 
 describe('TemplateLoader', ()=>{
   var moduleLoader;
@@ -41,28 +42,28 @@ describe('TemplateLoader', ()=>{
       });
     }
 
-    it('should return a viewFactory with the correct templateContainer', (done)=>{
+    it('should return a compiledTemplate with the correct container', (done)=>{
       simulate(
         {},
         'someUrl.html',
         'someHtml',
         function(data) {
-          expect(data.viewFactory instanceof ViewFactory).toBe(true);
-          expect(data.viewFactory.templateContainer.innerHTML)
+          assert(data.template).is(CompiledTemplate);
+          expect(data.template.container.innerHTML)
             .toBe('someHtml');
           done();
         }
       );
     });
 
-    it('should return a viewFactory with only <body> children moved into a <div>', (done)=>{
+    it('should return a compiledTemplate with only <body> children moved into a <div>', (done)=>{
       simulate(
         {},
         'someUrl.html',
         '<html><body>someHtml</body></html>',
         function(data) {
-          expect(data.viewFactory instanceof ViewFactory).toBe(true);
-          expect(data.viewFactory.templateContainer.outerHTML)
+          assert(data.template).is(CompiledTemplate);
+          expect(data.template.container.outerHTML)
             .toBe('<div>someHtml</div>');
           done();
         }

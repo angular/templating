@@ -1,50 +1,36 @@
+import {assert} from 'rtts-assert';
+import {Inject} from 'di';
 import {Directive} from '../annotations';
 import {ArrayOfDirectiveClass, DirectiveClass} from './directive_class';
 import {ElementSelector, SelectedElementBindings} from './element_selector';
-import {assert} from 'rtts-assert';
 import {NonElementSelector} from './non_element_selector';
-import {CompilerConfig} from './compiler_config';
+import {SelectorConfig} from './selector_config';
 
 export {SelectedElementBindings};
 /**
- * Selector has internal data structures which allow it to efficiently match DirectiveTypes 
- * against the Element and its classes and attributes. 
+ * Selector has internal data structures which allow it to efficiently match DirectiveTypes
+ * against the Element and its classes and attributes.
  * The product of the match is ElementBinder.
- * 
- * Lifetime: immutable for the duration of application. 
- * Different injector branches may have different instance of this class.
+ *
+ * Lifetime: immutable for the duration of application.
  */
 export class Selector {
+  @Inject(SelectorConfig)
   constructor(
-    directives:ArrayOfDirectiveClass,
-    compilerConfig:CompilerConfig){
-    this.directives = directives;
-    this.nonElementSelector = new NonElementSelector(compilerConfig);
-    this.elementSelector = new ElementSelector('', this.nonElementSelector);
-
-    this.directives.forEach(this.addDirective.bind(this));
+    config:SelectorConfig){
+    this.config = config;
   }
-  addDirective(directive:DirectiveClass) {
-    var annotation = directive.annotation,
-        type = directive.clazz,
-        selector = annotation.selector;
+  matchElement(directives:ArrayOfDirectiveClass, element:HTMLElement):SelectedElementBindings {
+    var initElementSelector = new ElementSelector('');
+    var nonElementSelector = new NonElementSelector(this.config);
+    directives.forEach(initElementSelector.addDirective.bind(initElementSelector));
 
-    var match;
-
-    if (!selector) {
-      throw new Error(`Missing selector annotation for ${type}`);
-    }
-
-    this.elementSelector.addDirective(directive);
-  }
-
-  matchElement(element:HTMLElement):SelectedElementBindings {
     var builder = new SelectedElementBindings(),
         nodeName = element.tagName.toLowerCase(),
         attributeList = element.attributes,
         attrs = {},
         classList = element.classList,
-        classes = {}, 
+        classes = {},
         i, length, j, jlength, partialSelection;
 
     // Set default attribute
@@ -53,7 +39,7 @@ export class Selector {
     }
 
     // Select node
-    partialSelection = this.elementSelector.selectNode(builder, 
+    partialSelection = initElementSelector.selectNode(builder,
       partialSelection, nodeName);
 
     for(i = 0, length = classList.length; i < length; i++){
@@ -61,19 +47,19 @@ export class Selector {
 
         classes[className] = true;
 
-        partialSelection = this.elementSelector.selectClass(builder, 
+        partialSelection = initElementSelector.selectClass(builder,
           partialSelection, className);
     }
 
     for (i = 0, length = attributeList.length; i < length; i++) {
       var attr = attributeList[i],
-          attrName = attr.name, 
+          attrName = attr.name,
           attrValue = attr.value;
 
       attrs[attrName] = attrValue;
-      this.nonElementSelector.selectBindAttr(builder, attrName, attrValue);
+      nonElementSelector.selectBindAttr(builder, attrName, attrValue);
 
-      partialSelection = this.elementSelector.selectAttr(builder,
+      partialSelection = initElementSelector.selectAttr(builder,
           partialSelection, attrName, attrValue);
     }
 
@@ -100,6 +86,7 @@ export class Selector {
   }
 
   matchText(node:Text):string {
-    return this.nonElementSelector.selectTextNode(node.nodeValue);
+    var nonElementSelector = new NonElementSelector(this.config);
+    return nonElementSelector.selectTextNode(node.nodeValue);
   }
 }

@@ -1,7 +1,6 @@
 import {TemplateDirective, ComponentDirective, DecoratorDirective} from '../annotations';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {SelectorPart, ArrayOfSelectorPart} from './selector_part';
-import {NodeAttrs} from '../types';
 
 var SELECTOR_REGEXP = /^(?:([\w\-]+)|(?:\.([\w\-]+))|(?:\[([\w\-\*]+)(?:=([^\]]*))?\]))/;
 var wildcard = new RegExp('\\*', 'g');
@@ -19,7 +18,7 @@ function matchingKey(obj, attrName:string){
 
 function putIfAbsent(obj, name, create){
   var val = obj[name];
-  
+
   if(!val){
     val = obj[name] = create();
   }
@@ -60,9 +59,13 @@ export class SelectedElementBindings {
     this.decorators = [];
     this.component = null;
     this.template = null;
-    this.attrs = new NodeAttrs();
+    this.attrs = {
+      init: {},
+      bind: {},
+      event: {}
+    };
   }
-  addDirectives(directiveClasses:ArrayOfDirectiveClass){    
+  addDirectives(directiveClasses:ArrayOfDirectiveClass){
     for(var i = 0, length = directiveClasses.length; i < length; i++){
       this.addDirective(directiveClasses[i]);
     }
@@ -74,7 +77,7 @@ export class SelectedElementBindings {
       this.component = directive;
     } else if (directive.annotation instanceof DecoratorDirective) {
       this.decorators.push(directive);
-    }    
+    }
   }
 }
 
@@ -97,7 +100,7 @@ export class ElementSelector {
     }
     this._addDirective(selectorParts, directive);
   }
-  
+
   _addDirective(selectorParts:ArrayOfSelectorPart, directive:DirectiveClass){
     var selectorPart = selectorParts.splice(0,1)[0];
     var terminal = selectorParts.length == 0;

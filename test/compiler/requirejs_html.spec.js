@@ -9,7 +9,7 @@ describe('requirejs-html', ()=>{
       loadModules(['test/compiler/atemplate.html']).then((modules)=>{
         return modules[0].promise;
       }).then(function(data) {
-        expect(data.viewFactory.templateContainer.innerHTML.trim())
+        expect(data.template.container.innerHTML.trim())
           .toBe('<module src="./amodule"></module>\n\n<div>someTemplate</div>');
         expect(data.modules['test/compiler/amodule'].anExport).toBe(true);
         done();

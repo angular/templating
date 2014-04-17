@@ -1,4 +1,4 @@
-import {SimpleNodeContainer, ArrayLikeOfNodes, matchesSelector} from '../src/node_container';
+import {SimpleNodeContainer, ArrayLikeOfNodes, matchesSelector} from '../src/simple_node_container';
 import {$, $html} from './dom_mocks';
 
 describe('node container', ()=>{
@@ -11,7 +11,7 @@ describe('node container', ()=>{
 
     it('should check element nodes', ()=>{
       var node = $('<div class="a" b="c"></div>')[0];
-      
+
       expect(matchesSelector(node, '*')).toBe(true);
       expect(matchesSelector(node, 'div')).toBe(true);
       expect(matchesSelector(node, 'span')).toBe(false);
@@ -21,7 +21,7 @@ describe('node container', ()=>{
       expect(matchesSelector(node, '[c]')).toBe(false);
     });
   });
-   
+
   describe('SimpleNodeContainer', ()=>{
 
     it('should save the given nodes in the childNodes as an array', ()=>{

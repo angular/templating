@@ -1,18 +1,4 @@
-import {ArrayLikeOfNodes} from './types';
-
-export class NodeContainer {
-  static assert(obj) {
-    assert(obj).is(assert.structure({
-      cloneNode: Function,
-      // getElementsByClassName would be nicer,
-      // however, documentFragments only support
-      // querySelectorAll and not getElementsByClassName
-      querySelectorAll: Function,
-      childNodes: ArrayLikeOfNodes,
-      nodeType: assert.number
-    }));
-  }
-}
+import {ArrayLikeOfNodes, NodeContainer} from './types';
 
 /**
  * A node container just like DocumentFragment,

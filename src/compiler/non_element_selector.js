@@ -1,7 +1,6 @@
 import {assert} from 'rtts-assert';
 import {SelectedElementBindings} from './element_selector';
-import {CompilerConfig} from './compiler_config';
-import {NodeAttrs} from '../types';
+import {SelectorConfig} from './selector_config';
 
 export class ArrayOfMarkedText {
   static assert(obj) {
@@ -13,7 +12,7 @@ export class ArrayOfMarkedText {
 }
 
 export class NonElementSelector {
-  constructor(config:CompilerConfig) {
+  constructor(config:SelectorConfig) {
     this.config = config;
   }
   _convertInterpolationToExpression(text:string) {
@@ -35,6 +34,15 @@ export class NonElementSelector {
     });
     return interpolationParts.join('+');
   }
+  _toCamelCase(attrName) {
+    return attrName.split('-').map((part, index) => {
+      if (index>0) {
+        return part.charAt(0).toUpperCase()+part.substring(1);
+      } else {
+        return part;
+      }
+    }).join('');
+  }
   selectTextNode(text:string) {
     return this._convertInterpolationToExpression(text);
   }
@@ -44,13 +52,13 @@ export class NonElementSelector {
     var match;
     if (interpolationExpr) {
       attrValue = interpolationExpr;
-      binder.attrs.bind[NodeAttrs.toCamelCase(attrName)] = attrValue;
+      binder.attrs.bind[this._toCamelCase(attrName)] = attrValue;
     } else if (match = this.config.bindAttrRegex.exec(attrName)) {
-      binder.attrs.bind[NodeAttrs.toCamelCase(match[1])] = attrValue;
+      binder.attrs.bind[this._toCamelCase(match[1])] = attrValue;
     } else if (match = this.config.eventAttrRegex.exec(attrName)) {
-      binder.attrs.event[NodeAttrs.toCamelCase(match[1])] = attrValue;
+      binder.attrs.event[this._toCamelCase(match[1])] = attrValue;
     } else {
-      binder.attrs.init[NodeAttrs.toCamelCase(attrName)] = attrValue;
+      binder.attrs.init[this._toCamelCase(attrName)] = attrValue;
     }
   }
 }

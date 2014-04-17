@@ -1,73 +1,113 @@
 import {assert} from 'rtts-assert';
-import {Injector} from 'di';
 
-export class ArrayLikeOfNodes {
-  static assert(obj) {
-    assert(obj.length).is(assert.number);
-    for (var i=0, ii=obj.length; i<ii; i++) {
-      assert(obj[i]).is(Node);
+export var CompiledTemplatePromise = assert.define('CompiledTemplatePromise', function(obj) {
+  // TODO: How to assert that the result of the promise
+  // is a CompiledTemplate?
+  assert(obj).is(assert.structure({
+    then: Function
+  }));
+});
+
+export var ChildInjectorConfig = assert.define('ChildInjectorConfig', function(obj) {
+  assert(obj).is(assert.structure({
+    modules: [],
+    forceNewInstancesOf: []
+  }));
+});
+
+export var NodeContainer = assert.define('NodeContainer', function(obj) {
+  assert(obj).is(assert.structure({
+    cloneNode: Function,
+    // getElementsByClassName would be nicer,
+    // however, documentFragments only support
+    // querySelectorAll and not getElementsByClassName
+    querySelectorAll: Function,
+    childNodes: ArrayLikeOfNodes,
+    nodeType: assert.number
+  }));
+});
+
+export var ArrayLikeOfNodes = assert.define('ArrayLikeOfNodes', function(obj) {
+  assert(obj.length).is(assert.number);
+  for (var i=0, ii=obj.length; i<ii; i++) {
+    assert(obj[i]).is(Node);
+  }
+});
+
+export var ArrayOfObject = assert.define('ArrayOfObject', function(obj) {
+  assert(obj).is(assert.arrayOf(assert.object));
+});
+
+export var ArrayOfString = assert.define('ArrayOfString', function(obj) {
+  assert(obj).is(assert.arrayOf(assert.string));
+});
+
+export var ArrayOfClass = assert.define('ArrayOfClass', function(obj) {
+  assert(obj).is(assert.arrayOf(Function));
+});
+
+export var TreeArrayOfElementBinder = assert.define('TreeArrayOfElementBinder', function(obj) {
+  assert(obj).is(assert.arrayOf(ElementBinder));
+  assert(obj).is(TreeArray);
+});
+
+export var AbstractNodeBinder = assert.define('AbstractNodeBinder', function(obj) {
+  assert(obj).is(assert.structure({
+    attrs: Object
+  }));
+});
+
+export var CompiledTemplate = assert.define('CompiledTemplate', function(obj) {
+  assert(obj).is(assert.structure({
+    container: NodeContainer,
+    binders: TreeArrayOfElementBinder
+  }));
+});
+
+export var ElementBinder = assert.define('ElementBinder', function(obj) {
+  AbstractNodeBinder.assert(obj);
+  assert(obj).is(assert.structure({
+    decorators: ArrayOfClass,
+    component: Function,
+    nonElementBinders: assert.arrayOf(NonElementBinder),
+    level: assert.number
+  }));
+});
+
+export var NonElementBinder = assert.define('NonElementBinder', function(obj) {
+  AbstractNodeBinder.assert(obj);
+  assert(obj).is(assert.structure({
+    template: assert.structure({
+      compiledTemplate: CompiledTemplate,
+      directive: Function
+    }),
+    indexInParent: assert.number
+  }));
+});
+
+export var TreeArrayNode = assert.define('TreeArrayNode', function(obj) {
+  assert(obj).is(assert.structure({
+    level: assert.number
+  }));
+});
+
+/**
+ * An array of TreeArrayNodes that represent a valid depth-first-tree.
+ */
+export var TreeArray = assert.define('TreeArray', function(obj) {
+  assert(obj).is(assert.arrayOf(TreeArrayNode));
+  var prevLevel = -1;
+  obj.forEach((node) => {
+    var newLevel = node.level;
+    if (newLevel === null) {
+      assert.fail('level must be set');
     }
-  }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }
-}
-
-export class ArrayOfObject {
-  static assert(obj) {
-    assert(obj).is(assert.arrayOf(assert.object));
-  }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }  
-}
-
-export class ArrayOfString {
-  static assert(obj) {
-    assert(obj).is(assert.arrayOf(assert.string));
-  }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }
-}
-
-export class NodeAttrs {
-  static toCamelCase(attrName) {
-    return attrName.split('-').map((part, index) => {
-      if (index>0) {
-        return part.charAt(0).toUpperCase()+part.substring(1);
-      } else {
-        return part;
-      }
-    }).join('');
-  }
-  constructor(data = {}) {
-    this.init = data.init || {};
-    this.bind = data.bind || {};
-    this.event = data.event || {};
-  }
-  split(props:ArrayOfString) {
-    var res = new NodeAttrs();
-    props.forEach((propName) => {
-      if (propName in this.init) {
-        res.init[propName] = this.init[propName];
-        delete this.init[propName];
-      }
-      if (propName in this.bind) {
-        res.bind[propName] = this.bind[propName];
-        delete this.bind[propName];          
-      }
-    });
-    return res;
-  }
-}
-
-export class ArrayOfClass {
-  static assert(obj) {
-    assert(obj).is(assert.arrayOf(Function));
-  }
-  constructor() {
-    assert.fail('type is not instantiable');
-  }  
-}
-
+    if (newLevel<0) {
+      assert.fail('level must be >=0');
+    }
+    if (newLevel>=prevLevel && newLevel-prevLevel > 1) {
+      assert.fail("levels can't be skipped");
+    }
+    prevLevel = newLevel;
+  });
+});

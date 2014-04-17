@@ -1,6 +1,7 @@
 import {inject} from 'di/testing';
 import {Injector} from 'di';
 import {Compiler} from '../../src/compiler/compiler';
+import {ViewFactory} from '../../src/view_factory';
 import {NgIf} from './ng_if';
 import {$, $html} from '../dom_mocks';
 
@@ -8,11 +9,11 @@ describe('ngIf', ()=>{
   var view, container, ngIf, anchor;
 
   function compile(html) {
-    inject(Compiler, Injector, (compiler, rootInjector) => {
+    inject(Compiler, ViewFactory, (compiler, viewFactory) => {
       container = $('<div>'+html+'</div>')[0];
-      var viewFactory = compiler.compileChildNodes(container, [NgIf]);
+      var compiledTemplate = compiler.compileChildNodes(container, [NgIf]);
 
-      view = viewFactory.createRootView(rootInjector, {}, true);
+      view = viewFactory.createRootView({template: compiledTemplate});
       anchor = container.lastChild;
     });
   }

@@ -3,6 +3,7 @@ import {ModuleLoader} from './module_loader';
 import {ArrayOfClass} from './types';
 import {Global} from './global';
 import {DocumentReady} from './document_ready';
+import {ViewFactory} from './view_factory';
 
 export function bootstrap() {
   var injector = new Injector();
@@ -20,12 +21,12 @@ export function Bootstrap(global, moduleLoader, documentReady) {
     }).then(function(modules) {
       var module = modules[0];
       return module.promise;
-    }).then(function(viewFactoriesAndModules) {
-      var appViewFactories = viewFactoriesAndModules.appViewFactories;
-      if (!appViewFactories) {
+    }).then(function(templatesAndModules) {
+      var appTemplates = templatesAndModules.appTemplates;
+      if (!appTemplates) {
         return;
       }
-      appViewFactories.forEach((viewFactory) => {
+      appTemplates.forEach((template) => {
         var rootView;
         window.zone.fork({
           onZoneLeave: function () {
@@ -39,12 +40,16 @@ export function Bootstrap(global, moduleLoader, documentReady) {
           }
         }).run(function() {
           var rootInjector = new Injector();
-          rootView = viewFactory.createRootView(rootInjector, {}, true);
+          var viewFactory = rootInjector.get(ViewFactory);
+          console.log(template);
+          rootView = viewFactory.createRootView({
+            template: template
+          });
           // TODO(vojta): only do this for server-side pre-compiled templates
           // rootView.appendTo(document.body)
         });
       });
-      return appViewFactories;
+      return appTemplates;
     }, function(e) {
       console.log(e.stack)
     });

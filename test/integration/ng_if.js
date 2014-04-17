@@ -2,7 +2,7 @@ import {TemplateDirective} from '../../src/annotations';
 import {Injector} from 'di';
 import {Inject} from 'di';
 import {View, ViewPort} from '../../src/view';
-import {ViewFactory} from '../../src/view_factory';
+import {BoundViewFactory} from '../../src/view_factory';
 
 
 @TemplateDirective({
@@ -11,11 +11,10 @@ import {ViewFactory} from '../../src/view_factory';
   observe: {'ngIf': 'ngIfChanged'}
 })
 export class NgIf {
-  @Inject(ViewFactory, ViewPort, View, Injector)
-  constructor(viewFactory, viewPort, parentView, injector) {
+  @Inject(BoundViewFactory, ViewPort, View)
+  constructor(viewFactory, viewPort, parentView) {
     this.viewPort = viewPort;
     this.viewFactory = viewFactory;
-    this.injector = injector;
     this.parentView = parentView;
     this.view = null;
   }
@@ -29,7 +28,7 @@ export class NgIf {
       this.view = null;
     }
     if (value) {
-      this.view = this.viewFactory.createChildView(this.injector, this.parentView.executionContext);
+      this.view = this.viewFactory.createView();
       this.viewPort.append(this.view);
     }
   }

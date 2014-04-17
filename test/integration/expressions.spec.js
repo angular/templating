@@ -1,6 +1,7 @@
 import {inject} from 'di/testing';
 import {Injector} from 'di';
 import {Compiler} from '../../src/compiler/compiler';
+import {ViewFactory} form '../../src/view_factory';
 import {$, $html} from '../dom_mocks';
 
 describe('expressions', ()=>{
@@ -8,11 +9,14 @@ describe('expressions', ()=>{
 
   function compile(html, ctx={}) {
     context = ctx;
-    inject(Compiler, Injector, (compiler, rootInjector) => {
+    inject(Compiler, ViewFactory, (compiler, viewFactory) => {
       container = $('<div>'+html+'</div>')[0];
-      var viewFactory = compiler.compileChildNodes(container, []);
+      var template = compiler.compileChildNodes(container, []);
 
-      rootView = viewFactory.createRootView(rootInjector, context, true);
+      rootView = viewFactory.createRootView({
+        template: template,
+        executionContext: context
+      });
     });
   }
 
