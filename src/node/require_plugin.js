@@ -1,6 +1,6 @@
 import {Injector, Inject, Provide} from 'di';
-import {TemplateLoader} from '../compiler/template_loader';
-import {DocumentLoader} from '../compiler/document_loader';
+import {TemplateLoader} from '../loader/template_loader';
+import {DocumentLoader} from '../loader/document_loader';
 import {Global} from '../global';
 import fs from 'fs';
 import jsdom from 'jsdom'
@@ -10,7 +10,8 @@ function nodeGlobal() {
   return {
     // TODO(vojta): can we get rid off this?
     Promise: global.Promise,
-    require: global.requirejs
+    require: global.requirejs,
+    document: global.document
   };
 }
 

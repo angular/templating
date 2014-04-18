@@ -62,7 +62,7 @@ class Builder {
       }
     } else if (typeof object === 'function') {
       // TODO(vojta): add a unit test for this
-      this._appendLine(this._findModuleExport(object));
+      this._appendLine(this._addTypeAndReturnRef(object));
     } else {
       this._appendLine(JSON.stringify(object));
     }
@@ -93,17 +93,17 @@ class Builder {
     }
   }
   _serializeNode(node) {
-    // clone the node as we move it into another place to be able to convert it into
-    // html
-    var clone = node.cloneNode(true);
-    var container = this.global.document.createElement('div');
+    var document = this.global.document;
+    var container = document.createElement('div');
     // get the nodes of the container into an array,
     // so they don't change while we append them somewhere else.
     // This is needed as e.g. a SimpleNodeContainer does not have
     // a live childNodes array, but a normal element does.
-    var nodes = Array.prototype.slice.call(clone.childNodes);
+    var nodes = Array.prototype.slice.call(node.childNodes);
     nodes.forEach((node)=>{
-      container.appendChild(node);
+      // clone the node as we move it into another place to be able to convert it into
+      // html
+      container.appendChild(document.importNode(node, true));
     });
     var html = container.innerHTML;
 
@@ -115,13 +115,16 @@ class Builder {
     for (modulePath in this.modulesWithPath) {
       for (exportName in this.modulesWithPath[modulePath]) {
         if (this.modulesWithPath[modulePath][exportName] === type) {
-          break;
+          return {modulePath, exportName};
         }
       }
     }
-    if (!modulePath) {
-      throw new Error('No module provided for type '+type);
-    }
+
+    throw new Error('No module provided for type ' + type);
+  }
+
+  _addTypeAndReturnRef(type) {
+    var {modulePath, exportName} = this._findModuleExport(type);
     var existingIndex = this.usedModulePaths.indexOf(modulePath);
     if (existingIndex === -1) {
       existingIndex = this.usedModulePaths.length;
