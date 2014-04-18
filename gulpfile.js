@@ -80,7 +80,8 @@ gulp.task('watch', function() {
 gulp.task('serve', connect.server({
   root: [__dirname],
   port: 8000,
-  open: {
+  livereload: false,
+  open: process.env.TRAVIS ? false : {
     browser: 'Google Chrome'
   }
 }));

@@ -10,9 +10,15 @@ export class FirstComponent {
   constructor() {
     this.counter = 0;
   }
+
   greet(name) {
-    return 'Hello '+name + ' ' + this.counter;
+    if (!name) {
+      return 'Hello everybody (' + this.counter + ')';
+    }
+
+    return 'Hello ' + name + ' (' + this.counter + ')';
   }
+
   incCounter() {
     this.counter++;
   }

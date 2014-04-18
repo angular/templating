@@ -8,14 +8,22 @@ env:
     - SAUCE_USERNAME=angular-ci
     - SAUCE_ACCESS_KEY=9b988f434ff8-fbca-8aa4-4ae3-35442987
 
+before_install:
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+
 install:
   - npm install
   - npm install -g gulp
   - npm install -g karma-cli
+  - ./install_chrome.sh
 
 before_script:
 
 script:
+  - gulp build
+  - gulp templates
   - karma start --single-run --browsers SL_Chrome --reporters dots
+  - ./run_protractor_tests.sh
 
 after_script:
