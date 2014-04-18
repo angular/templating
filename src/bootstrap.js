@@ -29,7 +29,7 @@ export function Bootstrap(global, moduleLoader, documentReady) {
       appTemplates.forEach((template) => {
         var rootView;
         window.zone.fork({
-          onZoneLeave: function () {
+          afterTask: function () {
             if (rootView) {
               rootView.digest();
             }
