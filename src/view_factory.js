@@ -20,14 +20,17 @@ import {EventHandler} from './event_handler';
  * A ViewFactory creates views out of compiled templates.
  */
 export class ViewFactory {
-  @Inject(Injector, AnnotationProvider)
-  constructor(injector:Injector, annotationProvider:AnnotationProvider) {
+  @Inject(Injector, AnnotationProvider, EventHandler)
+  constructor(injector:Injector, annotationProvider:AnnotationProvider, eventHandler:EventHandler) {
     this.rootInjector = injector;
     this.annotationProvider = annotationProvider;
+    this.eventHandler = eventHandler;
   }
   // TODO: Can't have type assertions and destructering params at the same time
   createRootView({template, executionContext = {}, injectorConfig = null}):RootView {
-    return this._createView(template, null, executionContext, true, injectorConfig);
+    var view = this._createView(template, null, executionContext, true, injectorConfig);
+    this._installEventHandler(view, template);
+    return view;
   }
   // TODO: Can't have type assertions and destructering params at the same time
   createChildView({template, parentView, executionContext = null, injectorConfig = null}):View {
@@ -55,6 +58,7 @@ export class ViewFactory {
       return new View(parentView, container, injector, executionContext);
     }
     var injector = parentView ? parentView.injector : this.rootInjector;
+    // TODO: Mixin the given injectorConfig!
     var viewInjector = injector.createChild([viewProvider]);
     var view = viewInjector.get(View);
 
@@ -98,14 +102,15 @@ export class ViewFactory {
       return new NgNode(node, {
         injector: injector,
         view: view,
-        directives: []
+        directives: [],
+        events: binder.events
       })
     }
-    var providers = [ngNodeProvider].concat(diProviders);
+    // TODO: Only create a new injector if we have
+    // directives!!
+    var providers = [ngNodeProvider].concat(diProviders).concat(directiveClasses);
 
-    // TODO: We should only force the recreation of the
-    // directives on this ElememtBinder, not all of the directives!
-    var childInjector = injector.createChild(providers, [Directive]);
+    var childInjector = injector.createChild(providers);
     var ngNode = childInjector.get(NgNode);
     var flushQueue = view.rootView.flushQueue;
     ngNode.setFlushQueue(flushQueue.push.bind(flushQueue));
@@ -118,8 +123,7 @@ export class ViewFactory {
       ngNode.data.directives.push(directiveInstance);
     });
 
-    var eventHandler = childInjector.get(EventHandler);
-    setupViewContextNodeBindings(binder, view, ngNode, eventHandler);
+    setupViewContextNodeBindings(binder, view, ngNode);
     return childInjector;
   }
   _bindNonElement(
@@ -181,14 +185,25 @@ export class ViewFactory {
     });
 
     function createView(compiledTemplateAndModules) {
+      var template = compiledTemplateAndModules.template;
       var view = self.createChildView({
         parentView: injector.get(View),
-        template: compiledTemplateAndModules.template,
+        template: template,
         executionContext: componentInstance
       });
+      self._installEventHandler(view, template);
       // TODO: Make ShadowDOM optional using custom transclusion
       var root = createShadowRoot(element);
       view.appendTo(root);
+    }
+  }
+  _installEventHandler(view, template) {
+    var firstNode = view.nodes[0];
+    var inShadowRoot = firstNode && firstNode.parentNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
+    var isRootView = !view.parentView;
+    if (true || isRootView || inShadowRoot) {
+      // TODO: We actually only need the event names here...
+      this.eventHandler.install(view.nodes, collectEventDatas(template));
     }
   }
 }
@@ -209,7 +224,23 @@ export class BoundViewFactory {
   }
 }
 
-function setupViewContextNodeBindings(binder, view, ngNode, eventHandler) {
+function collectEventDatas(template, target) {
+  target = target || [];
+  // TODO: We actually only need the event names...
+  template.binders.forEach((binder)=>{
+    if (binder.events) {
+      target.push(...binder.events);
+    }
+    binder.nonElementBinders.forEach((neb)=>{
+      if (neb.template) {
+        collectEventDatas(neb.template.compiledTemplate, target);
+      }
+    });
+  });
+  return target;
+}
+
+function setupViewContextNodeBindings(binder, view, ngNode) {
   var attrName;
   if (binder.attrs && binder.attrs.bind) {
     for (attrName in binder.attrs.bind) {
@@ -221,11 +252,6 @@ function setupViewContextNodeBindings(binder, view, ngNode, eventHandler) {
         context: view.executionContext,
         initNodeFromContext: true
       });
-    }
-  }
-  if (binder.attrs && binder.attrs.event) {
-    for (attrName in binder.attrs.event) {
-      eventHandler.listen(ngNode.nativeNode, attrName, binder.attrs.event[attrName]);
     }
   }
 }

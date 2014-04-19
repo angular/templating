@@ -10,9 +10,9 @@ export {SelectedElementBindings};
 /**
  * Selector has internal data structures which allow it to efficiently match DirectiveTypes
  * against the Element and its classes and attributes.
- * The product of the match is ElementBinder.
  *
- * Lifetime: immutable for the duration of application.
+ * TODO: Create a new instance of this via DI on every call to compiler.compileNodes!
+ * TODO: And then cache the initElementSelector, nonElementSelector in the instance.
  */
 export class Selector {
   @Inject(SelectorConfig)
@@ -23,6 +23,7 @@ export class Selector {
   matchElement(directives:ArrayOfDirectiveClass, element:HTMLElement):SelectedElementBindings {
     var initElementSelector = new ElementSelector('');
     var nonElementSelector = new NonElementSelector(this.config);
+
     directives.forEach(initElementSelector.addDirective.bind(initElementSelector));
 
     var builder = new SelectedElementBindings(),
@@ -81,6 +82,10 @@ export class Selector {
         }
       }
     }
+
+    builder.events = nonElementSelector.selectEventData(
+      nodeName, attrs, builder.directives
+    );
 
     return builder;
   }

@@ -8,8 +8,12 @@ import {promise as greetTemplate} from './greet.html';
 })
 export class FirstComponent {
   constructor() {
+    this.counter = 0;
   }
   greet(name) {
-    return 'Hello '+name;
+    return 'Hello '+name + ' ' + this.counter;
+  }
+  incCounter() {
+    this.counter++;
   }
 }

@@ -59,11 +59,12 @@ export class SelectedElementBindings {
     this.decorators = [];
     this.component = null;
     this.template = null;
+    this.directives = [];
     this.attrs = {
       init: {},
-      bind: {},
-      event: {}
+      bind: {}
     };
+    this.events = [];
   }
   addDirectives(directiveClasses:ArrayOfDirectiveClass){
     for(var i = 0, length = directiveClasses.length; i < length; i++){
@@ -71,6 +72,7 @@ export class SelectedElementBindings {
     }
   }
   addDirective(directive:DirectiveClass) {
+    this.directives.push(directive);
     if (directive.annotation instanceof TemplateDirective) {
       this.template = directive;
     } else if (directive.annotation instanceof ComponentDirective) {

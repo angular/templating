@@ -112,9 +112,9 @@ describe('precompile', ()=>{
         binders: [{
             attrs: {
               init: { a:1 },
-              bind: { b:'2' },
-              event: { c:'3' }
-            }
+              bind: { b:'2' }
+            },
+            events: null
           }]
       };
       precompileAndEval(null, template, modules, function(result) {

@@ -1,4 +1,4 @@
-import {inject} form 'di/testing';
+import {inject, use} form 'di/testing';
 import {Selector} from '../../src/compiler/selector';
 import {Directive, DecoratorDirective} from '../../src/annotations';
 import {DirectiveClass} from '../../src/compiler/directive_class';
@@ -6,13 +6,14 @@ import {SelectorConfig} from '../../src/compiler/selector_config';
 import {$, $0} from '../dom_mocks';
 
 describe('Selector', () => {
-  var selector, directives;
+  var selector, directives, config;
 
   beforeEach(function() {
     addCustomMatcher();
     directives = createDirectives();
-    inject(Selector, (_selector)=>{
+    inject(Selector, SelectorConfig, (_selector, _config)=>{
       selector = _selector;
+      config = _config;
     });
   });
 
@@ -136,15 +137,6 @@ describe('Selector', () => {
           .toEqual({'testA': 'a'});
       });
 
-      it('should save on-... attributes', () => {
-        expect(selector.matchElement(directives, e('<div on-test="a"></div>')).attrs.event)
-          .toEqual({'test': 'a'});
-
-        // camel case conversion
-        expect(selector.matchElement(directives, e('<div on-test-a="a"></div>')).attrs.event)
-          .toEqual({'testA': 'a'});
-      });
-
       it('should save normal attributes if there are other bindings', () => {
         expect(selector.matchElement(directives, e('<b test="a"></b>')).attrs.init)
           .toEqual({'test': 'a'});
@@ -154,6 +146,42 @@ describe('Selector', () => {
           .toEqual({'testA': 'a'});
       });
 
+    });
+
+    describe('match events', () => {
+
+      it('should find events for matched directives with an "on" property', ()=>{
+        @DecoratorDirective({
+          selector: '[a]',
+          on: {
+            click: 'doClick()'
+          }
+        })
+        class SomeDirective {
+
+        }
+        addDirectiveClasses(SomeDirective, directives);
+        expect(selector.matchElement(directives, e('<div a="b"></div>')).events).toEqual([
+          {event: 'click', handler: 'directive', expression: 'doClick()', directive: SomeDirective}
+        ]);
+      });
+
+      it('should find events for on-* attributes', ()=>{
+        expect(selector.matchElement(directives, e('<div on-test="a"></div>')).events).toEqual([
+          {event: 'test', handler: 'onEvent', expression: 'a'}
+        ]);
+      });
+
+      it('should find refreshNode events that are defined in the SelectorConfig', ()=>{
+        config.refreshNodePropertyEvents = [
+          {nodeName: 'input', events: ['event1', 'event2'], properties: ['someProp']},
+        ];
+        expect(selector.matchElement(directives, e('<input>')).events).toEqual([
+          {event: 'event1', handler: 'refreshNode', properties: ['someProp']},
+          {event: 'event2', handler: 'refreshNode', properties: ['someProp']}
+        ]);
+        expect(selector.matchElement(directives, e('<div>')).events).toEqual([]);
+      });
     });
 
   });

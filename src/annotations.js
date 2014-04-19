@@ -16,6 +16,11 @@ class DirectiveArgs {
         assert(obj.bind[prop]).is(assert.string);
       }
     }
+    if (obj.on) {
+      for (var prop in obj.on) {
+        assert(obj.on[prop]).is(assert.string);
+      }
+    }
   }
 }
 

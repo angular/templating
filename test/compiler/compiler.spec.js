@@ -180,7 +180,7 @@ describe('Compiler', () => {
         createSelector([
           new TemplateDirective({selector: '[tpl]', bind: {'tpl': 'someProp', 'b':'someOtherProp'}})
         ]);
-        compile('<div tpl="a" bind-b="c" x="y" bind-d="e" on-f="g"></div>');
+        compile('<div tpl="a" bind-b="c" x="y" bind-d="e"></div>');
 
         var templateBinder = binders[0].nonElementBinders[0];
         expect(templateBinder.attrs.init).toEqual({
@@ -189,7 +189,6 @@ describe('Compiler', () => {
         expect(templateBinder.attrs.bind).toEqual({
           b: 'c'
         });
-        expect(templateBinder.attrs.event).toEqual({});
 
         switchToTemplateDirective();
         var elBinder = binders[1];
@@ -198,9 +197,6 @@ describe('Compiler', () => {
         });
         expect(elBinder.attrs.bind).toEqual({
           d: 'e'
-        });
-        expect(elBinder.attrs.event).toEqual({
-          f: 'g'
         });
       });
 
@@ -259,16 +255,13 @@ describe('Compiler', () => {
         createSelector([
           new TemplateDirective({selector: '[tpl]'})
         ]);
-        compile('<template tpl="a" bind-b="c" on-d="e"></tempate>');
+        compile('<template tpl="a" bind-b="c"></tempate>');
         var templateBinder = binders[0].nonElementBinders[0];
         expect(templateBinder.attrs.init).toEqual({
           tpl: 'a'
         });
         expect(templateBinder.attrs.bind).toEqual({
           b: 'c'
-        });
-        expect(templateBinder.attrs.event).toEqual({
-          d: 'e'
         });
       });
 

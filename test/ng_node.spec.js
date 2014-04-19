@@ -1,44 +1,25 @@
-import {NgNode, getNgApi} from '../src/ng_node';
+import {NgNode, getNodeComponentApi} from '../src/ng_node';
 import {$} from './dom_mocks';
 
-describe('getNgApi', ()=>{
-  var oldNgApi;
-  beforeEach(()=>{
-    oldNgApi = HTMLInputElement.prototype.ngApi;
-    delete HTMLInputElement.prototype.ngApi;
+describe('getNodeComponentApi', ()=>{
+  it('should not return properties of HTMLElement', ()=>{
+    expect(getNodeComponentApi('input').firstNode).toBeFalsy();
   });
 
-  afterEach(()=>{
-    HTMLInputElement.prototype.ngApi = oldNgApi;
+  it('should return properties that are not in HTMLElement', ()=>{
+    expect(getNodeComponentApi('input').value).toBe(true);
   });
 
-  it('should not return native properties', ()=>{
-    var node = document.createElement('input');
-    expect(getNgApi(node)).toEqual({});
+  it('should return nothing for spans', ()=>{
+    expect(getNodeComponentApi('span')).toEqual({});
   });
 
-  it('should return custom properties as not observable', ()=>{
-    var node = document.createElement('input');
-    node.someProp = 'someValue';
-    expect(getNgApi(node)).toEqual({someProp: {}});
+  it('should return textContent for text nodes', ()=>{
+    expect(getNodeComponentApi(document.createTextNode('test').nodeName).textContent).toBe(true);
   });
 
-  it('should merge in properties defined in ngApi properties on the prototypes', ()=>{
-    var node = document.createElement('input');
-    var customProto = Object.create(node.__proto__);
-    node.__proto__ = customProto;
-    customProto.ngApi = {
-      customInput: {}
-    };
-    HTMLInputElement.prototype.ngApi = {
-      input: {event: 'change'}
-    }
-    node.nonNgApiProp = true;
-    expect(getNgApi(node)).toEqual({
-      nonNgApiProp: {},
-      customInput : {},
-      input : {event: 'change'}
-    });
+  it('should return nothing for comments', ()=>{
+    expect(getNodeComponentApi(document.createComment('test').nodeName)).toEqual({});
   });
 });
 
@@ -74,6 +55,7 @@ describe('ng_node', ()=>{
         get: somePropGetter, set: somePropSetter
       });
       ngNode = new NgNode(nativeObj);
+      ngNode.addProperties(['someProp']);
     });
 
     it('reads the native property', ()=>{
@@ -138,105 +120,44 @@ describe('ng_node', ()=>{
 
     });
 
-
-    describe('event listening', ()=>{
-      var listener;
-      beforeEach(()=>{
-        listener = jasmine.createSpy('listener');
+    describe('refreshProperties', ()=>{
+      it('should load the current value from the node', ()=>{
+        somePropGetter.and.returnValue('someValue');
+        expect(ngNode.someProp).toBe('someValue')
+        somePropGetter.and.returnValue('anotherValue');
+        expect(ngNode.someProp).toBe('someValue')
+        ngNode.refreshProperties(['someProp']);
+        expect(ngNode.someProp).toBe('anotherValue')
       });
 
-      it('should listen for propchanged events and update the given properties', ()=>{
-        var listener = jasmine.createSpy('listener');
-        var node = document.createElement('div');
-        node.test1 = 1;
-        node.test2 = 2;
-        var ngNode = new NgNode(node);
-        expect(ngNode.test1).toBe(1);
-        expect(ngNode.test2).toBe(2);
-        ngNode.observeProp('test1', listener);
+      it('should reset the dirty state of the property', ()=>{
+        var flushQueue = [];
+        ngNode.setFlushQueue(flushQueue.push.bind(flushQueue));
+        ngNode.someProp = 'a';
 
-        node.test1 = 10;
-        expect(ngNode.test1).toBe(1);
-        expect(ngNode.test2).toBe(2);
-        expect(listener).not.toHaveBeenCalled();
-
-        triggerEvent(node, 'propchange', {
-          properties: ['test1']
-        });
-        expect(listener).toHaveBeenCalledWith(10, 1);
-        expect(ngNode.test1).toBe(10);
-        expect(ngNode.test2).toBe(2);
+        somePropGetter.and.returnValue('b');
+        ngNode.refreshProperties(['someProp']);
+        expect(flushQueue.length).toBe(1);
+        flushQueue[0]();
+        expect(somePropSetter).not.toHaveBeenCalled();
       });
 
-      describe('input elements', ()=>{
-        var node, ngNode;
-        beforeEach(()=>{
-          node = document.createElement('input');
-          ngNode = new NgNode(node);
-          ngNode.observeProp('value', listener);
-        });
+      it('should call observers if the value changed', ()=>{
+        var observer = jasmine.createSpy('observer');
+        ngNode.observeProp('someProp', observer);
 
-        it('should listen for input events and update the value property', ()=>{
-          expect(ngNode.value).toBe('');
-          node.value = 'someValue';
-          expect(ngNode.value).toBe('');
-          expect(listener).not.toHaveBeenCalled();
+        somePropGetter.and.returnValue('someValue');
+        // read the property to initialize the ngNode cache
+        var x = ngNode.someProp;
+        somePropGetter.and.returnValue('anotherValue');
+        ngNode.refreshProperties(['someProp']);
 
-          triggerEvent(node, 'input');
-          expect(listener).toHaveBeenCalledWith('someValue', '');
-          expect(ngNode.value).toBe('someValue');
-        });
-
-        it('should listen for change events and update the value in the cache', ()=>{
-          expect(ngNode.value).toBe('');
-          node.value = 'someValue';
-          expect(ngNode.value).toBe('');
-
-          triggerEvent(node, 'change');
-          expect(listener).toHaveBeenCalledWith('someValue', '');
-          expect(ngNode.value).toBe('someValue');
-        });
-
-        it('should listen for keypress events and update the value in the cache', ()=>{
-          expect(ngNode.value).toBe('');
-          node.value = 'someValue';
-          expect(ngNode.value).toBe('');
-
-          triggerEvent(node, 'keypress');
-          expect(listener).toHaveBeenCalledWith('someValue', '');
-          expect(ngNode.value).toBe('someValue');
-        });
-      });
-
-      it('should listen for change events on the select and update "value" prop in the cache', ()=>{
-        var select = $('<select><option selected>1</option><option>2</option></select>')[0];
-        var ngNode = new NgNode(select);
-        ngNode.observeProp('value', listener);
-
-        expect(ngNode.value).toBe('1');
-        select.selectedIndex = 1;
-        expect(ngNode.value).toBe('1');
-        triggerEvent(select, 'change');
-        expect(listener).toHaveBeenCalledWith('2', '1');
-        expect(ngNode.value).toBe('2');
-      });
-    });
-
-    describe('other nodes', ()=>{
-      it('should provide the textContent property for text nodes', ()=>{
-        var text = document.createTextNode('someText');
-        var ngNode = new NgNode(text);
-        expect(ngNode.textContent).toBe('someText')
-      });
-
-      it('should work for comment nodes', ()=>{
-        var comment = document.createComment('someComment');
-        var ngNode = new NgNode(comment);
-        expect(ngNode.nodeValue).not.toBeDefined();
+        expect(observer).toHaveBeenCalledWith('anotherValue', 'someValue');
       });
     });
 
   });
+
   describe('style access', ()=>{
     var nativeObj, ngNode;
 

@@ -1,4 +1,4 @@
-import {Injector, Inject} from 'di';
+import {Injector, Inject} from 'di'
 import {TemplateLoader} from './template_loader';
 import {BrowserDocumentLoader} form './browser_document_loader';
 

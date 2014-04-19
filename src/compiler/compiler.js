@@ -54,6 +54,7 @@ class CompileElement {
   constructor({
     element,
     attrs,
+    events,
     decorators,
     component,
     level
@@ -62,9 +63,9 @@ class CompileElement {
     this.level = level;
     this.attrs = attrs || {
       init: {},
-      bind: {},
-      event: {}
+      bind: {}
     };
+    this.events = events;
     this.decorators = decorators || [];
     this.component = component || null;
     this.nonElementBinders = [];
@@ -75,7 +76,7 @@ class CompileElement {
     for (var prop in this.attrs.bind) {
       return true;
     }
-    for (var prop in this.attrs.event) {
+    if (this.events && this.events.length) {
       return true;
     }
     if (this.component || this.decorators.length || this.nonElementBinders.length) {
@@ -90,6 +91,7 @@ class CompileElement {
   toBinder() {
     return {
       attrs: this.attrs,
+      events: this.events,
       level: this.level,
       decorators: this.decorators,
       component: this.component,
@@ -178,6 +180,7 @@ class CompileRun {
           element: node,
           level: parentElement.level + 1,
           attrs: matchedBindings.attrs,
+          events: matchedBindings.events,
           decorators: matchedBindings.decorators.map(classFromDirectiveClass),
           component: component
         });
@@ -205,8 +208,8 @@ class CompileRun {
         attrs: {
           init: {},
           bind: {'textContent': this.selector.matchText(node)},
-          event: {}
         },
+        events: null,
         template: null,
         indexInParent: -1
       };
@@ -260,8 +263,7 @@ class CompileRun {
   _splitNodeAttrs(attrs, props:ArrayOfString) {
     var res = {
       init: {},
-      bind: {},
-      event: {}
+      bind: {}
     };
     props.forEach((propName) => {
       if (propName in attrs.init) {

@@ -119,35 +119,28 @@ function mixinPropertyProxyProto(targetProto) {
       this._props.changeListeners[propName] = listeners;
     }
     listeners.push({callback: callback});
-  }
+  };
   targetProto.addProperties = function(properties) {
     properties.forEach((propName) => {
       if (!(propName in this)) {
         Object.defineProperty(this, propName, createCachedAccessor(propName));
       }
     });
-  }
+  };
+  targetProto.refreshProperties = function(properties) {
+    clearCacheAndReadFromNative(this, properties);
+  };
 }
 
 function mixinPropertyProxy(ngNode) {
   var node = ngNode.nativeNode;
   var accessors = {};
-  var ngApi = getNgApi(ngNode.nativeNode);
-  for (var prop in ngApi) {
+  var componentApi = getNodeComponentApi(ngNode.nativeNode.nodeName);
+  for (var prop in componentApi) {
     accessors[prop] = createCachedAccessor(prop);
-    var ngApiSpec = ngApi[prop];
-    var events = ngApiSpec.events || [];
-    events.forEach((eventName) => {
-      node.addEventListener(eventName, ()=>{
-        clearCacheAndReadFromNative(ngNode, [prop]);
-      })
-    });
   }
   Object.defineProperties(ngNode, accessors);
   // TODO: mixin non native methods as well!
-  node.addEventListener('propchange', (e)=>{
-    clearCacheAndReadFromNative(ngNode, e.properties || []);
-  });
   ngNode._props = {
     cache: {},
     changed: {},
@@ -155,18 +148,6 @@ function mixinPropertyProxy(ngNode) {
     ngNode: ngNode,
     nativeObj: ngNode.nativeNode
   };
-}
-
-HTMLInputElement.prototype.ngApi = {
-  'value': {events: ['input', 'change', 'keypress']}
-};
-
-HTMLSelectElement.prototype.ngApi = {
-  'value': {events: ['change']}
-};
-
-Text.prototype.ngApi = {
-  'textContent': {}
 }
 
 function createNodePropAccessor(name) {
@@ -188,48 +169,38 @@ function createNodePropAccessor(name) {
   return res;
 }
 
-export function getNgApi(node:Node) {
-  var nativeProps = getNativeProps(node.nodeName);
-  var props = Object.getOwnPropertyNames(node);
-  var res = {};
-  props.forEach((propName) => {
-    if (!nativeProps[propName]) {
-      res[propName] = {};
-    }
-  });
-  mergeDefinedNgApis(node, res);
+function getNodeDomApi() {
+  var res = getNodeDomApi.cache;
+  if (!res) {
+    var propNames = Object.getOwnPropertyNames(document.createElement('span'));
+    res = {};
+    propNames.forEach((propName) => {res[propName] = true});
+    getNodeDomApi.cache = res;
+  }
   return res;
 }
 
-function mergeDefinedNgApis(proto, res) {
-  if (proto === Object.prototype) {
-    return res;
+export function getNodeComponentApi(tagName) {
+  if (tagName === '#comment') {
+    return {};
+  } else if (tagName === '#text') {
+    // special case for text nodes,
+    // as textContent property is part of every element.
+    return {
+      'textContent': true
+    };
   }
-  if (proto.hasOwnProperty('ngApi')) {
-    var ngApi = proto.ngApi;
-    for (var prop in ngApi) {
-      res[prop] = ngApi[prop];
-    }
-  }
-  return mergeDefinedNgApis(proto.__proto__, res);
-}
-
-function getNativeProps(tagName) {
   var tagName = tagName;
-  var cache = getNativeProps.cache = getNativeProps.cache || {};
+  var cache = getNodeComponentApi.cache = getNodeComponentApi.cache || {};
   var res = cache[tagName];
   if (!res) {
-    var node;
-    if (tagName === '#comment') {
-      node = document.createComment('test');
-    } else if (tagName === '#text') {
-      node = document.createTextNode('test');
-    } else {
-      node = document.createElement(tagName);
-    }
+    var node = document.createElement(tagName);
     res = {};
+    var domNodeApi = getNodeDomApi();
     Object.getOwnPropertyNames(node).forEach((propName) => {
-      res[propName] = true;
+      if (!domNodeApi[propName]) {
+        res[propName] = true;
+      }
     });
     cache[tagName] = res;
   }
