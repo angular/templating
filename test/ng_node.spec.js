@@ -91,6 +91,11 @@ describe('ng_node', ()=>{
         expect(ngNode.someNewProp).toBeDefined();
       });
 
+      it('should not allow to add native properties', ()=>{
+        expect( ()=> ngNode.addProperties(['firstChild']))
+          .toThrow(new Error("The property firstChild belongs to the DOM api and can't be added"));
+      });
+
     });
 
     it('can write falsy values', ()=>{

@@ -123,6 +123,9 @@ function mixinPropertyProxyProto(targetProto) {
   targetProto.addProperties = function(properties) {
     properties.forEach((propName) => {
       if (!(propName in this)) {
+        if (getNodeDomApi()[propName]) {
+          throw new Error("The property "+propName+" belongs to the DOM api and can't be added");
+        }
         Object.defineProperty(this, propName, createCachedAccessor(propName));
       }
     });
