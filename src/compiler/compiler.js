@@ -9,7 +9,7 @@ import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {Selector, SelectedElementBindings} from './selector';
 import {Directive, TemplateDirective} from '../annotations';
 import {TreeArray, reduceTree} from '../util/tree_array';
-import {Inject} from 'di';
+import {Inject, InjectLazy} from 'di';
 import {AnnotationProvider} from '../util/annotation_provider';
 
 /*
@@ -20,9 +20,8 @@ import {AnnotationProvider} from '../util/annotation_provider';
  * Lifetime: immutable for the duration of application.
  */
 export class Compiler {
-  @Inject(Selector, AnnotationProvider)
-  constructor(selector:Selector, annotationProvider:AnnotationProvider) {
-    this.selector = selector;
+  constructor(@InjectLazy(Selector) selectorFactory, @Inject(AnnotationProvider) annotationProvider:AnnotationProvider) {
+    this.selectorFactory = selectorFactory;
     this.annotationProvider = annotationProvider;
   }
 
@@ -46,7 +45,9 @@ export class Compiler {
     return this._compileChildNodes(container, directiveClasses);
   }
   _compileChildNodes(container:NodeContainer, directiveClasses):CompiledTemplate {
-    return new CompileRun(this.selector, directiveClasses).compile(container).build(container);
+    var selector = this.selectorFactory();
+    selector.addDirectives(directiveClasses);
+    return new CompileRun(selector).compile(container).build(container);
   }
 }
 
@@ -110,9 +111,8 @@ class ArrayOfCompileElements {
 }
 
 class CompileRun {
-  constructor(selector:Selector, directiveClasses, initialCompileElement:CompileElement = null) {
+  constructor(selector:Selector, initialCompileElement:CompileElement = null) {
     this.selector = selector;
-    this.directiveClasses = directiveClasses;
     this.initialCompileElement = initialCompileElement;
   }
   compile(container:NodeContainer):CompileRun {
@@ -169,7 +169,7 @@ class CompileRun {
       nodeType = node.nodeType;
       nonElementBinder = null;
       if (nodeType == Node.ELEMENT_NODE) {
-        var matchedBindings = this.selector.matchElement(this.directiveClasses, node);
+        var matchedBindings = this.selector.matchElement(node);
         var component;
         if (matchedBindings.component) {
           component = classFromDirectiveClass(matchedBindings.component);
@@ -247,7 +247,7 @@ class CompileRun {
 
       templateNodeAttrs = this._splitNodeAttrs(compileElement.attrs, bindAttrNames);
     }
-    var compiledTemplate = new CompileRun(this.selector, this.directiveClasses, initialCompiledTemplateElement)
+    var compiledTemplate = new CompileRun(this.selector, initialCompiledTemplateElement)
       .compile(compileNodeContainer)
       .build(templateContainer);
 

@@ -6,46 +6,46 @@ import {SelectorConfig} from '../../src/compiler/selector_config';
 import {$, $0} from '../dom_mocks';
 
 describe('Selector', () => {
-  var selector, directives, config;
+  var selector, config;
 
   beforeEach(function() {
     addCustomMatcher();
-    directives = createDirectives();
     inject(Selector, SelectorConfig, (_selector, _config)=>{
       selector = _selector;
       config = _config;
+      selector.addDirectives(createDirectives());
     });
   });
 
   describe('matchElement', () => {
     it('should match directive on element', () => {
-      expect(selector.matchElement(directives, e('<b></b>')))
+      expect(selector.matchElement(e('<b></b>')))
         .toEqualsDirectiveInfos([
           {"selector": 'b', "value": null}
         ]);
     });
 
     it('should match directive on class', () => {
-      expect(selector.matchElement(directives, e('<div class="a b c"></div>')))
+      expect(selector.matchElement(e('<div class="a b c"></div>')))
         .toEqualsDirectiveInfos([
           { "selector": '.b', "value": null }
         ]);
     });
 
     it('should match directive on [attribute]', () => {
-      expect(selector.matchElement(directives, e('<div directive=abc></div>')))
+      expect(selector.matchElement(e('<div directive=abc></div>')))
         .toEqualsDirectiveInfos([
           { "selector": '[directive]', "value": 'abc', "name": 'directive'}
         ]);
 
-      expect(selector.matchElement(directives, e('<div directive></div>')))
+      expect(selector.matchElement(e('<div directive></div>')))
         .toEqualsDirectiveInfos([
           { "selector": '[directive]', "value": '', "name": 'directive'
         }]);
     });
 
     it('should match directive on element[attribute]', () => {
-      expect(selector.matchElement(directives, e('<b directive=abc></b>')))
+      expect(selector.matchElement(e('<b directive=abc></b>')))
         .toEqualsDirectiveInfos([
           { "selector": 'b', "value": null},
           { "selector": '[directive]', "value": 'abc'},
@@ -54,7 +54,7 @@ describe('Selector', () => {
     });
 
     it('should match directive on [attribute=value]', () => {
-      expect(selector.matchElement(directives, e('<div directive=value></div>')))
+      expect(selector.matchElement(e('<div directive=value></div>')))
         .toEqualsDirectiveInfos([
           { "selector": '[directive]', "value": 'value'},
           { "selector": '[directive=value]', "value": 'value'}
@@ -62,7 +62,7 @@ describe('Selector', () => {
     });
 
     it('should match directive on element[attribute=value]', () => {
-      expect(selector.matchElement(directives, e('<b directive=value></div>')))
+      expect(selector.matchElement(e('<b directive=value></div>')))
         .toEqualsDirectiveInfos([
           { "selector": 'b', "value": null, "name": null},
           { "selector": '[directive]', "value": 'value'},
@@ -73,14 +73,14 @@ describe('Selector', () => {
     });
 
     it('should match whildcard attributes', () => {
-      expect(selector.matchElement(directives, e('<div wildcard-match=ignored></div>')))
+      expect(selector.matchElement(e('<div wildcard-match=ignored></div>')))
         .toEqualsDirectiveInfos([
           { "selector": '[wildcard-*]', "value": 'ignored', "name": 'wildcard-match'}
         ]);
     });
 
     it('should match on multiple directives', () => {
-      expect(selector.matchElement(directives, e('<div directive="d" foo="f"></div>')))
+      expect(selector.matchElement(e('<div directive="d" foo="f"></div>')))
         .toEqualsDirectiveInfos([
           { "selector": '[directive]', "value": 'd'},
           { "selector": '[directive=d][foo=f]', "value": 'f'}
@@ -89,7 +89,7 @@ describe('Selector', () => {
 
     it('should match ng-model + required on the same element', () => {
       expect(
-        selector.matchElement(directives, e('<input type="text" ng-model="val" probe="i" required="true" />')))
+        selector.matchElement(e('<input type="text" ng-model="val" probe="i" required="true" />')))
           .toEqualsDirectiveInfos([
             { "selector": '[ng-model]',                 "value": 'val'},
             { "selector": '[probe]',                    "value": 'i'},
@@ -100,7 +100,7 @@ describe('Selector', () => {
 
     it('should match two directives', () => {
       expect(
-        selector.matchElement(directives, e('<input type="text" my-model="val" required my-required />')))
+        selector.matchElement(e('<input type="text" my-model="val" required my-required />')))
           .toEqualsDirectiveInfos([
             { "selector": '[my-model][required]',    "value": ''},
             { "selector": '[my-model][my-required]', "value": ''}
@@ -108,7 +108,7 @@ describe('Selector', () => {
     });
 
     it('should match on two directives with the same selector', () => {
-      expect(selector.matchElement(directives, e('<div two-directives></div>')))
+      expect(selector.matchElement(e('<div two-directives></div>')))
         .toEqualsDirectiveInfos([
           { "selector": '[two-directives]', "value": ''},
           { "selector": '[two-directives]', "value": ''}
@@ -117,32 +117,32 @@ describe('Selector', () => {
 
     describe('match bindings', function() {
       it('should convert attr interpolation into bind-...', () => {
-        expect(selector.matchElement(directives, e('<div test="{{a}}"></div>')).attrs.bind)
+        expect(selector.matchElement(e('<div test="{{a}}"></div>')).attrs.bind)
           .toEqual({'test': "''+(a)+''"});
 
-        expect(selector.matchElement(directives, e('<div test="{{1+2}}"></div>')).attrs.bind)
+        expect(selector.matchElement(e('<div test="{{1+2}}"></div>')).attrs.bind)
           .toEqual({'test': "''+(1+2)+''"});
 
         // camel case conversion
-        expect(selector.matchElement(directives, e('<div test-a="{{a}}"></div>')).attrs.bind)
+        expect(selector.matchElement(e('<div test-a="{{a}}"></div>')).attrs.bind)
           .toEqual({'testA': "''+(a)+''"});
       });
 
       it('should save bind-... attributes', () => {
-        expect(selector.matchElement(directives, e('<div bind-test="a"></div>')).attrs.bind)
+        expect(selector.matchElement(e('<div bind-test="a"></div>')).attrs.bind)
           .toEqual({'test':'a'});
 
         // camel case conversion
-        expect(selector.matchElement(directives, e('<div bind-test-a="a"></div>')).attrs.bind)
+        expect(selector.matchElement(e('<div bind-test-a="a"></div>')).attrs.bind)
           .toEqual({'testA': 'a'});
       });
 
       it('should save normal attributes if there are other bindings', () => {
-        expect(selector.matchElement(directives, e('<b test="a"></b>')).attrs.init)
+        expect(selector.matchElement(e('<b test="a"></b>')).attrs.init)
           .toEqual({'test': 'a'});
 
         // camel case conversion
-        expect(selector.matchElement(directives, e('<div test-a="a"></div>')).attrs.init)
+        expect(selector.matchElement(e('<div test-a="a"></div>')).attrs.init)
           .toEqual({'testA': 'a'});
       });
 
@@ -160,14 +160,16 @@ describe('Selector', () => {
         class SomeDirective {
 
         }
+        var directives = [];
         addDirectiveClasses(SomeDirective, directives);
-        expect(selector.matchElement(directives, e('<div a="b"></div>')).events).toEqual([
+        selector.addDirectives(directives);
+        expect(selector.matchElement(e('<div a="b"></div>')).events).toEqual([
           {event: 'click', handler: 'directive', expression: 'doClick()', directive: SomeDirective}
         ]);
       });
 
       it('should find events for on-* attributes', ()=>{
-        expect(selector.matchElement(directives, e('<div on-test="a"></div>')).events).toEqual([
+        expect(selector.matchElement(e('<div on-test="a"></div>')).events).toEqual([
           {event: 'test', handler: 'onEvent', expression: 'a'}
         ]);
       });
@@ -176,11 +178,11 @@ describe('Selector', () => {
         config.refreshNodePropertyEvents = [
           {nodeName: 'input', events: ['event1', 'event2'], properties: ['someProp']},
         ];
-        expect(selector.matchElement(directives, e('<input>')).events).toEqual([
+        expect(selector.matchElement(e('<input>')).events).toEqual([
           {event: 'event1', handler: 'refreshNode', properties: ['someProp']},
           {event: 'event2', handler: 'refreshNode', properties: ['someProp']}
         ]);
-        expect(selector.matchElement(directives, e('<div>')).events).toEqual([]);
+        expect(selector.matchElement(e('<div>')).events).toEqual([]);
       });
     });
 
