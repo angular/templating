@@ -1,13 +1,9 @@
 <module src="./ngIf"></module>
-<module src="./helloworld"></module>
+<module src="./greet"></module>
+
 <input type="text" class="username" bind-value="user">
 <span class="message">{{greet(user)}}</span>
 <button on-click="incCounter()">Add</button>
 <p>
-<exp-hello ng-if="{{!!user}}"></exp-hello>
-<!--
-<exp-hello bind-ng-if="!!user"></exp-hello>
-<exp-hello ng-if="{{!!user}}"></exp-hello>
-<exp-hello ng-if="asdf${user.name}asdf"></exp-hello>
--->
+<exp-greet ng-if="{{!!user}}"></exp-greet>
 </p>
