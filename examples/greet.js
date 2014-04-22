@@ -2,13 +2,13 @@ import {ComponentDirective} from 'templating';
 import {promise as greetTemplate} from './greet.html';
 
 @ComponentDirective({
-  selector: 'exp-hello',
-  template: greetTemplate,
-  bind: {'user':'user'}
+  selector: 'exp-greet',
+  template: greetTemplate
 })
 export class FirstComponent {
   constructor() {
     this.counter = 0;
+    this.user = null;
   }
 
   greet(name) {
