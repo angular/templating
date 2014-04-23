@@ -20,7 +20,7 @@ import {AnnotationProvider} from '../util/annotation_provider';
  * Lifetime: immutable for the duration of application.
  */
 export class Compiler {
-  constructor(@InjectLazy(Selector) selectorFactory, @Inject(AnnotationProvider) annotationProvider:AnnotationProvider) {
+  constructor(@InjectLazy(Selector) selectorFactory, @Inject(AnnotationProvider) annotationProvider) {
     this.selectorFactory = selectorFactory;
     this.annotationProvider = annotationProvider;
   }
@@ -37,7 +37,7 @@ export class Compiler {
     var directiveClasses = [];
     var self = this;
     directives.forEach(function(directive) {
-      var annotation = self.annotationProvider.annotation(directive, Directive);
+      var annotation = self.annotationProvider(directive, Directive);
       if (annotation) {
         directiveClasses.push(new DirectiveClass(annotation, directive));
       }

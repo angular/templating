@@ -21,7 +21,7 @@ import {EventHandler} from './event_handler';
  */
 export class ViewFactory {
   @Inject(Injector, AnnotationProvider, EventHandler)
-  constructor(injector:Injector, annotationProvider:AnnotationProvider, eventHandler:EventHandler) {
+  constructor(injector:Injector, annotationProvider, eventHandler:EventHandler) {
     this.rootInjector = injector;
     this.annotationProvider = annotationProvider;
     this.eventHandler = eventHandler;
@@ -117,7 +117,7 @@ export class ViewFactory {
 
     directiveClasses.forEach((directiveClass) => {
       var directiveInstance = childInjector.get(directiveClass);
-      var annotation = this.annotationProvider.annotation(directiveClass, Directive);
+      var annotation = this.annotationProvider(directiveClass, Directive);
       setupDirectiveObserve(view, ngNode, directiveInstance, annotation.observe || {});
       setupDirectiveBind(binder, view, ngNode, directiveInstance, annotation.bind || {});
       ngNode.data.directives.push(directiveInstance);
@@ -170,7 +170,7 @@ export class ViewFactory {
     }
     var childInjector = this._bindNodeBasic({binder, injector, node:element, diProviders:[], directiveClasses});
     if (binder.component) {
-      this._bindComponentTemplate(binder, childInjector, element, this.annotationProvider);
+      this._bindComponentTemplate(binder, childInjector, element);
     }
     return childInjector;
   }
@@ -178,7 +178,7 @@ export class ViewFactory {
     var self = this;
     // use the component instance as new execution context
     var componentInstance = injector.get(binder.component);
-    var annotation = this.annotationProvider.annotation(binder.component, Directive);
+    var annotation = this.annotationProvider(binder.component, Directive);
     annotation.template.then(createView, function(e) {
       // TODO: Nicer error handling!
       console.log(e.stack);

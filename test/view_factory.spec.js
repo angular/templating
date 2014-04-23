@@ -5,7 +5,6 @@ import {Injector, Inject, Provide} from 'di';
 import {ViewPort, View, RootView} from '../src/view';
 import {ViewFactory, BoundViewFactory} from '../src/view_factory';
 import {$, $html} from './dom_mocks';
-import {AnnotationProvider} from '../src/util/annotation_provider';
 import {DecoratorDirective, TemplateDirective, ComponentDirective} from '../src/annotations';
 import {EventHandler} from '../src/event_handler';
 import {$, $html} from './dom_mocks';
