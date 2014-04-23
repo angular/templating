@@ -54,6 +54,7 @@ function splitCss(selector:string):ArrayOfSelectorPart {
   return parts;
 }
 
+// TODO: This belongs into the selector, not in the element_selector...
 export class SelectedElementBindings {
   constructor() {
     this.decorators = [];
@@ -62,9 +63,9 @@ export class SelectedElementBindings {
     this.directives = [];
     this.attrs = {
       init: {},
-      bind: {}
+      bind: {},
+      on: {}
     };
-    this.events = [];
   }
   addDirectives(directiveClasses:ArrayOfDirectiveClass){
     for(var i = 0, length = directiveClasses.length; i < length; i++){

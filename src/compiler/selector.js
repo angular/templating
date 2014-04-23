@@ -16,7 +16,7 @@ export {SelectedElementBindings};
 export class Selector {
   @Inject(SelectorConfig)
   constructor(
-    config:SelectorConfig){
+    config){
     this.elementSelector = new ElementSelector('');
     this.nonElementSelector = new NonElementSelector(config);
   }
@@ -80,10 +80,6 @@ export class Selector {
         }
       }
     }
-
-    builder.events = this.nonElementSelector.selectEventData(
-      nodeName, attrs, builder.directives
-    );
 
     return builder;
   }

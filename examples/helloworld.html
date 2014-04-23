@@ -22,7 +22,7 @@
       },
       map: {
         '*': {
-          'templating': 'dist/amd/index',
+          'templating': 'dist/amd/index_bootstrap',
           'compile_ng_template': 'dist/amd/loader/requirejs_html',
           'di': 'deps/di/dist/amd/index',
           'rtts-assert': 'deps/rtts-assert/dist/amd/assert',
@@ -30,18 +30,15 @@
           'watchtower': 'deps/watchtower/dist/amd/index'
         }
       },
-      deps: ['templating', COMPILE_TEMPLATES_ON_THE_FLY ? '/utils/loader.js' : null],
-      callback: function(templating) {
-        templating.bootstrap(COMPILE_TEMPLATES_ON_THE_FLY);
-      }
+      deps: ['templating', COMPILE_TEMPLATES_ON_THE_FLY ? '/utils/loader.js' : null]
     });
   </script>
 
-  <module src="./greet"></module>
+  <module src="./app" ng-app></module>
 </head>
-<body ng-app>
+<body>
 
-  <exp-greet></exp-greet>
+<exp-greet></exp-greet>
 
 </body>
 </html>

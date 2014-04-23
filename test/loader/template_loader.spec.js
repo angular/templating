@@ -20,7 +20,7 @@ describe('TemplateLoader', ()=>{
     }).as(DocumentLoader);
   });
 
-  describe('url template', ()=>{
+  describe('load default template', ()=>{
 
     function simulate(modules, templateUrl, templateHtml, done) {
       moduleLoader.and.callFake(function(moduleNames) {
@@ -125,7 +125,7 @@ describe('TemplateLoader', ()=>{
 
   });
 
-  describe('require "document.html"', ()=>{
+  describe('load template with ng-template-id templates', ()=>{
 
     // TODO
 

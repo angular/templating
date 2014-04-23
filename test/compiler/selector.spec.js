@@ -150,40 +150,10 @@ describe('Selector', () => {
 
     describe('match events', () => {
 
-      it('should find events for matched directives with an "on" property', ()=>{
-        @DecoratorDirective({
-          selector: '[a]',
-          on: {
-            click: 'doClick()'
-          }
-        })
-        class SomeDirective {
-
-        }
-        var directives = [];
-        addDirectiveClasses(SomeDirective, directives);
-        selector.addDirectives(directives);
-        expect(selector.matchElement(e('<div a="b"></div>')).events).toEqual([
-          {event: 'click', handler: 'directive', expression: 'doClick()', directive: SomeDirective}
-        ]);
-      });
-
       it('should find events for on-* attributes', ()=>{
-        expect(selector.matchElement(e('<div on-test="a"></div>')).events).toEqual([
-          {event: 'test', handler: 'onEvent', expression: 'a'}
-        ]);
+        expect(selector.matchElement(e('<div on-test="a"></div>')).attrs.on).toEqual({'test': 'a'});
       });
 
-      it('should find refreshNode events that are defined in the SelectorConfig', ()=>{
-        config.refreshNodePropertyEvents = [
-          {nodeName: 'input', events: ['event1', 'event2'], properties: ['someProp']},
-        ];
-        expect(selector.matchElement(e('<input>')).events).toEqual([
-          {event: 'event1', handler: 'refreshNode', properties: ['someProp']},
-          {event: 'event2', handler: 'refreshNode', properties: ['someProp']}
-        ]);
-        expect(selector.matchElement(e('<div>')).events).toEqual([]);
-      });
     });
 
   });

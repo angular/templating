@@ -21,9 +21,9 @@ describe('ViewFactory', () => {
         decorators: [],
         attrs: {
           init: {},
-          bind: {}
-        },
-        events: null
+          bind: {},
+          on: {}
+        }
       });
     }
     return binders;
@@ -37,13 +37,85 @@ describe('ViewFactory', () => {
         template: null,
         attrs: {
           init: {},
-          bind: {}
-        },
-        events: null
+          bind: {},
+          on: {}
+        }
       });
     }
     return binders;
   }
+
+  describe('createComponentTemplate', ()=>{
+
+    it('should create the correct container', ()=>{
+      class SomeComponent {}
+      inject(ViewFactory, (viewFactory)=>{
+        var el = $('<div></div>')[0];
+        var template = viewFactory.createComponentTemplate(el, SomeComponent);
+        expect(template.container.childNodes).toEqual([el]);
+      });
+    });
+
+    it('should create an empty root element binder', ()=>{
+      class SomeComponent {}
+      inject(ViewFactory, (viewFactory)=>{
+        var el = $('<div></div>')[0];
+        var template = viewFactory.createComponentTemplate(el, SomeComponent);
+        expect(template.binders[0]).toEqual({
+          attrs: {},
+          decorators: [],
+          component: null,
+          nonElementBinders: [],
+          level: 0
+        });
+      });
+    });
+
+    it('should create the correct component binder', ()=>{
+      class SomeComponent {}
+      inject(ViewFactory, (viewFactory)=>{
+        var el = $('<div></div>')[0];
+        var template = viewFactory.createComponentTemplate(el, SomeComponent);
+        expect(template.binders[1]).toEqual({
+          attrs: {},
+          decorators: [],
+          component: SomeComponent,
+          nonElementBinders: [],
+          level: 1
+        });
+      });
+    });
+
+    it('should be able to create a view out of the template', ()=>{
+      inject(ViewFactory, (viewFactory)=>{
+        var componentInstance;
+        var container = $('<div>a</div>')[0];
+        var templatePromise = {
+          then: function(callback) {
+            callback({
+              template: {
+                container: container,
+                binders: []
+              }
+            });
+          }
+        };
+
+        @ComponentDirective({template: templatePromise})
+        class SomeComponent {
+          constructor() {
+            componentInstance = this;
+          }
+        }
+
+        var el = $('<div></div>')[0];
+        var template = viewFactory.createComponentTemplate(el, SomeComponent);
+        var view = viewFactory.createRootView({template});
+        expect(componentInstance).toBeTruthy();
+      });
+
+    });
+  });
 
   describe('create root or child view', ()=>{
     var viewFactory, injector, eventHandler;
@@ -224,9 +296,13 @@ describe('ViewFactory', () => {
     });
 
     it('should initialize the EventHandler with the events of the template', ()=>{
+      @DecoratorDirective({on: {'dirEvent': 'expr1'}})
+      class SomeDirective {}
+
       var binders = createBinders([0,1,1]);
-      binders[1].events = ['event1'];
-      binders[2].events = ['event2'];
+      binders[1].attrs.on = {'event1':'expr2'};
+      binders[1].decorators.push(SomeDirective);
+      binders[2].attrs.on = {'event2':'expr3'};
       var container = $('<div><a class="ng-binder"></a><b class="ng-binder"></b></div>')[0];
       var view = viewFactory.createRootView({
         template: {
@@ -236,14 +312,14 @@ describe('ViewFactory', () => {
       });
       expect(eventHandler.install).toHaveBeenCalledWith(
         Array.prototype.slice.call(container.childNodes),
-        ['event1', 'event2']
+        ['event1', 'dirEvent', 'event2']
       );
     });
 
     it('should initialize the EventHandler with the events of template directives', ()=>{
       var binders = createBinders([0,1]);
       var templateDirBinders = createBinders([0,1]);
-      templateDirBinders[1].events = ['someEventData'];
+      templateDirBinders[1].attrs.on = {'event1': 'expr1'}
 
       var nonElBinders = binders[1].nonElementBinders = createNonElementBinders([0]);
       nonElBinders[0].template = {
@@ -262,7 +338,7 @@ describe('ViewFactory', () => {
       });
       expect(eventHandler.install).toHaveBeenCalledWith(
         Array.prototype.slice.call(container.childNodes),
-        ['someEventData']
+        ['event1']
       );
     });
 
@@ -300,18 +376,18 @@ describe('ViewFactory', () => {
     describe('_bindNodeBasic', ()=>{
       var node, childInjector;
 
-      function createInjectorAndInit({attrs = null, events = null, directives = [], diProviders = [], context = {}}) {
+      function createInjectorAndInit({attrs = null, directives = [], diProviders = [], context = {}}) {
         createInjector(context);
-        init({attrs, directives, diProviders, events});
+        init({attrs, directives, diProviders});
       }
 
-      function init({attrs = null, events = null, directives = [], diProviders = []}) {
+      function init({attrs = null, directives = [], diProviders = []}) {
         attrs = attrs || {};
         attrs.init = attrs.init || {};
         attrs.bind = attrs.bind || {};
         attrs.event = attrs.event || {};
 
-        binder = {attrs: attrs, events: events};
+        binder = {attrs: attrs};
         node = $('<div></div>')[0];
         childInjector = viewFactory._bindNodeBasic({binder, injector, node, diProviders, directiveClasses:directives});
       }
@@ -364,7 +440,7 @@ describe('ViewFactory', () => {
         expect(ngNode.data.directives).toEqual([childInjector.get(SomeDirective)]);
       });
 
-      describe('observe in directive annotation', ()=>{
+      describe('"observe" in directive annotation', ()=>{
 
         it('should call the method when the expression changed', ()=>{
           var receivedProp;
@@ -389,7 +465,7 @@ describe('ViewFactory', () => {
 
       });
 
-      describe('bind in directive annotation', ()=>{
+      describe('"bind" in directive annotation', ()=>{
         var directiveInstance;
 
         @DecoratorDirective({bind: {'someNodeProp': 'dir.someProp'}})
@@ -437,7 +513,7 @@ describe('ViewFactory', () => {
 
       });
 
-      describe('data binding', () => {
+      describe('"bind-*" in attribute', () => {
 
         it('should update the ngNode when the expression changes', ()=>{
           createInjectorAndInit({
@@ -482,13 +558,44 @@ describe('ViewFactory', () => {
         });
       });
 
-      it('should add the events to the ngNode.data', ()=>{
-        var events = {};
-        createInjectorAndInit({
-          events: events
+      describe('"on" in directive annotation', ()=>{
+        var directiveInstance;
+
+        @DecoratorDirective({on: {'someEvent': 'someExpression'}})
+        class SomeDirective {}
+
+        it('should add a handler to ngNode.data.events', ()=>{
+          createInjectorAndInit({
+            directives: [SomeDirective]
+          });
+          directiveInstance = childInjector.get(SomeDirective);
+
+          var ngNode = childInjector.get(NgNode);
+          expect(ngNode.data.events.someEvent.length).toBe(1);
+          spyOn(view, 'evaluate');
+          ngNode.data.events.someEvent[0]();
+          expect(view.evaluate).toHaveBeenCalledWith('someExpression', directiveInstance);
         });
-        var ngNode = childInjector.get(NgNode);
-        expect(ngNode.data.events).toBe(events);
+
+      });
+
+      describe('"on-*"" in attribute', ()=>{
+
+        it('should add a handler to ngNode.data.events', ()=>{
+          createInjectorAndInit({
+            attrs: {
+              on: {
+                'someEvent': 'someExpression'
+              }
+            }
+          });
+          var ngNode = childInjector.get(NgNode);
+          expect(ngNode.data.events.someEvent.length).toBe(1);
+          spyOn(view, 'evaluate');
+          ngNode.data.events.someEvent[0]();
+          expect(view.evaluate).toHaveBeenCalledWith('someExpression', view.executionContext);
+        });
+
       });
 
     });
@@ -603,9 +710,9 @@ describe('ViewFactory', () => {
           });
         });
 
-        it('should install the event handler for components with shadowRoot again', ()=>{
+        it('should install the event handler for components with shadowRoot', ()=>{
           compiledTemplate.binders = createBinders([0,1]);
-          compiledTemplate.binders[1].events = ['event1'];
+          compiledTemplate.binders[1].attrs.on['event1'] = 'someExpression';
           compiledTemplate.container = $('<div><a class="ng-binder"></a></div>')[0];
 
           init({

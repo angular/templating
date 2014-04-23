@@ -55,7 +55,6 @@ class CompileElement {
   constructor({
     element,
     attrs,
-    events,
     decorators,
     component,
     level
@@ -64,9 +63,9 @@ class CompileElement {
     this.level = level;
     this.attrs = attrs || {
       init: {},
-      bind: {}
+      bind: {},
+      on: {}
     };
-    this.events = events;
     this.decorators = decorators || [];
     this.component = component || null;
     this.nonElementBinders = [];
@@ -77,7 +76,7 @@ class CompileElement {
     for (var prop in this.attrs.bind) {
       return true;
     }
-    if (this.events && this.events.length) {
+    for (var prop in this.attrs.on) {
       return true;
     }
     if (this.component || this.decorators.length || this.nonElementBinders.length) {
@@ -92,7 +91,6 @@ class CompileElement {
   toBinder() {
     return {
       attrs: this.attrs,
-      events: this.events,
       level: this.level,
       decorators: this.decorators,
       component: this.component,
@@ -180,7 +178,6 @@ class CompileRun {
           element: node,
           level: parentElement.level + 1,
           attrs: matchedBindings.attrs,
-          events: matchedBindings.events,
           decorators: matchedBindings.decorators.map(classFromDirectiveClass),
           component: component
         });
@@ -208,8 +205,8 @@ class CompileRun {
         attrs: {
           init: {},
           bind: {'textContent': this.selector.matchText(node)},
+          on: {}
         },
-        events: null,
         template: null,
         indexInParent: -1
       };

@@ -5,16 +5,13 @@ import {Global} from '../global';
 export function Precompile(global) {
   return precompile;
 
-  function precompile(appTemplates, template, modules) {
+  function precompile(templateData, modules) {
     var usedModulePaths = [];
 
     // TODO: Check/improve the error handling,
     // as errors don't show up in the tests.
     var builder = new Builder(modules, usedModulePaths, global);
-    builder.serializeRecurse({
-      appTemplates: appTemplates,
-      template: template
-    });
+    builder.serializeRecurse(templateData);
     var serializedTemplates = builder.build();
     var serializedModulePaths = '';
     if (usedModulePaths.length) {

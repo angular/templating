@@ -16,15 +16,18 @@ export function TemplateLoader(documentLoader, moduleLoader, compiler, precompil
       return loadModules(moduleNames);
     }).then(function(modules) {
       var moduleClasses = extractClasses(modules);
-      var apps = Array.prototype.slice.call(_doc.querySelectorAll('[ng-app]'));
-      if (apps.length) {
-        var appTemplates = apps.map(function(appRootElement) {
-          return compiler.compileNodes([appRootElement], moduleClasses);
+      var templatesWithId = Array.prototype.slice.call(_doc.querySelectorAll('[ng-template-id]'));
+      if (templatesWithId.length) {
+        var compiledTemplates = templatesWithId.map(function(appRootElement) {
+          return {
+            id: appRootElement.getAttribute('ng-template.id'),
+            template: compiler.compileNodes([appRootElement], moduleClasses)
+          }
         });
         return {
-          appTemplates: appTemplates,
+          templates: compiledTemplates,
           modules: modules,
-          es6Source: serialize ? precompile(appTemplates, null, modules) : null
+          es6Source: serialize ? precompile({templates: compiledTemplates}, modules) : null
         };
       } else {
         // We need to convert the <body> tag into a div
@@ -38,7 +41,7 @@ export function TemplateLoader(documentLoader, moduleLoader, compiler, precompil
         return {
           template: template,
           modules: modules,
-          es6Source: serialize ? precompile(null, template, modules) : null
+          es6Source: serialize ? precompile({template: template}, modules) : null
         };
       }
     });

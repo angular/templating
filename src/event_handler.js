@@ -1,29 +1,64 @@
 import {Inject} from 'di';
 
+export function ChangeEventConfig() {
+  return [
+    {nodeName: 'input', events: ['input', 'keypress', 'change'], properties: ()=>['value', 'valueAsDate', 'valueAsNumber']},
+    {nodeName: 'textarea', events: ['input', 'keypress', 'change'], properties: ()=>['value']},
+    {nodeName: 'select', events: ['change'], properties: ()=>['value']},
+    {nodeName: '*', events: ['propchange'], properties: (event) => event.properties}
+  ];
+}
+
 export class EventHandler {
-  install(nodes, events) {
+  @Inject(ChangeEventConfig)
+  constructor(changeEventConfig) {
+    this.defaultEvents = {};
+    changeEventConfig.forEach((eventData) => {
+      eventData.events.forEach((eventName) => {
+        this._addDefaultEventHandler(eventName, eventData.nodeName, function(event, ngNode) {
+          ngNode.refreshProperties(eventData.properties(event));
+        });
+      });
+    });
+  }
+  _addDefaultEventHandler(eventName, nodeName, handler) {
+    nodeName = nodeName.toLowerCase();
+    var o1 = this.defaultEvents[eventName] = this.defaultEvents[eventName] || {};
+    var o2 = o1[nodeName] = o1[nodeName] || [];
+    o2.push(handler);
+  }
+  _findDefaultEventHandlers(eventName, nodeName) {
+    nodeName = nodeName.toLowerCase();
+    var o1 = this.defaultEvents[eventName];
+    var o2 = [];
+    if (o1) {
+      o2 = o1[nodeName] || [];
+    }
+    return o2;
+  }
+  install(nodes, ngNodeEventNames) {
     var self = this;
     var elements = nodes.filter((node)=>{
       return node.nodeType === Node.ELEMENT_NODE;
     });
-    var eventNames = {
-      propchange: true
-    };
-    // TODO: We only need the event names here!
-    // TODO: index the events by name in the compiled data!
-    events.forEach((events)=>{
-      eventNames[events.event] = true;
-    });
     elements.forEach((element)=>{
-      for (var eventName in eventNames) {
-        element.addEventListener(eventName, createHandler(eventName), false);
+      var installedEventNames = {};
+      ngNodeEventNames.forEach((eventName) => {
+        installHandler(eventName, element, installedEventNames);
+      });
+      for (var eventName in this.defaultEvents) {
+        installHandler(eventName, element, installedEventNames);
       }
     });
 
-    function createHandler(eventName, topNode) {
-      return function(event) {
-        self._handleEvent(event, event.target, topNode);
+    function installHandler(eventName, topNode, usedEventNames) {
+      if (usedEventNames[eventName]) {
+        return;
       }
+      usedEventNames[eventName] = true;
+      topNode.addEventListener(eventName, function(event) {
+        self._handleEvent(event, event.target, topNode);
+      });
     }
   }
   _handleEvent(event, targetNode, topNode) {
@@ -31,33 +66,17 @@ export class EventHandler {
       return;
     }
     var ngNode = targetNode.ngNode;
-    var handeled = false;
-    if (ngNode && ngNode.data && ngNode.data.events) {
-      handeled = true;
-      // TODO: ngNode.events should be indexed by eventName!
-      ngNode.data.events.forEach((eventConfig)=>{
-        if (eventConfig.event === event.type) {
-          if (eventConfig.handler === 'onEvent') {
-            // TODO: provide the event via locals
-            ngNode.data.view.evaluate(eventConfig.expression);
-          } else if (eventConfig.handler === 'directive') {
-            // TODO: provide the event via locals
-            ngNode.data.view.evaluate(
-              eventConfig.expression,
-              ngNode.data.injector.get(eventConfig.directive)
-            );
-          } else if (eventConfig.handler === 'refreshNode') {
-            ngNode.refreshProperties(eventConfig.properties);
-          }
-        }
-      });
-    }
-    if (event.type === 'propchange' && ngNode) {
-      handeled = true;
-      ngNode.refreshProperties(event.properties);
+    var callHandlers = (handlers) => handlers.forEach((handler) => handler(event, ngNode));
+    var handlers;
+    if (ngNode) {
+      if (ngNode.data && ngNode.data.events) {
+        callHandlers(ngNode.data.events[event.type] || []);
+      }
+      callHandlers(this._findDefaultEventHandlers(event.type, '*'));
+      callHandlers(this._findDefaultEventHandlers(event.type, targetNode.nodeName));
     }
 
-    if (!handeled && targetNode!==topNode) {
+    if (targetNode !== topNode) {
       this._handleEvent(event, targetNode.parentNode, topNode);
     }
   }

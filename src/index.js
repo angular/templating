@@ -1,7 +1,4 @@
 export {
-  bootstrap
-} from './bootstrap';
-export {
   Directive,
   DecoratorDirective,
   TemplateDirective,
@@ -14,3 +11,9 @@ export {
   ViewFactory,
   BoundViewFactory
 } from './view_factory';
+export {
+  ChangeEventConfig
+} from './event_handler';
+export {
+  bootstrap
+} from './bootstrap';

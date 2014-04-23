@@ -30,10 +30,10 @@ describe('precompile', ()=>{
     eval(sourceES5);
   }
 
-  function precompileAndEval(appTemplates, template, modules, done) {
+  function precompileAndEval(templateData, modules, done) {
     var es6Source;
     inject(Precompile, (precompile) =>{
-      es6Source = precompile(appTemplates, template, modules);
+      es6Source = precompile(templateData, modules);
     });
     evalES6Module(es6Source, function(requireMod) {
       requireMod.promise.then(function(data) {
@@ -61,9 +61,9 @@ describe('precompile', ()=>{
       }).as(ModuleLoader);
     });
 
-    it('should precompile an empty template', (done) =>{
-      precompileAndEval(null, {}, modules, function(result) {
-        expect(result.template).toEqual({});
+    it('should precompile an empty object', (done) =>{
+      precompileAndEval({}, modules, function(result) {
+        expect(result).toEqual({});
         done();
       });
     });
@@ -73,8 +73,8 @@ describe('precompile', ()=>{
       var template = {
         container: $(containerHtml)[0]
       };
-      precompileAndEval(null, template, modules, function(result) {
-        expect(result.template.container.outerHTML).toBe(containerHtml);
+      precompileAndEval(template, modules, function(result) {
+        expect(result.container.outerHTML).toBe(containerHtml);
         done();
       });
     });
@@ -85,8 +85,8 @@ describe('precompile', ()=>{
       var template = {
         container: simpleContainer
       };
-      precompileAndEval(null, template, modules, function(result) {
-        expect(result.template.container.innerHTML).toBe(innerHTML);
+      precompileAndEval(template, modules, function(result) {
+        expect(result.container.innerHTML).toBe(innerHTML);
         done();
       });
     });
@@ -99,8 +99,8 @@ describe('precompile', ()=>{
       var template = {
         container: fragment
       };
-      precompileAndEval(null, template, modules, function(result) {
-        expect(result.template.container.innerHTML).toBe(innerHTML);
+      precompileAndEval(template, modules, function(result) {
+        expect(result.container.innerHTML).toBe(innerHTML);
         done();
       });
     });
@@ -112,13 +112,13 @@ describe('precompile', ()=>{
         binders: [{
             attrs: {
               init: { a:1 },
-              bind: { b:'2' }
-            },
-            events: null
+              bind: { b:'2' },
+              on: {}
+            }
           }]
       };
-      precompileAndEval(null, template, modules, function(result) {
-        expect(result.template.binders).toEqual(template.binders);
+      precompileAndEval(template, modules, function(result) {
+        expect(result.binders).toEqual(template.binders);
         done();
       });
 
@@ -136,16 +136,8 @@ describe('precompile', ()=>{
         }]
       };
 
-      precompileAndEval(null, template, modules, function(result) {
-        expect(result.template.binders).toEqual(template.binders);
-        done();
-      });
-    });
-
-    it('should precompile app templates', (done) =>{
-      var appTemplates = [{a:1}];
-      precompileAndEval(appTemplates, null, modules, function(result) {
-        expect(result.appTemplates).toEqual(appTemplates);
+      precompileAndEval(template, modules, function(result) {
+        expect(result.binders).toEqual(template.binders);
         done();
       });
     });
