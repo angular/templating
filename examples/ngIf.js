@@ -22,6 +22,7 @@ export class NgIf {
     }
     if (!value && this.view) {
       this.viewPort.remove(this.view);
+      this.view.destroy();
       this.view = null;
     }
     if (value) {
