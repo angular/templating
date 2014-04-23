@@ -31,4 +31,8 @@ module.exports = function(config) {
   });
 
   config.sauceLabs.testName = 'templating';
+
+  if (process.env.TRAVIS) {
+    config.sauceLabs.startConnect = false;
+  }
 };
