@@ -5,25 +5,23 @@ node_js:
 
 env:
   global:
+    - BROWSER_PROVIDER_READY_FILE=/tmp/sauce-connect-ready
+    - LOGS_DIR=/tmp/angular-templating-build/logs
     - SAUCE_USERNAME=angular-ci
     - SAUCE_ACCESS_KEY=9b988f434ff8-fbca-8aa4-4ae3-35442987
 
-before_install:
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-
 install:
+  - mkdir -p $LOGS_DIR
+  - ./scripts/sauce_connect_setup.sh
   - npm install
   - npm install -g gulp
   - npm install -g karma-cli
-  - ./install_chrome.sh
-
-before_script:
+  - ./scripts/wait_for_browser_provider.sh
 
 script:
   - gulp build
   - gulp templates
   - karma start --single-run --browsers SL_Chrome --reporters dots
-  - ./run_protractor_tests.sh
+  - ./scripts/run_protractor_tests.sh
 
 after_script:
