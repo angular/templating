@@ -203,10 +203,20 @@ export class ViewFactory {
     // use the component instance as new execution context
     var componentInstance = injector.get(binder.component);
     var annotation = this.annotationProvider(binder.component, Directive);
-    annotation.template.then(createView, function(e) {
-      // TODO: Nicer error handling!
-      console.log(e.stack);
-    });
+    if (annotation.cachedTemplate) {
+      createView(annotation.cachedTemplate);
+    } else {
+      annotation.template.then(function(cachedTemplate) {
+        // Once the promise returned the template, cache it,
+        // as calling promise.then is always asynchronous,
+        // even if the promise is already resolved.
+        annotation.cachedTemplate = cachedTemplate;
+        createView(cachedTemplate);
+      }, function(e) {
+        // TODO: Nicer error handling!
+        console.log(e.stack);
+      });
+    }
 
     function createView(compiledTemplateAndModules) {
       var template = compiledTemplateAndModules.template;

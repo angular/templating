@@ -722,6 +722,24 @@ describe('ViewFactory', () => {
           expect(eventHandler.install).toHaveBeenCalledWith(compView.nodes, ['event1']);
         });
 
+        it('should cache the compiled template from the promise', ()=>{
+          spyOn(templatePromise, 'then').and.callThrough();
+          init({
+            component: SomeDirective
+          });
+
+          viewFactory.createChildView.calls.reset();
+          templatePromise.then.calls.reset();
+          viewFactory._bindElement(binder, injector, element);
+
+          expect(templatePromise.then).not.toHaveBeenCalled();
+          expect(viewFactory.createChildView).toHaveBeenCalledWith({
+            parentView: view,
+            executionContext: childInjector.get(SomeDirective),
+            template: compiledTemplate
+          });
+        });
+
         // TODO: Error case (reject of templatePromise): log the error via the logger
         // TODO: Which logger to use?
 
