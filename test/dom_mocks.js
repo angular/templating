@@ -13,6 +13,8 @@ export function $html(es) {
       return `<!--${obj.nodeValue}-->`;
     } else if (obj instanceof Element) {
       return obj.outerHTML;
+    } else if (obj instanceof DocumentFragment) {
+      return '#document-fragment('+$html(obj.childNodes)+')';
     } else if (obj instanceof Node) {
       return obj.nodeValue;
     } else if (typeof obj === 'string') {

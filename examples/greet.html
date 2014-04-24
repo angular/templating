@@ -1,9 +1,10 @@
 <module src="./ngIf"></module>
 <module src="./greet"></module>
 
+<x-toggle label="Has child" bind-checked="hasChild"></x-toggle>
 <input type="text" class="username" bind-value="user">
 <span class="message">{{greet(user)}}</span>
 <button on-click="incCounter()">Add</button>
 <p>
-<exp-greet ng-if="{{!!user}}"></exp-greet>
+<exp-greet bind-ng-if="hasChild" ng-if></exp-greet>
 </p>

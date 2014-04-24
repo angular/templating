@@ -1,5 +1,15 @@
 import {Provide} from 'di';
 import {ChangeEventConfig} from 'templating';
+import {XTagsEventConfig} from './xtags_event_config';
+
+// config for DI
+@Provide(ChangeEventConfig)
+export function AppChangeEventConfig() {
+  var res = [];
+  res.push(...ChangeEventConfig());
+  res.push(...XTagsEventConfig());
+  return res;
+}
 
 // root components
 // TODO: Need to use "examples" prefix here, otherwise
@@ -8,10 +18,3 @@ import {ChangeEventConfig} from 'templating';
 //   precompile as well.
 export * from 'examples/greet';
 
-// configuration / DI overrides
-@Provide(ChangeEventConfig)
-export function eventConfig() {
-  var defaultConfig = ChangeEventConfig();
-  // TODO: Add events for xtags elements here!
-  return defaultConfig;
-}

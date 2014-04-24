@@ -8,13 +8,16 @@ describe('BrowserDocumentLoader', ()=>{
   beforeEach(()=>{
     xhr = {
       open: jasmine.createSpy('open'),
-      send: jasmine.createSpy('send')
+      send: jasmine.createSpy('send'),
+      _responseTypeDocumentSupported: true
     };
     Object.defineProperty(xhr, 'responseType', {
       get: function() { return this._responseType; },
       set: function(value) {
-        if (value === 'document' && !this._responseTypeDocumentSupported) {
-          throw new Error();
+        if (xhr._responseTypeDocumentSupported &&
+            value === 'document' &&
+            !xhr.open.calls.mostRecent().args[2]) {
+          throw new Error('resonseType document is not supported for sync calls');
         }
         this._responseType = value;
       }
@@ -35,14 +38,6 @@ describe('BrowserDocumentLoader', ()=>{
     use(global).as(Global);
   });
 
-  function returnXhrResponseText(html) {
-    expect(xhr.responseType).toBe('text/html');
-    xhr.responseText = html;
-    xhr.readyState = 4;
-    xhr.status = 200;
-    xhr.onreadystatechange();
-  }
-
   function returnXhrResposeXML(html) {
     expect(xhr.responseType).toBe('document');
     var doc = document.implementation.createHTMLDocument();
@@ -55,6 +50,15 @@ describe('BrowserDocumentLoader', ()=>{
     xhr.status = 200;
     xhr.onreadystatechange();
   }
+
+  it('should throw if responseType=document is not supported', ()=>{
+    xhr._responseTypeDocumentSupported = false;
+    try {
+      inject(BrowserDocumentLoader, ()=>{});
+    } catch (e) {
+      expect(e.toString().indexOf('This browser does not support responseType="document"')!==-1);
+    }
+  });
 
   it('should return window.document if the given url resolves to '+
     'location.pathname', (done)=>{
@@ -77,72 +81,30 @@ describe('BrowserDocumentLoader', ()=>{
     });
   });
 
-  describe('responseType=document is supported', ()=>{
-
-    beforeEach(()=>{
-      xhr._responseTypeDocumentSupported = true;
-    });
-
-    it('should return an html fragment '+
-        'if responseType=document is supported', (done)=>{
-      inject(BrowserDocumentLoader, (documentLoader)=>{
-        var promise = documentLoader('someUrl');
-        expect(xhr.responseType).toBe('document');
-        returnXhrResposeXML('a<b>c</b>');
-        promise.then(function(doc) {
-          expect($html(doc.documentElement)).toBe('<html><head></head><body>a<b>c</b></body></html>');
-          done();
-        });
+  it('should return an html fragment '+
+      'if responseType=document is supported', (done)=>{
+    inject(BrowserDocumentLoader, (documentLoader)=>{
+      var promise = documentLoader('someUrl');
+      expect(xhr.responseType).toBe('document');
+      returnXhrResposeXML('a<b>c</b>');
+      promise.then(function(doc) {
+        expect($html(doc.documentElement)).toBe('<html><head></head><body>a<b>c</b></body></html>');
+        done();
       });
     });
-
-    it('should return the an html document '+
-        'if responseType=document is supported', (done)=>{
-      inject(BrowserDocumentLoader, (documentLoader)=>{
-        var promise = documentLoader('someUrl');
-        expect(xhr.responseType).toBe('document');
-        returnXhrResposeXML('<html><body>a<b>c</b></body></html>');
-        promise.then(function(doc) {
-          expect($html(doc.documentElement)).toBe('<html><head></head><body>a<b>c</b></body></html>');
-          done();
-        });
-      });
-    });
-
   });
 
-  describe('responseType=document is not supported', ()=>{
-
-    beforeEach(()=>{
-      xhr._responseTypeDocumentSupported = false;
-    });
-
-    it('should return an html fragment '+
-        'if responseType=document is supported', (done)=>{
-      inject(BrowserDocumentLoader, (documentLoader)=>{
-        var promise = documentLoader('someUrl');
-        expect(xhr.responseType).toBe('text/html');
-        returnXhrResponseText('a<b>c</b>');
-        promise.then(function(doc) {
-          expect($html(doc.documentElement)).toBe('<html><head></head><body>a<b>c</b></body></html>');
-          done();
-        });
+  it('should return the an html document '+
+      'if responseType=document is supported', (done)=>{
+    inject(BrowserDocumentLoader, (documentLoader)=>{
+      var promise = documentLoader('someUrl');
+      expect(xhr.responseType).toBe('document');
+      returnXhrResposeXML('<html><body>a<b>c</b></body></html>');
+      promise.then(function(doc) {
+        expect($html(doc.documentElement)).toBe('<html><head></head><body>a<b>c</b></body></html>');
+        done();
       });
     });
-
-    it('should return the an html document '+
-        'if responseType=document is supported', (done)=>{
-      inject(BrowserDocumentLoader, (documentLoader)=>{
-        var promise = documentLoader('someUrl');
-        expect(xhr.responseType).toBe('text/html');
-        returnXhrResponseText('<html><body>a<b>c</b></body></html>');
-        promise.then(function(doc) {
-          expect($html(doc.documentElement)).toBe('<html><head></head><body>a<b>c</b></body></html>');
-          done();
-        });
-      });
-    });
-
   });
 
   describe('errors', ()=>{

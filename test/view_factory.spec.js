@@ -1,5 +1,3 @@
-'use strict';
-
 import {use, inject} from 'di/testing';
 import {Injector, Inject, Provide} from 'di';
 import {ViewPort, View, RootView} from '../src/view';
@@ -9,6 +7,7 @@ import {DecoratorDirective, TemplateDirective, ComponentDirective} from '../src/
 import {EventHandler} from '../src/event_handler';
 import {$, $html} from './dom_mocks';
 import {NgNode} from '../src/ng_node';
+import {SimpleNodeContainer} from '../src/util/simple_node_container';
 
 describe('ViewFactory', () => {
   function createBinders(levels) {
@@ -146,7 +145,7 @@ describe('ViewFactory', () => {
       expect(Array.prototype.slice.call(container.childNodes)).toEqual(view.nodes);
     });
 
-    it('should clone the given nodes for child views', () => {
+    it('should clone the given nodes for child views with element containers', () => {
       var rootView = viewFactory.createRootView({
         template: {
           container: $('<div></div>')[0],
@@ -154,6 +153,25 @@ describe('ViewFactory', () => {
         }
       });
       var container = $('<div>a<a></a></div>')[0];
+      var view = viewFactory.createChildView({
+        parentView: rootView,
+        template: {
+          container: container,
+          binders: []
+        }
+      });
+      expect(Array.prototype.slice.call(container.childNodes)).not.toEqual(view.nodes);
+      expect($html(container.childNodes)).toBe($html(view.nodes));
+    });
+
+    it('should clone the given nodes for child views with SimpleNodeContainers', () => {
+      var rootView = viewFactory.createRootView({
+        template: {
+          container: $('<div></div>')[0],
+          binders: []
+        }
+      });
+      var container = new SimpleNodeContainer($('a<a></a>'));
       var view = viewFactory.createChildView({
         parentView: rootView,
         template: {
@@ -655,7 +673,8 @@ describe('ViewFactory', () => {
            container,
            compiledTemplate,
            templatePromise,
-           SomeDirective;
+           SomeDirective,
+           SomeShadowDomDirective;
 
         beforeEach(()=>{
           container = $('<div>a</div>')[0];
@@ -677,7 +696,14 @@ describe('ViewFactory', () => {
               createdInstance = this;
             }
           }
+          @ComponentDirective({template: templatePromise, shadowDOM: true})
+          class SomeShadowDomDirective_ {
+            constructor() {
+              createdInstance = this;
+            }
+          }
           SomeDirective = SomeDirective_;
+          SomeShadowDomDirective = SomeShadowDomDirective_;
         });
 
         it('should create a new directive instance', () => {
@@ -688,15 +714,25 @@ describe('ViewFactory', () => {
           expect(createdInstance).toBeTruthy();
         });
 
-        it('should append the template to the ShadowDOM', () => {
+        it('should append the template to the ShadowDOM for shadowDOM directives', () => {
+          var contentHtml = '<span id="outer"></span>';
+          init({
+            component: SomeShadowDomDirective,
+            innerHTML: contentHtml
+          });
+
+          expect(element.shadowRoot.innerHTML).toBe($html(container.childNodes));
+          expect(element.innerHTML).toBe(contentHtml);
+        });
+
+        it('should append the template to the element for non shadowDOM directives', () => {
           var contentHtml = '<span id="outer"></span>';
           init({
             component: SomeDirective,
             innerHTML: contentHtml
           });
 
-          expect(element.shadowRoot.innerHTML).toBe($html(container.childNodes));
-          expect(element.innerHTML).toBe(contentHtml);
+          expect(element.innerHTML).toBe($html(container.childNodes));
         });
 
         it('should create a new View with the component instance as execution context', () => {
@@ -710,7 +746,7 @@ describe('ViewFactory', () => {
           });
         });
 
-        it('should install the event handler for components with shadowRoot', ()=>{
+        it('should install the event handler for components', ()=>{
           compiledTemplate.binders = createBinders([0,1]);
           compiledTemplate.binders[1].attrs.on['event1'] = 'someExpression';
           compiledTemplate.container = $('<div><a class="ng-binder"></a></div>')[0];

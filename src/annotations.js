@@ -52,6 +52,9 @@ class ComponentArgs {
     if (obj.template) {
       assert(obj.template).is(CompiledTemplatePromise);
     }
+    if ('shadowDOM' in obj) {
+      assert(obj.shadowDOM).is(assert.boolean);
+    }
   }
 }
 

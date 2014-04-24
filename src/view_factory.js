@@ -16,16 +16,18 @@ import {NgNode} from './ng_node';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, Directive} from './annotations';
 import {EventHandler} from './event_handler';
 import {SimpleNodeContainer} from './util/simple_node_container';
+import {Global} from './global';
 
 /*
  * A ViewFactory creates views out of compiled templates.
  */
 export class ViewFactory {
-  @Inject(Injector, AnnotationProvider, EventHandler)
-  constructor(injector:Injector, annotationProvider, eventHandler:EventHandler) {
+  @Inject(Injector, AnnotationProvider, EventHandler, Global)
+  constructor(injector:Injector, annotationProvider, eventHandler:EventHandler, global) {
     this.rootInjector = injector;
     this.annotationProvider = annotationProvider;
     this.eventHandler = eventHandler;
+    this.global = global;
   }
   createComponentTemplate(element:HTMLElement, component: Function):CompiledTemplate {
     element.classList.add('ng-binder');
@@ -69,7 +71,11 @@ export class ViewFactory {
     if (inplace) {
       container = template.container;
     } else {
-      container = template.container.cloneNode(true);
+      if (template.container.importInto) {
+        container = template.container.importInto(this.global.document, true);
+      } else {
+        container = this.global.document.importNode(template.container, true);
+      }
     }
 
     @Provide(View)
@@ -226,9 +232,13 @@ export class ViewFactory {
         executionContext: componentInstance
       });
       self._installEventHandler(view, template);
-      // TODO: Make ShadowDOM optional using custom transclusion
-      var root = createShadowRoot(element);
-      view.appendTo(root);
+      if (annotation.shadowDOM) {
+        view.appendTo(createShadowRoot(element));
+      } else {
+        // TODO: Implement the <content> tag for non shadow DOM!
+        element.innerHTML = '';
+        view.appendTo(element);
+      }
     }
   }
   _installEventHandler(view, template) {

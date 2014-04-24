@@ -5,7 +5,9 @@ import {DocumentLoader} from './document_loader';
 @Inject(Global)
 @Provide(DocumentLoader)
 export function BrowserDocumentLoader(global) {
-  var responseTypeContentSupported = calcResponseTypeContentSupported();
+  if (!calcResponseTypeContentSupported()) {
+    throw new Error('This browser does not support responseType="document"');
+  }
 
   return loadDocument;
 
@@ -20,11 +22,7 @@ export function BrowserDocumentLoader(global) {
       var done = false;
       var xhr = new global.XMLHttpRequest();
       xhr.open('GET', url, true);
-      if (responseTypeContentSupported) {
-        xhr.responseType = 'document';
-      } else {
-        xhr.responseType = 'text/html';
-      }
+      xhr.responseType = 'document';
       xhr.onreadystatechange = onreadystatechange;
       xhr.onabort = xhr.onerror = function() {
         if (!done) {
@@ -40,16 +38,7 @@ export function BrowserDocumentLoader(global) {
           if (xhr.status !== 200) {
             reject(new Error('Error loading '+url+': '+xhr.status+' '+xhr.statusText), xhr);
           } else {
-            var doc;
-            if (xhr.responseXML) {
-              doc = xhr.responseXML;
-            } else {
-              doc = global.document.implementation.createHTMLDocument();
-              doc.open();
-              doc.write(xhr.responseText);
-              doc.close();
-            }
-            resolve(doc);
+            resolve(xhr.responseXML);
           }
         }
       }
@@ -58,13 +47,18 @@ export function BrowserDocumentLoader(global) {
 
   function calcResponseTypeContentSupported() {
     var req = new global.XMLHttpRequest();
+    // create a sync XHR
     req.open('GET', '', false);
     try {
       req.responseType = 'document';
     } catch(e) {
-      return false;
+      // responseType=document can only be used with async XHRs.
+      // Only browsers that support responseType=document check this
+      // and will throw. Browser that don't support responseType=document
+      // will ignore setting the value silently.
+      return true;
     }
-    return true;
+    return false;
   }
 }
 

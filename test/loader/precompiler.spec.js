@@ -62,8 +62,8 @@ describe('precompile', ()=>{
     });
 
     it('should precompile an empty object', (done) =>{
-      precompileAndEval({}, modules, function(result) {
-        expect(result).toEqual({});
+      precompileAndEval({obj: {}}, modules, function(result) {
+        expect(result.obj).toEqual({});
         done();
       });
     });
@@ -74,7 +74,7 @@ describe('precompile', ()=>{
         container: $(containerHtml)[0]
       };
       precompileAndEval(template, modules, function(result) {
-        expect(result.container.outerHTML).toBe(containerHtml);
+        expect($html(result.container)).toBe('#document-fragment(a)');
         done();
       });
     });
@@ -86,7 +86,7 @@ describe('precompile', ()=>{
         container: simpleContainer
       };
       precompileAndEval(template, modules, function(result) {
-        expect(result.container.innerHTML).toBe(innerHTML);
+        expect($html(result.container)).toBe('#document-fragment(a<b></b>c)');
         done();
       });
     });
@@ -100,7 +100,7 @@ describe('precompile', ()=>{
         container: fragment
       };
       precompileAndEval(template, modules, function(result) {
-        expect(result.container.innerHTML).toBe(innerHTML);
+        expect($html(result.container)).toBe('#document-fragment(a<b></b>c)');
         done();
       });
     });
@@ -142,7 +142,24 @@ describe('precompile', ()=>{
       });
     });
 
+    it('should return the used modules', (done)=>{
+      class SomeDecorator { }
+      class SomeOtherDecorator {}
 
+      modules['somePath'] = {someExprt: SomeDecorator};
+      modules['someOtherPath'] = {someOtherExprt: SomeOtherDecorator};
+      var template = {
+        container: $('<div>a</div>')[0],
+        binders: [{
+          decorators: [SomeDecorator]
+        }]
+      };
+
+      precompileAndEval(template, modules, function(result) {
+        expect(result.modules).toEqual({'somePath': modules['somePath']});
+        done();
+      });
+    });
   });
 
 });

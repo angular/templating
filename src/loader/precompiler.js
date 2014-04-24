@@ -21,16 +21,22 @@ export function Precompile(global) {
     // build result with a template string...
     return `
 function createNode(innerHTML) {
-  var d = document.createElement('div');
-  d.innerHTML = innerHTML;
-  return d;
+  // Use template element so custom elements won't get triggered!
+  var tpl = document.createElement('template');
+  tpl.innerHTML = innerHTML;
+  return tpl.content;
 }
 
 export var promise = new Promise(function(resolve) {
-  require([${serializedModulePaths}], function(...modules) {
-    resolve(
-      ${serializedTemplates}
-    )
+  var moduleNames = [${serializedModulePaths}];
+  require(moduleNames, function(...modules) {
+    var result = ${serializedTemplates};
+    var usedModules = {};
+    moduleNames.forEach((moduleName, index) => {
+      usedModules[moduleName] = modules[index];
+    });
+    result.modules = usedModules;
+    resolve(result);
   });
 });
 `

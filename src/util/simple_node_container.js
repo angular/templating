@@ -34,6 +34,15 @@ export class SimpleNodeContainer {
     });
     return res;
   }
+  importInto(doc, deepClone) {
+    var clonedNodes;
+    if (!deepClone) {
+      clonedNodes = Array.prototype.slice.call(this.childNodes);
+    } else {
+      clonedNodes = this.childNodes.map((node) => doc.importNode(node, deepClone) );
+    }
+    return new SimpleNodeContainer(clonedNodes);
+  }
 }
 
 var matchesSelectorFnName = findMatchesSelectorFnName();

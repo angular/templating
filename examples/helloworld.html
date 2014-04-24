@@ -1,11 +1,15 @@
 <!doctype html>
-<html>
+<html ng-app>
 <head>
   <script type="text/javascript" src="/node_modules/es6-shim/es6-shim.js"></script>
   <script type="text/javascript" src="/node_modules/zone.js/zone.js"></script>
 
   <script type="text/javascript" src="/node_modules/requirejs/require.js"></script>
   <script type="text/javascript" src="/node_modules/traceur/bin/traceur-runtime.js"></script>
+
+  <link rel="stylesheet" href="/third_Party/brick/brick-1.0.1.byob.css">
+  <script src="/third_Party/brick/brick-1.0.1.byob.js"></script>
+
 
   <!-- TODO: include source maps! -->
   <!-- TODO: create standalone repo for examples, e.g. v2_examples -->
@@ -34,11 +38,12 @@
     });
   </script>
 
-  <module src="./app" ng-app></module>
+  <module src="./app"></module>
 </head>
 <body>
 
-<exp-greet></exp-greet>
+<exp-greet>
+</exp-greet>
 
 </body>
 </html>
