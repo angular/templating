@@ -1,78 +1,100 @@
 var gulp = require('gulp');
 var pipe = require('pipe/gulp');
+
+var clean = require('gulp-clean');
 var connect = require('gulp-connect');
 var traceur = require('gulp-traceur');
+
 var through = require('through2');
-// var precompile = require('./gulp-precompile');
+
+var runSequence = require('run-sequence');
+var mergeStreams = require('event-stream').merge;
 
 var path = {
-  src: ['./src/**/*.js'],
-  examples: ['./examples/**/*.js'],
-  exampleTemplates: ['./examples/**/*.html'],
+  lib: ['./src/lib/**/*.js'],
+  util: ['./src/util/**/*.js', './src/lib/load_barrier.js'],
+  example: ['./src/example/**/*.js'],
+  exampleCopy: ['./src/example/**/*.html'],
+  testLib: ['./test/lib/**/*.js'],
+  testExample: ['./test/example/**/*.js'],
   deps: {
     'watchtower': './node_modules/watchtower/src/**/*.js',
     'expressionist': './node_modules/expressionist/src/**/*.js',
     'di': './node_modules/di/src/**/*.js',
     'rtts-assert': './node_modules/rtts-assert/src/**/*.js'
-  }
+  },
+  output: 'dist'
 };
 
-function rename(search, replace) {
-  return through.obj(function(file, enc, cb) {
-    file.path = file.path.replace(search, replace);
-    this.push(file);
+gulp.task('clean', function() {
+  return gulp.src([path.output], {read: false})
+      .pipe(clean());
+});
+
+function buildForPlatform(name, options) {
+  var inlineOptions = {};
+  Object.keys(options).forEach(function(optName) {
+    inlineOptions[optName] = options[optName];
   });
+  inlineOptions.modules = 'inline';
+  var streams = [
+    gulp.src(path.lib)
+        .pipe(traceur(pipe.traceur(options)))
+        .pipe(gulp.dest(path.output+'/'+name+'/lib')),
+    gulp.src(path.util)
+        .pipe(traceur(pipe.traceur(inlineOptions)))
+        .pipe(gulp.dest(path.output+'/'+name+'/util')),
+    gulp.src(path.example)
+        .pipe(traceur(pipe.traceur(options)))
+        .pipe(gulp.dest(path.output+'/'+name+'/example')),
+    gulp.src(path.testLib)
+        .pipe(traceur(pipe.traceur(options)))
+        .pipe(gulp.dest(path.output+'/'+name+'/test/lib')),
+    gulp.src(path.testExample)
+        .pipe(traceur(pipe.traceur({modules: 'commonjs'})))
+        .pipe(gulp.dest(path.output+'/'+name+'/test/example')),
+    gulp.src(path.exampleCopy)
+        .pipe(gulp.dest(path.output+'/'+name+'/example'))
+  ];
+  return mergeStreams.apply(null, streams);
 }
 
-// TRANSPILE ES6
 gulp.task('build_source_amd', function() {
-  gulp.src(path.src)
-      .pipe(traceur(pipe.traceur()))
-      .pipe(gulp.dest('dist/amd'));
+  return buildForPlatform('amd', {modules: 'amd'});
 });
 
 gulp.task('build_source_es6', function() {
-  gulp.src(path.src)
-      .pipe(traceur(pipe.traceur({outputLanguage: 'es6'})))
-      .pipe(gulp.dest('dist/es6'));
-});
-
-gulp.task('build_examples', ['build_deps'], function() {
-  gulp.src(path.examples)
-      .pipe(traceur(pipe.traceur()))
-      .pipe(gulp.dest('temp/examples'));
-  gulp.src(path.exampleTemplates)
-      .pipe(gulp.dest('temp/examples'));
-  /* TODO: Not working yet...
-  gulp.src(path.exampleTemplates)
-      .pipe(precompile())
-      .pipe(traceur({}))
-      .pipe(rename(/html$/, 'js'))
-      .pipe(gulp.dest('test/examples/'));
-  **/
-});
-
-gulp.task('build_deps', function() {
-  for (var prop in path.deps) {
-    gulp.src(path.deps[prop])
-        .pipe(traceur(pipe.traceur()))
-        .pipe(gulp.dest('node_modules/' + prop + '/dist/amd'));
-  }
+  return buildForPlatform('es6', {outputLanguage: 'es6'});
 });
 
 gulp.task('build_source_cjs', function() {
-  gulp.src(path.src)
-      .pipe(traceur(pipe.traceur({modules: 'commonjs'})))
-      .pipe(gulp.dest('dist/cjs'));
+  return buildForPlatform('cjs', {modules: 'commonjs'});
 });
 
-gulp.task('build', ['build_source_amd', 'build_source_cjs', 'build_source_es6', 'build_examples']);
+gulp.task('build_deps', function() {
+  var streams = Object.keys(path.deps).map(function(prop) {
+    return gulp.src(path.deps[prop])
+        .pipe(traceur(pipe.traceur()))
+        .pipe(gulp.dest('node_modules/' + prop + '/dist/amd'));
+  });
+  return mergeStreams.apply(null, streams);
+});
+
+gulp.task('build', function(done) {
+  // By using runSequence here we are decoupling the cleaning from the rest of the build tasks
+  // Otherwise, we have to add clean as a dependency on every task to ensure that it completes
+  // before they begin.
+  runSequence(
+    'clean',
+    ['build_source_amd', 'build_source_cjs', 'build_source_es6', 'build_deps'],
+    done
+  );
+});
 
 
 // WATCH FILES FOR CHANGES
-gulp.task('watch', function() {
-  gulp.watch([path.src], ['build_source_amd']);
-  gulp.watch([path.examples, path.exampleTemplates], ['build_examples']);
+gulp.task('watch', ['build_source_amd'], function() {
+  gulp.watch([path.lib, path.util, path.example, path.exampleCopy, path.testLib, path.testExample], ['build_source_amd']);
 });
 
 
@@ -81,9 +103,7 @@ gulp.task('serve', connect.server({
   root: [__dirname],
   port: 8000,
   livereload: false,
-  open: process.env.TRAVIS ? false : {
-    browser: 'Google Chrome'
-  }
+  open: false
 }));
 
 
@@ -119,79 +139,3 @@ gulp.task('shrinkwrap', function() {
     .pipe(gulp.dest('.'));
 });
 
-
-// TODO(vojta): extract into a gulp plugin
-var requirejs = require('requirejs');
-var patchFn = require('./utils/loader');
-var jsdom = require('jsdom');
-var classListPolyfill = require('./utils/jsdom_classlist_polyfill');
-
-gulp.task('templates', function() {
-
-  // Create jsdom instance
-  var document = jsdom.jsdom('<html></html>', null, {
-    features: {
-      FetchExternalResources : false,
-      ProcessExternalResources : false
-    }
-  });
-  var window = document.createWindow();
-
-  classListPolyfill(window.self);
-
-  // Stuff that is used even when requiring precompiler and its deps.
-  global.document = window.document;
-  global.Node = window.Node;
-  global.Comment = window.Comment;
-  global.HTMLElement = window.HTMLElement;
-  global.HTMLInputElement = window.HTMLInputElement;
-  global.HTMLSelectElement = window.HTMLSelectElement;
-  global.Text = window.Text;
-
-  // Patch RequireJS (to run all *.html files through the compile_ng_template plugin).
-  var patchedRequireJs = patchFn(global.requirejsVars.requirejs);
-  global.requirejsVars.requirejs = patchedRequireJs;
-  global.requirejs = patchedRequireJs;
-  global.requirejsVars.define = patchFn(global.requirejsVars.define);
-
-  patchedRequireJs.config({
-    paths: {
-      'deps': process.cwd() + '/node_modules',
-      'examples': process.cwd() + '/temp/examples',
-      'dist': process.cwd() + '/dist'
-    },
-    map: {
-      '*': {
-        'templating': 'dist/amd/index',
-        'compile_ng_template': 'dist/amd/node/require_plugin',
-        'di': 'deps/di/dist/amd/index',
-        'rtts-assert': 'deps/rtts-assert/dist/amd/assert',
-        'expressionist': 'deps/expressionist/dist/amd/index',
-        'watchtower': 'deps/watchtower/dist/amd/index'
-      }
-    }
-  });
-
-  gulp.src('examples/*.html')
-      .pipe(through.obj(function(file, _, done) {
-        var stream = this;
-
-        patchedRequireJs(['traceur/bin/traceur-runtime', 'es6-shim'], function() {
-          var relativeTemplatePath = file.path.replace(file.cwd + '/', '');
-
-          patchedRequireJs([relativeTemplatePath], function(module) {
-            module.promise.then(function(data) {
-              file.contents = new Buffer(data.es6Source);
-              stream.push(file);
-              done();
-            }, function(e) {
-              // TODO(vojta): nice error handling ;-)
-              console.log(e.stack)
-            })
-          });
-        });
-      }))
-      .pipe(traceur(pipe.traceur()))
-      .pipe(rename(/\.html$/, '.html.js'))
-      .pipe(gulp.dest('temp/examples/'))
-})

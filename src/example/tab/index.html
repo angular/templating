@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <script type="text/javascript" src="/bower_components/platform/platform.js"></script>
+  <link rel="import" href="../platform.html">
+  <link rel="import" href="tab-container.html">
+  <link rel="import" href="tab-pane.html">
+</head>
+<body>
+
+<div>
+    <button onclick="addTab()" class="tst-add-tab">add tab via JS</button>
+    <button onclick="moveTab()" class="tst-move-tab">move tab via JS to other container</button>
+</div>
+
+<p>Container1<br>
+<tab-container id="container1">
+  <tab-pane title="tab1">Content of tab1</tab-pane>
+  <tab-pane title="tab2">Content of tab2</tab-pane>
+</tab-container>
+</p>
+
+<p>Container2<br>
+<tab-container id="container2">
+  <tab-pane title="tab11">Content of tab11</tab-pane>
+  <tab-pane title="tab12">Content of tab12</tab-pane>
+</tab-container>
+</p>
+
+<script>
+var nextTabId = 100;
+
+function addTab() {
+  var pane = document.createElement('tab-pane');
+  pane.title = 'tab'+(nextTabId++);
+  pane.innerHTML = 'Content of '+pane.title;
+  container1.appendChild(pane);
+}
+
+function moveTab() {
+  var pane = container1.querySelector('tab-pane');
+  container2.appendChild(pane);
+}
+</script>
+
+</body>
+</html>

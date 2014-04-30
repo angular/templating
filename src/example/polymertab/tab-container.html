@@ -1,0 +1,21 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+
+<polymer-element name="tab-container">
+  <template>
+    <template repeat="{{row in tabs}}">
+        <button on-click="{{polymerSelect}}">
+          {{row.title}}
+        </button>
+    </template>
+    <div>
+      <content></content>
+    </div>
+  </template>
+  <script>
+    NgPolymer({
+      element: 'tab-container',
+      module: './tab-container',
+      export: 'TabContainer'
+    });
+  </script>
+</polymer-element>

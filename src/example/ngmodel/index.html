@@ -1,0 +1,23 @@
+<!doctype html>
+<html ng-config="ng-model,custom-validator">
+<head>
+  <!-- polyfills -->
+  <script type="text/javascript" src="/bower_components/platform/platform.js"></script>
+  <link rel="import" href="../platform.html">
+
+  <!-- angular -->
+  <link rel="import" href="../templating.html">
+</head>
+<body>
+
+  <div>
+    Type in 'secret' to make the validation true
+  </div>
+  <input type="text"
+    ng-model
+    bind-ng-model-valid="ngValid"
+    custom-validator>
+  Valid: <span class="tst-valid">{{ngValid}}</span>
+
+</body>
+</html>

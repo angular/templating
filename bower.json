@@ -1,0 +1,24 @@
+{
+  "name": "templating",
+  "version": "0.0.0",
+  "homepage": "https://github.com/tbosch/templating",
+  "authors": [
+    "Tobias Bosch <tbosch1009@gmail.com>"
+  ],
+  "moduleType": [
+    "es6"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "app/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#~0.2.3",
+    "brick": "brick#~1.0.1"
+  }
+}

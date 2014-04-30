@@ -1,0 +1,12 @@
+<link rel="import" href="../templating.html">
+
+<ng-element>
+  <template>
+    <div bind-hidden="!selected" class="tst-tab-content">
+      <content ></content>
+      <div>
+        <button on-click="next()">Next tab</button>
+      </div>
+    </div>
+  </template>
+</ng-element>

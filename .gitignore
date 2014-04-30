@@ -1,7 +1,6 @@
 node_modules
-compiled
+bower_components
 dist
 sauce_connect.log
 .idea
 .DS_STORE
-temp

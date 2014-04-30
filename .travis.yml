@@ -14,14 +14,13 @@ install:
   - mkdir -p $LOGS_DIR
   - ./scripts/sauce_connect_setup.sh
   - npm install
-  - npm install -g gulp
-  - npm install -g karma-cli
+  - ./node_modules/.bin/bower install
   - ./scripts/wait_for_browser_provider.sh
 
 script:
   - gulp build
-  - gulp templates
-  - karma start --single-run --browsers SL_Chrome --reporters dots
-  - ./scripts/run_protractor_tests.sh
+  - ./node_modules/.bin/karma start --single-run --browsers SL_Chrome --reporters dots
+  - ./scripts/testonsauce.sh
 
 after_script:
+  - ./scripts/print_logs.sh

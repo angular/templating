@@ -1,0 +1,19 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+
+<polymer-element name="tab-pane" attributes="title selected">
+  <template>
+    <div hidden?="{{!selected}}" class="tst-tab-content">
+      <content></content>
+      <div>
+        <button on-click="{{next}}">Next tab</button>
+      </div>
+    </div>
+  </template>
+  <script>
+    NgPolymer({
+      element: 'tab-pane',
+      module: './tab-pane',
+      export: 'TabPane'
+    });
+  </script>
+</polymer-element>

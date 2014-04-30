@@ -1,0 +1,6 @@
+<script type="text/javascript" src="/dist/amd/util/load_barrier.js"></script>
+<script>
+    // Note: using the loadBarrier is only needed when dealing with
+    // non angular custom elements that use angular di.
+    require(['templating'], window.loadBarrier());
+</script>

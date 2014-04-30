@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+  <head>
+      <link rel="stylesheet" href="/bower_components/brick/dist/brick.css">
+      <script>
+        // Mozilla brick will define itself as a requirejs module, if requirejs is present
+        // However, we want to load it immediately in this html import
+        window._define = window.define; window.define = null;
+      </script>
+      <script src="/bower_components/brick/dist/brick.js"></script>
+      <script>window.define = window._define</script>
+  </head>
+</html>

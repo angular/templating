@@ -6,22 +6,26 @@ The templating engine for Angular 2.0.
 
 ## Setup
 
-1. Install [NodeJS](http://nodejs.org/)
-2. At the command prompt install [Gulp](http://gulpjs.com/) with `npm install -g gulp`
-3. From the repo, install dependencies with `npm install`
+1. `npm install`
+1. `npm install -g gulp`
+1. `npm install -g bower`
+1. `npm install -g protractor`
+1. `bower install`
 
-## Running the Samples
+## Running the examples
 
-1. At the command prompt, start the development web server with `gulp build watch serve`
-2. Open a browser and navigate to [http://localhost:8000/temp/examples/helloworld.html?compile_templates](http://localhost:8000/temp/examples/helloworld.html?compile_templates)
+1. `gulp build watch serve`
+2. Go to [http://localhost:8000/dist/amd/example/index.html](http://localhost:8000/dist/amd/example/index.html)
 
->> **Note:** Without the query string, the sample uses precompiled templates, which you can build with `gulp templates`.
+## Unit tests
 
-## Development
+1. Unit tests: `karma start`
 
-1. At the command prompt, install the cli for [Karma](http://karma-runner.github.io/) with `npm install -g karma-cli`
-2. At the command prompt, start karma with `karma start`
-3. Add new tests to the `test` folder. Be sure to give them an extension of `.spec.js`.
+## E2e tests
+
+1. Start the server: `gulp build watch serve`
+1. Start and download webdriver: `webdriver-manager start`
+1. Run the tests: `protractor`
 
 ### Code Style Guide
 
