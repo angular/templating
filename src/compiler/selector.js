@@ -56,7 +56,6 @@ export class Selector {
           attrValue = attr.value;
 
       attrs[attrName] = attrValue;
-      this.nonElementSelector.selectBindAttr(builder, attrName, attrValue);
 
       partialSelection = this.elementSelector.selectAttr(builder,
           partialSelection, attrName, attrValue);
@@ -81,6 +80,7 @@ export class Selector {
       }
     }
 
+    this.nonElementSelector.selectBindAttr(builder, attrs);
     return builder;
   }
 

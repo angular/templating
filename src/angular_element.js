@@ -24,6 +24,9 @@ export function registerAngularElement(document) {
       Promise.all(modulePromises).then(function(modules) {
         var {provides, component, directives} = parseModules(modules, name);
         register(document, name, provides, component, directives, template);
+      }).catch((e)=>{
+        // TODO: Nice error handling!
+        console.log(e.stack);
       });
     }
   };

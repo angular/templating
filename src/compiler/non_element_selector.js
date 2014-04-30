@@ -45,19 +45,39 @@ export class NonElementSelector {
   selectTextNode(text:string) {
     return this._convertInterpolationToExpression(text);
   }
-  selectBindAttr(binder:SelectedElementBindings, attrName: string, attrValue: string) {
-    // replace {{}} with bind-...
-    var interpolationExpr = this._convertInterpolationToExpression(attrValue);
-    var match;
-    if (interpolationExpr) {
-      attrValue = interpolationExpr;
-      binder.attrs.bind[this._toCamelCase(attrName)] = attrValue;
-    } else if (match = this.config.bindAttrRegex.exec(attrName)) {
-      binder.attrs.bind[this._toCamelCase(match[1])] = attrValue;
-    } else if (match = this.config.eventAttrRegex.exec(attrName)) {
-      binder.attrs.on[this._toCamelCase(match[1])] = attrValue;
-    } else {
-      binder.attrs.init[this._toCamelCase(attrName)] = attrValue;
+  selectBindAttr(binder:SelectedElementBindings, attrs) {
+    var initAttrsCandidates = {};
+    for (var attrName in attrs) {
+      var attrValue = attrs[attrName];
+      // replace {{}} with bind-...
+      var interpolationExpr = this._convertInterpolationToExpression(attrValue);
+      var match;
+      if (interpolationExpr) {
+        attrValue = interpolationExpr;
+        binder.attrs.bind[this._toCamelCase(attrName)] = attrValue;
+      } else if (match = this.config.bindAttrRegex.exec(attrName)) {
+        binder.attrs.bind[this._toCamelCase(match[1])] = attrValue;
+      } else if (match = this.config.eventAttrRegex.exec(attrName)) {
+        binder.attrs.on[this._toCamelCase(match[1])] = attrValue;
+      } else {
+        initAttrsCandidates[this._toCamelCase(attrName)] = attrValue;
+      }
     }
+    attrs.init = {};
+    // fill attrs.init with the attribute values for attributes
+    // that are bound via bind- or are bound via Directive.bind
+    for (var attrName in attrs.bind) {
+      if (attrName in initAttrsCandidates) {
+        attrs.init[attrName] = initAttrsCandidates[attrName];
+      }
+    }
+    binder.directives.forEach((directive) => {
+      var bindAttrs = directive.annotation.bind;
+      for (var attrName in bindAttrs) {
+        if (attrName in initAttrsCandidates) {
+          attrs.init[attrName] = initAttrsCandidates[attrName];
+        }
+      }
+    });
   }
 }

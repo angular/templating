@@ -1,5 +1,4 @@
 import {assert} from 'rtts-assert';
-import {CompiledTemplatePromise} from './types';
 
 class DirectiveArgs {
   static assert(obj) {

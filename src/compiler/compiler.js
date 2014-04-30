@@ -19,9 +19,6 @@ import {AnnotationProvider} from '../util/annotation_provider';
  *
  * Lifetime: immutable for the duration of application.
  */
-
-// TODO:
-// - don't create a tree as output, only an array of binders!
 export class Compiler {
   constructor(@InjectLazy(Selector) selectorFactory, @Inject(AnnotationProvider) annotationProvider) {
     this.selectorFactory = selectorFactory;
@@ -59,11 +56,9 @@ class CompileElement {
     element,
     attrs,
     decorators,
-    component,
-    level
+    component
   }) {
     this.element = element;
-    this.level = level;
     this.attrs = attrs || {
       init: {},
       bind: {},
@@ -94,7 +89,6 @@ class CompileElement {
   toBinder() {
     return {
       attrs: this.attrs,
-      level: this.level,
       decorators: this.decorators,
       component: this.component,
       nonElementBinders: this.nonElementBinders
@@ -119,26 +113,23 @@ class CompileRun {
   compile(container:NodeContainer):CompileRun {
     // Always create a root CompileElement, e.g. for text nodes directly
     // on the root of the template
-    this.compileElements = [new CompileElement({element: null, level: 0})];
+    this.compileElements = [new CompileElement({element: null})];
     if (this.initialCompileElement) {
       this.compileElements.push(this.initialCompileElement);
-      this.initialCompileElement.level = 1;
     }
     this.compileRecurse(container, this.compileElements[this.compileElements.length-1]);
     return this;
   }
   build(container:NodeContainer) {
     var binders = [];
-    reduceTree(this.compileElements, collectNonEmptyBindersAndCalcBinderTreeLevel, -1);
+    this.compileElements.forEach(collectNonEmptyBinders);
     return {
       container: container,
       binders: binders
     };
 
-    function collectNonEmptyBindersAndCalcBinderTreeLevel(parentLevel, compileElement, index) {
-      var newLevel;
+    function collectNonEmptyBinders(compileElement, index) {
       if (index === 0 || compileElement.hasBindings()) {
-        newLevel = parentLevel+1;
         if (index>0) {
           if (compileElement.element.className) {
             compileElement.element.className += ' ng-binder';
@@ -146,13 +137,8 @@ class CompileRun {
             compileElement.element.className = 'ng-binder';
           }
         }
-        var binder = compileElement.toBinder();
-        binder.level = newLevel;
-        binders.push(binder);
-      } else {
-        newLevel = parentLevel;
+        binders.push(compileElement.toBinder());
       }
-      return newLevel;
     }
   }
   compileRecurse(container:NodeContainer, parentElement:CompileElement) {
@@ -179,7 +165,6 @@ class CompileRun {
         }
         var compileElement = new CompileElement({
           element: node,
-          level: parentElement.level + 1,
           attrs: matchedBindings.attrs,
           decorators: matchedBindings.decorators.map(classFromDirectiveClass),
           component: component

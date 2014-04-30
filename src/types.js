@@ -1,20 +1,5 @@
 import {assert} from 'rtts-assert';
 
-export var CompiledTemplatePromise = assert.define('CompiledTemplatePromise', function(obj) {
-  // TODO: How to assert that the result of the promise
-  // is a CompiledTemplate?
-  assert(obj).is(assert.structure({
-    then: Function
-  }));
-});
-
-export var ChildInjectorConfig = assert.define('ChildInjectorConfig', function(obj) {
-  assert(obj).is(assert.structure({
-    modules: [],
-    forceNewInstancesOf: []
-  }));
-});
-
 export var NodeContainer = assert.define('NodeContainer', function(obj) {
   assert(obj).is(assert.structure({
     childNodes: ArrayLikeOfNodes,
@@ -41,9 +26,8 @@ export var ArrayOfClass = assert.define('ArrayOfClass', function(obj) {
   assert(obj).is(assert.arrayOf(Function));
 });
 
-export var TreeArrayOfElementBinder = assert.define('TreeArrayOfElementBinder', function(obj) {
+export var ArrayOfElementBinder = assert.define('ArrayOfElementBinder', function(obj) {
   assert(obj).is(assert.arrayOf(ElementBinder));
-  assert(obj).is(TreeArray);
 });
 
 export var AbstractNodeBinder = assert.define('AbstractNodeBinder', function(obj) {
@@ -55,7 +39,7 @@ export var AbstractNodeBinder = assert.define('AbstractNodeBinder', function(obj
 export var CompiledTemplate = assert.define('CompiledTemplate', function(obj) {
   assert(obj).is(assert.structure({
     container: NodeContainer,
-    binders: TreeArrayOfElementBinder
+    binders: ArrayOfElementBinder
   }));
 });
 
@@ -64,8 +48,7 @@ export var ElementBinder = assert.define('ElementBinder', function(obj) {
   assert(obj).is(assert.structure({
     decorators: ArrayOfClass,
     component: Function,
-    nonElementBinders: assert.arrayOf(NonElementBinder),
-    level: assert.number
+    nonElementBinders: assert.arrayOf(NonElementBinder)
   }));
 });
 
@@ -78,31 +61,4 @@ export var NonElementBinder = assert.define('NonElementBinder', function(obj) {
     }),
     indexInParent: assert.number
   }));
-});
-
-export var TreeArrayNode = assert.define('TreeArrayNode', function(obj) {
-  assert(obj).is(assert.structure({
-    level: assert.number
-  }));
-});
-
-/**
- * An array of TreeArrayNodes that represent a valid depth-first-tree.
- */
-export var TreeArray = assert.define('TreeArray', function(obj) {
-  assert(obj).is(assert.arrayOf(TreeArrayNode));
-  var prevLevel = -1;
-  obj.forEach((node) => {
-    var newLevel = node.level;
-    if (newLevel === null) {
-      assert.fail('level must be set');
-    }
-    if (newLevel<0) {
-      assert.fail('level must be >=0');
-    }
-    if (newLevel>=prevLevel && newLevel-prevLevel > 1) {
-      assert.fail("levels can't be skipped");
-    }
-    prevLevel = newLevel;
-  });
 });
