@@ -197,7 +197,9 @@ export function getNodeComponentApi(tagName) {
   var cache = getNodeComponentApi.cache = getNodeComponentApi.cache || {};
   var res = cache[tagName];
   if (!res) {
-    var node = document.createElement(tagName);
+    // TODO: This leads to stack overflow when given the real tagname
+    // var node = document.createElement(tagName);
+    var node = document.createElement('div');
     res = {};
     var domNodeApi = getNodeDomApi();
     Object.getOwnPropertyNames(node).forEach((propName) => {

@@ -17,11 +17,6 @@ export var ChildInjectorConfig = assert.define('ChildInjectorConfig', function(o
 
 export var NodeContainer = assert.define('NodeContainer', function(obj) {
   assert(obj).is(assert.structure({
-    cloneNode: Function,
-    // getElementsByClassName would be nicer,
-    // however, documentFragments only support
-    // querySelectorAll and not getElementsByClassName
-    querySelectorAll: Function,
     childNodes: ArrayLikeOfNodes,
     nodeType: assert.number
   }));

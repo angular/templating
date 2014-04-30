@@ -49,9 +49,6 @@ export class TemplateDirective extends Directive {
 class ComponentArgs {
   static assert(obj) {
     DirectiveArgs.assert(obj);
-    if (obj.template) {
-      assert(obj.template).is(CompiledTemplatePromise);
-    }
     if ('shadowDOM' in obj) {
       assert(obj.shadowDOM).is(assert.boolean);
     }

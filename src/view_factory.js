@@ -17,6 +17,7 @@ import {TemplateDirective, ComponentDirective, DecoratorDirective, Directive} fr
 import {EventHandler} from './event_handler';
 import {SimpleNodeContainer} from './util/simple_node_container';
 import {Global} from './global';
+import {importFragment} from './util/import_node';
 
 /*
  * A ViewFactory creates views out of compiled templates.
@@ -29,138 +30,145 @@ export class ViewFactory {
     this.eventHandler = eventHandler;
     this.global = global;
   }
-  createComponentTemplate(element:HTMLElement, component: Function):CompiledTemplate {
-    element.classList.add('ng-binder');
-    return {
-      container: new SimpleNodeContainer([element]),
-      binders: [
-        {
-          attrs: {},
-          decorators: [],
-          component: null,
-          nonElementBinders: [],
-          level: 0
-        },
-        {
-          attrs: {},
-          decorators: [],
-          component: component,
-          nonElementBinders: [],
-          level: 1
-        }
-      ]
-    };
-  }
   // TODO: Can't have type assertions and destructering params at the same time
-  createRootView({template, executionContext = {}, injectorConfig = null}):RootView {
-    var view = this._createView(template, null, executionContext, true, injectorConfig);
-    this._installEventHandler(view, template);
-    return view;
-  }
-  // TODO: Can't have type assertions and destructering params at the same time
-  createChildView({template, parentView, executionContext = null, injectorConfig = null}):View {
-    return this._createView(
-      template, parentView,
-      executionContext ? executionContext : parentView.executionContext,
-      false, injectorConfig
-    );
-  }
-  _createView(template:CompiledTemplate, parentView:View, executionContext:Object, inplace:boolean, injectorConfig:ChildInjectorConfig):View {
-    var container;
+  createComponentView({
+    element,
+    component,
+    template,
+    parentInjector = null,
+  }):View {
     var self = this;
-    if (inplace) {
-      container = template.container;
-    } else {
-      if (template.container.importInto) {
-        container = template.container.importInto(this.global.document, true);
+
+    @Provide(View)
+    @Inject(Injector, component)
+    function viewProvider(injector, componentInstance) {
+      var container = new SimpleNodeContainer([element]);
+      if (!parentInjector) {
+        return new RootView(container, injector, componentInstance);
+      }
+      return new View(parentInjector.get(View), container, injector, componentInstance);
+    }
+    @Provide(NgNode)
+    @Inject(View)
+    function ngNodeProvider(view) {
+      return createNgNode(element, view);
+    }
+    var viewInjector = (parentInjector||this.rootInjector).createChild(
+      [viewProvider, ngNodeProvider, component]
+    );
+    var ngNode = viewInjector.get(NgNode);
+    var componentInstance = viewInjector.get(component);
+    // TODO: We need to install the event handler twice for @Directive.events property!
+    // - for the component node, and also for its template?
+    // --> only if we are creating a root view!
+    // --> otherwise we can rely on the parent event handler to do the job!
+    // --> this is not workig if our component provides a special configuration
+    //     for events of custom elements!
+    var view = viewInjector.get(View);
+    this._bindDirective(componentInstance, ngNode, view);
+
+    ngNode.data.componentView = view;
+    instantiateTemplate();
+    return view;
+
+    function instantiateTemplate() {
+      var childView = self.createChildView({
+        parentInjector: viewInjector,
+        template: template,
+        executionContext: componentInstance
+      });
+      self._installEventHandler(view, template);
+      var annotation = self.annotationProvider(component, Directive);
+      if (annotation.shadowDOM) {
+        childView.appendTo(createShadowRoot(element));
       } else {
-        container = this.global.document.importNode(template.container, true);
+        // TODO: Implement the <content> tag for non shadow DOM!
+        element.innerHTML = '';
+        childView.appendTo(element);
       }
     }
+  }
+  // TODO: Can't have type assertions and destructering params at the same time
+  createChildView({template, parentInjector, executionContext = null}):View {
+    var parentView = parentInjector.get(View);
+    if (!executionContext) {
+      executionContext = parentView.executionContext;
+    }
+
+    var container = importFragment(this.global.document, template.container, parentInjector);
 
     @Provide(View)
     @Inject(Injector)
     function viewProvider(injector:Injector) {
-      if (!parentView) {
-        return new RootView(container, injector, executionContext);
-      }
       return new View(parentView, container, injector, executionContext);
     }
-    var injector = parentView ? parentView.injector : this.rootInjector;
-    // TODO: Mixin the given injectorConfig!
-    var viewInjector = injector.createChild([viewProvider]);
+    var viewInjector = parentInjector.createChild([viewProvider]);
     var view = viewInjector.get(View);
 
     var boundElements = container.querySelectorAll('.ng-binder');
-    reduceTree(template.binders, initElement, viewInjector);
-
-    return view;
-
-    function initElement(parentInjector, binder, index) {
-      var childInjector,
-        element;
+    template.binders.forEach((binder, index) => {
+      var element;
       if (index===0) {
         // the first binder is only a container for NonElementBinders directly on the root
         // of the element.
-        // Don't call it's bind method!
         element = container;
-        childInjector = parentInjector;
       } else {
         element = boundElements[index-1];
-        childInjector = self._bindElement(binder, parentInjector, element);
+        var ngNode = createNgNode(element, view);
+        this._bindAttrs(binder.attrs, ngNode, view);
+        binder.decorators.forEach((decorator) => {
+          var childInjector = viewInjector.createChild(this._getDirectiveProviders(ngNode, decorator));
+          var directiveInstance = childInjector.get(decorator);
+          this._bindDirective(directiveInstance, ngNode, view);
+        });
       }
-      binder.nonElementBinders.forEach((nonElementBinder) => {
-        var nonElementNode = element.childNodes[nonElementBinder.indexInParent];
-        var nonElementInjector = self._bindNonElement(nonElementBinder, childInjector, nonElementNode);
+      binder.nonElementBinders.forEach((nodeBinder) => {
+        var ngNode = createNgNode(element.childNodes[nodeBinder.indexInParent], view);
+        this._bindAttrs(nodeBinder.attrs, ngNode, view);
+        var template = nodeBinder.template;
+        if (template) {
+          var childInjector = viewInjector.createChild(
+              this._getTemplateDirectiveProviders(ngNode, template)
+          );
+          var directiveInstance = childInjector.get(template.directive);
+          this._bindDirective(directiveInstance, ngNode, view);
+        }
       });
-      return childInjector;
-    }
-  }
-  _bindNodeBasic({
-    binder,
-    injector,
-    node,
-    diProviders,
-    directiveClasses
-  }):Injector {
-    var view = injector.get(View);
-
-    @Provide(NgNode)
-    @Inject(Injector)
-    function ngNodeProvider(injector:Injector) {
-      return new NgNode(node, {
-        injector: injector,
-        view: view,
-        directives: []
-      })
-    }
-    // TODO: Only create a new injector if we have
-    // directives!!
-    var providers = [ngNodeProvider].concat(diProviders).concat(directiveClasses);
-
-    var childInjector = injector.createChild(providers);
-    var ngNode = childInjector.get(NgNode);
-    var flushQueue = view.rootView.flushQueue;
-    ngNode.setFlushQueue(flushQueue.push.bind(flushQueue));
-
-    directiveClasses.forEach((directiveClass) => {
-      var directiveInstance = childInjector.get(directiveClass);
-      var annotation = this.annotationProvider(directiveClass, Directive);
-      setupDirectiveObserve(view, ngNode, directiveInstance, annotation.observe || {});
-      setupDirectiveBind(binder, view, ngNode, directiveInstance, annotation.bind || {});
-      addEvalEventHandlers(ngNode, view, directiveInstance, annotation.on || {});
-      ngNode.data.directives.push(directiveInstance);
     });
 
-    setupBindAttr(binder, view, ngNode);
-    addEvalEventHandlers(ngNode, view, view.executionContext, binder.attrs.on || {});
-    return childInjector;
+    return view;
   }
-  _bindNonElement(
-    binder:NonElementBinder,
-    injector:Injector,
-    node:Node
-  ):Injector {
+  _bindAttrs(
+    attrs,
+    ngNode,
+    view
+  ) {
+    // TODO: Change the compiler to only include the properties
+    // that are bound in binder.attrs.init!
+    for (var propName in attrs.init) {
+      ngNode.addProperties([propName]);
+      ngNode[propName] = attrs.init[propName];
+    }
+    setupBindAttr(attrs, view, ngNode);
+    addEvalEventHandlers(ngNode, view, view.executionContext, attrs.on || {});
+  }
+  _bindDirective(directiveInstance, ngNode, view) {
+    var directiveClass = directiveInstance.constructor;
+    var annotation = this.annotationProvider(directiveClass, Directive);
+    setupDirectiveObserve(view, ngNode, directiveInstance, annotation.observe || {});
+    setupDirectiveBind(view, ngNode, directiveInstance, annotation.bind || {});
+    addEvalEventHandlers(ngNode, view, directiveInstance, annotation.on || {});
+    ngNode.data.directives.push(directiveInstance);
+  }
+  _getDirectiveProviders(ngNode, directiveClass) {
+    @Provide(NgNode)
+    function ngNodeProvider() {
+      return ngNode;
+    }
+
+    return [ngNodeProvider, directiveClass];
+  }
+  _getTemplateDirectiveProviders(ngNode, template) {
     var self = this;
     @Provide(ViewPort)
     @Inject(NgNode)
@@ -168,78 +176,16 @@ export class ViewFactory {
       return new ViewPort(ngNode.nativeNode);
     }
     @Provide(BoundViewFactory)
-    @Inject(View)
-    function boundViewFactoryProvider(view) {
+    @Inject(Injector)
+    function boundViewFactoryProvider(injector) {
       return new BoundViewFactory({
         viewFactory: self,
-        template: binder.template.compiledTemplate,
-        parentView: view
-      });
-      return binder.template.viewFactory;
-    }
-
-    var directiveClasses = [];
-    var diProviders = [];
-    if (binder.template) {
-      directiveClasses.push(binder.template.directive);
-      diProviders.push(viewPortProvider, boundViewFactoryProvider);
-    }
-    return this._bindNodeBasic({binder, injector, node, diProviders, directiveClasses});
-  }
-  _bindElement(
-    binder:ElementBinder,
-    injector:Injector,
-    element:HTMLElement
-  ):Injector {
-    var directiveClasses = [];
-    if (binder.decorators) {
-      directiveClasses.push(...binder.decorators);
-    }
-    if (binder.component) {
-      directiveClasses.push(binder.component);
-    }
-    var childInjector = this._bindNodeBasic({binder, injector, node:element, diProviders:[], directiveClasses});
-    if (binder.component) {
-      this._bindComponentTemplate(binder, childInjector, element);
-    }
-    return childInjector;
-  }
-  _bindComponentTemplate(binder:ElementBinder, injector:Injector, element:HTMLElement) {
-    var self = this;
-    // use the component instance as new execution context
-    var componentInstance = injector.get(binder.component);
-    var annotation = this.annotationProvider(binder.component, Directive);
-    if (annotation.cachedTemplate) {
-      createView(annotation.cachedTemplate);
-    } else {
-      annotation.template.then(function(cachedTemplate) {
-        // Once the promise returned the template, cache it,
-        // as calling promise.then is always asynchronous,
-        // even if the promise is already resolved.
-        annotation.cachedTemplate = cachedTemplate;
-        createView(cachedTemplate);
-      }, function(e) {
-        // TODO: Nicer error handling!
-        console.log(e.stack);
+        template: template.compiledTemplate,
+        parentInjector: injector
       });
     }
-
-    function createView(compiledTemplateAndModules) {
-      var template = compiledTemplateAndModules.template;
-      var view = self.createChildView({
-        parentView: injector.get(View),
-        template: template,
-        executionContext: componentInstance
-      });
-      self._installEventHandler(view, template);
-      if (annotation.shadowDOM) {
-        view.appendTo(createShadowRoot(element));
-      } else {
-        // TODO: Implement the <content> tag for non shadow DOM!
-        element.innerHTML = '';
-        view.appendTo(element);
-      }
-    }
+    return this._getDirectiveProviders(ngNode, template.directive)
+      .concat([viewPortProvider, boundViewFactoryProvider]);
   }
   _installEventHandler(view, template) {
     this.eventHandler.install(
@@ -250,19 +196,31 @@ export class ViewFactory {
 }
 
 export class BoundViewFactory {
-  constructor({viewFactory, template, parentView}) {
+  constructor({viewFactory, template, parentInjector}) {
     this.viewFactory = viewFactory;
     this.template = template;
-    this.parentView = parentView;
+    this.parentInjector = parentInjector;
   }
   createView({executionContext = null, injectorConfig = null} = {executionContext:null, injectorConfig:null}) {
+    // TODO: If we have an injectorConfig, create an intermediate injector here!
     return this.viewFactory.createChildView({
       template: this.template,
-      parentView: this.parentView,
-      executionContext: executionContext,
-      injectorConfig: injectorConfig
+      parentInjector: this.parentInjector,
+      executionContext: executionContext
     });
   }
+}
+
+function createNgNode(node, view) {
+  var ngNode = node.ngNode;
+  if (!ngNode) {
+    ngNode = new NgNode(node, {
+      view: view,
+      directives: []
+    });
+    ngNode.setFlushQueue((callback) => view.rootView.flushQueue.push(callback));
+  }
+  return ngNode;
 }
 
 function collectEventNames(template, annotationProvider, target) {
@@ -297,22 +255,6 @@ function collectEventNames(template, annotationProvider, target) {
   return target;
 }
 
-function setupBindAttr(binder, view, ngNode) {
-  var attrName;
-  if (binder.attrs && binder.attrs.bind) {
-    for (attrName in binder.attrs.bind) {
-      ngNode.addProperties([attrName]);
-      setupBidiBinding({
-        view, ngNode,
-        property: attrName,
-        expression: binder.attrs.bind[attrName],
-        context: view.executionContext,
-        initNodeFromContext: true
-      });
-    }
-  }
-}
-
 function addEvalEventHandlers(ngNode, view, context, expressions) {
   for (var eventName in expressions) {
     var events = ngNode.data.events = ngNode.data.events || {};
@@ -328,8 +270,36 @@ function addEvalEventHandlers(ngNode, view, context, expressions) {
   }
 }
 
+function setupBindAttr(attrs, view, ngNode) {
+  var attrName;
+  if (attrs && attrs.bind) {
+    for (attrName in attrs.bind) {
+      setupBidiBinding({
+        view, ngNode,
+        property: attrName,
+        expression: attrs.bind[attrName],
+        context: view.executionContext,
+        initNodeFromContext: true
+      });
+    }
+  }
+}
+
+function setupDirectiveBind(view, ngNode, directiveInstance, boundExpressions) {
+  for (var propName in boundExpressions) {
+    setupBidiBinding({
+      view, ngNode,
+      property: propName,
+      expression: boundExpressions[propName],
+      context: directiveInstance,
+      initContextFromNode: true
+    });
+  }
+}
+
 function setupBidiBinding({view, ngNode, property, expression, context,
     initNodeFromContext = false, initContextFromNode = false }) {
+  ngNode.addProperties([property]);
   if (initNodeFromContext) {
     ngNode[property] = view.evaluate(expression, context);
   } else if (initContextFromNode) {
@@ -356,22 +326,6 @@ function setupDirectiveObserve(view, ngNode, directiveInstance, observedExpressi
     view.watch(expression, function(newValue, oldValue) {
       directiveInstance[methodName](newValue, oldValue);
     }, directiveInstance);
-  }
-}
-
-function setupDirectiveBind(binder, view, ngNode, directiveInstance, boundExpressions) {
-  for (var propName in boundExpressions) {
-    ngNode.addProperties([propName]);
-    if (propName in binder.attrs.init) {
-      ngNode[propName] = binder.attrs.init[propName];
-    }
-    setupBidiBinding({
-      view, ngNode,
-      property: propName,
-      expression: boundExpressions[propName],
-      context: directiveInstance,
-      initContextFromNode: true
-    });
   }
 }
 

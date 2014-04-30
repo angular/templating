@@ -1,9 +1,10 @@
+import {Provide} from 'di';
 import {ComponentDirective} from 'templating';
-import {promise as greetTemplate} from './greet.html';
+import {ChangeEventConfig} from 'templating';
 
+// component
 @ComponentDirective({
-  selector: 'exp-greet',
-  template: greetTemplate
+  selector: 'exp-greet'
 })
 export class FirstComponent {
   constructor() {
@@ -22,4 +23,15 @@ export class FirstComponent {
   incCounter() {
     this.counter++;
   }
+}
+
+// config for DI
+@Provide(ChangeEventConfig)
+export function GreetChangeEventConfig() {
+  var res = [];
+  res.push(...ChangeEventConfig());
+  res.push({
+    nodeName: 'x-toggle', events: ['change'], properties: ()=>['checked']
+  });
+  return res;
 }

@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="import" href="/third_party/brick/brick.html">
+  <link rel="import" href="../templating.html">
+</head>
+<body>
+  <angular-element name="exp-greet">
+    <script type="module" is="requirejs-module" src="greet"></script>
+    <script type="module" is="requirejs-module" src="../ngIf"></script>
+
+    <template>
+        <x-toggle label="Has child" bind-checked="hasChild"></x-toggle>
+        <input type="text" class="username" bind-value="user">
+        <span class="message">{{greet(user)}}</span>
+        <button on-click="incCounter()">Add</button>
+        <p>
+        <exp-greet bind-ng-if="hasChild" ng-if></exp-greet>
+        </p>
+    </template>
+  </angular-element>
+</body>
+
+
+
+
+
+

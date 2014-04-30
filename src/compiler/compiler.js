@@ -19,6 +19,9 @@ import {AnnotationProvider} from '../util/annotation_provider';
  *
  * Lifetime: immutable for the duration of application.
  */
+
+// TODO:
+// - don't create a tree as output, only an array of binders!
 export class Compiler {
   constructor(@InjectLazy(Selector) selectorFactory, @Inject(AnnotationProvider) annotationProvider) {
     this.selectorFactory = selectorFactory;

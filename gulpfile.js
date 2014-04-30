@@ -3,7 +3,6 @@ var pipe = require('pipe/gulp');
 var connect = require('gulp-connect');
 var traceur = require('gulp-traceur');
 var through = require('through2');
-// var precompile = require('./gulp-precompile');
 
 var path = {
   src: ['./src/**/*.js'],
@@ -43,13 +42,6 @@ gulp.task('build_examples', ['build_deps'], function() {
       .pipe(gulp.dest('temp/examples'));
   gulp.src(path.exampleTemplates)
       .pipe(gulp.dest('temp/examples'));
-  /* TODO: Not working yet...
-  gulp.src(path.exampleTemplates)
-      .pipe(precompile())
-      .pipe(traceur({}))
-      .pipe(rename(/html$/, 'js'))
-      .pipe(gulp.dest('test/examples/'));
-  **/
 });
 
 gulp.task('build_deps', function() {
@@ -119,79 +111,3 @@ gulp.task('shrinkwrap', function() {
     .pipe(gulp.dest('.'));
 });
 
-
-// TODO(vojta): extract into a gulp plugin
-var requirejs = require('requirejs');
-var patchFn = require('./utils/loader');
-var jsdom = require('jsdom');
-var classListPolyfill = require('./utils/jsdom_classlist_polyfill');
-
-gulp.task('templates', function() {
-
-  // Create jsdom instance
-  var document = jsdom.jsdom('<html></html>', null, {
-    features: {
-      FetchExternalResources : false,
-      ProcessExternalResources : false
-    }
-  });
-  var window = document.createWindow();
-
-  classListPolyfill(window.self);
-
-  // Stuff that is used even when requiring precompiler and its deps.
-  global.document = window.document;
-  global.Node = window.Node;
-  global.Comment = window.Comment;
-  global.HTMLElement = window.HTMLElement;
-  global.HTMLInputElement = window.HTMLInputElement;
-  global.HTMLSelectElement = window.HTMLSelectElement;
-  global.Text = window.Text;
-
-  // Patch RequireJS (to run all *.html files through the compile_ng_template plugin).
-  var patchedRequireJs = patchFn(global.requirejsVars.requirejs);
-  global.requirejsVars.requirejs = patchedRequireJs;
-  global.requirejs = patchedRequireJs;
-  global.requirejsVars.define = patchFn(global.requirejsVars.define);
-
-  patchedRequireJs.config({
-    paths: {
-      'deps': process.cwd() + '/node_modules',
-      'examples': process.cwd() + '/temp/examples',
-      'dist': process.cwd() + '/dist'
-    },
-    map: {
-      '*': {
-        'templating': 'dist/amd/index',
-        'compile_ng_template': 'dist/amd/node/require_plugin',
-        'di': 'deps/di/dist/amd/index',
-        'rtts-assert': 'deps/rtts-assert/dist/amd/assert',
-        'expressionist': 'deps/expressionist/dist/amd/index',
-        'watchtower': 'deps/watchtower/dist/amd/index'
-      }
-    }
-  });
-
-  gulp.src('examples/*.html')
-      .pipe(through.obj(function(file, _, done) {
-        var stream = this;
-
-        patchedRequireJs(['traceur/bin/traceur-runtime', 'es6-shim'], function() {
-          var relativeTemplatePath = file.path.replace(file.cwd + '/', '');
-
-          patchedRequireJs([relativeTemplatePath], function(module) {
-            module.promise.then(function(data) {
-              file.contents = new Buffer(data.es6Source);
-              stream.push(file);
-              done();
-            }, function(e) {
-              // TODO(vojta): nice error handling ;-)
-              console.log(e.stack)
-            })
-          });
-        });
-      }))
-      .pipe(traceur(pipe.traceur()))
-      .pipe(rename(/\.html$/, '.html.js'))
-      .pipe(gulp.dest('temp/examples/'))
-})

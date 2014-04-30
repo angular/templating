@@ -14,6 +14,6 @@ export {
 export {
   ChangeEventConfig
 } from './event_handler';
-export {
-  bootstrap
-} from './bootstrap';
+
+import {registerAngularElement} from './angular_element';
+registerAngularElement(window.document);
