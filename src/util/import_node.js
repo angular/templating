@@ -1,7 +1,11 @@
 var nextImportId = 1;
-
 var importParameters = {};
 
+/*
+ * imports the given fragment and provides parameters for custom elements
+ * that are contained in the fragment. The custom elements can read out the
+ * parameters via the #getImportParameters in their createdCallback method.
+ */
 export function importFragment(targetDoc, fragment:DocumentFragment, parameters) {
   var hasChildElements = fragment.children.length > 0;
   var importId;

@@ -7,7 +7,8 @@ import {Parser} from 'expressionist';
 
 import { GetterCache, DirtyCheckingChangeDetector } from 'watchtower';
 import { WatchGroup, RootWatchGroup} from 'watchtower';
-import { NgNode, ArrayOfNgNode } from './ng_node';
+
+import { NodeAwareChangeNotifier } from './change_notifier';
 
 /*
  * View represents a DOM with bound Directives.
@@ -25,8 +26,9 @@ export class View extends LinkedListItem {
       this.watchGrp = this.parentView.watchGrp.newGroup(this.executionContext);
     } else {
       this.rootView = this;
+      this.changeNotifier = injector.get(NodeAwareChangeNotifier);
       // TODO: Refactor this setup, use DI
-      this.detector = new DirtyCheckingChangeDetector(new GetterCache({}));
+      this.detector = new DirtyCheckingChangeDetector(new GetterCache({}), this.changeNotifier);
       this.watchGrp = new RootWatchGroup(this.detector, this.executionContext);
     }
     this.parser = injector.get(Parser);
@@ -60,6 +62,9 @@ export class View extends LinkedListItem {
     node.appendChild(this._fragment);
     this.removed = false;
   }
+  notifyChange(obj) {
+    this.rootView.notifyChange(obj);
+  }
   watch(expression:string, callback:Function, context:Object=null) {
     this._checkDestroyed();
     // TODO: How to get the filters??
@@ -67,7 +72,17 @@ export class View extends LinkedListItem {
     //    imports resp. in the data that is given to compile()!
     var filters = null;
     var watchAst = this.watchParser.parse(expression, filters, false, context);
-    this.watchGrp.watch(watchAst, callback);
+    var watch = this.watchGrp.watch(watchAst, callback);
+    return {
+      remove: watch.remove.bind(watch),
+      check: ()=>{
+        // TODO: This should go into WatchTower!
+        if (watch._record.check()) {
+          watch._dirty = true;
+        }
+        watch.invoke();
+      }
+    };
   }
   // TODO: Maybe change interface in view: merge evaluate, assign into one function
   // that returns an object that only has the assign method if the expression is assignable
@@ -103,9 +118,13 @@ export class RootView extends View {
     super(null, container, injector, executionContext);
     this.flushQueue = [];
   }
+  notifyChange(object) {
+    this.changeNotifier.notify(object);
+  }
   digest() {
     // TODO: Make the TTL configurable!
     var ttl = 5, count;
+    var debug = false;
     do {
       if (ttl == 0) {
         // TODO: Add change log information to the error, see
@@ -113,7 +132,17 @@ export class RootView extends View {
         throw new Error('Model did not stabilize.');
       }
       ttl--;
-      count = this.watchGrp.detectChanges();
+      if (debug) {
+        console.log('start digest loop');
+      }
+      count = this.watchGrp.detectChanges(null, function() {
+        if (debug) {
+          console.log('...', arguments);
+        }
+      });
+      if (debug) {
+        console.log('end digest loop');
+      }
     } while (count);
 
     while (this.flushQueue.length) {

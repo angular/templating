@@ -8,7 +8,6 @@ import {SimpleNodeContainer} from '../util/simple_node_container';
 import {DirectiveClass, ArrayOfDirectiveClass} from './directive_class';
 import {Selector, SelectedElementBindings} from './selector';
 import {Directive, TemplateDirective} from '../annotations';
-import {TreeArray, reduceTree} from '../util/tree_array';
 import {Inject, InjectLazy} from 'di';
 import {AnnotationProvider} from '../util/annotation_provider';
 

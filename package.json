@@ -14,7 +14,7 @@
   "dependencies": {
     "di": "~2.0.0-pre-6",
     "expressionist": "angular/expressionist.js",
-    "watchtower": "angular/watchtower.js",
+    "watchtower": "angular/watchtower.js#notifier",
     "zone.js": "angular/zone.js",
     "traceur": "vojtajina/traceur-compiler#add-es6-pure-transformer-dist"
   },

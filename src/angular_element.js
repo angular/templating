@@ -75,7 +75,6 @@ export function register(doument, name, provides, component, directives, templat
 
   var proto = Object.create(HTMLElement.prototype);
   // TODO: copy all the methods from component.class over to proto
-  // with a proxy that uses ngNode!
 
   proto.createdCallback = function() {
     var self = this;
@@ -98,8 +97,8 @@ export function register(doument, name, provides, component, directives, templat
       window.zone.fork({
         afterTask: function () {
           // TODO: Check if the watchgroup is suspended and not digest then.
-          if (componentView) {
-            componentView.digest();
+          if (self.ngView) {
+            self.ngView.digest();
           }
         },
         onError: function(err) {
@@ -111,7 +110,7 @@ export function register(doument, name, provides, component, directives, templat
     // TODO: Suspend the WatchGroup
 
     function createView() {
-      componentView = viewFactory.createComponentView({
+      self.ngView = viewFactory.createComponentView({
         parentInjector, element:self, component:component.clazz, template: compiledTemplate
       });
     }
@@ -119,12 +118,10 @@ export function register(doument, name, provides, component, directives, templat
 
   proto.attachedCallback = function() {
     // TODO: resume the watchgroup
-    var view = this.ngNode.data.componentView;
   };
 
   proto.detachedCallback = function() {
     // TODO: suspend the watchgroup
-    var view = this.ngNode.data.componentView;
   };
 
   document.registerElement(name, {

@@ -14,7 +14,7 @@
     },
     "watchtower": {
       "version": "0.0.1",
-      "from": "git://github.com/angular/watchtower.js#master",
+      "from": "git://github.com/angular/watchtower.js#notifier",
       "dependencies": {}
     },
     "zone.js": {

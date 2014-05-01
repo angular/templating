@@ -13,9 +13,7 @@ The templating engine for Angular 2.0.
 ## Running the Samples
 
 1. At the command prompt, start the development web server with `gulp build watch serve`
-2. Open a browser and navigate to [http://localhost:8000/temp/examples/helloworld.html?compile_templates](http://localhost:8000/temp/examples/helloworld.html?compile_templates)
-
->> **Note:** Without the query string, the sample uses precompiled templates, which you can build with `gulp templates`.
+2. Open a browser and navigate to [http://localhost:8000/temp/examples/index.html](http://localhost:8000/temp/examples/index.html)
 
 ## Development
 

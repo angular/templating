@@ -58,7 +58,6 @@ function splitCss(selector:string):ArrayOfSelectorPart {
 export class SelectedElementBindings {
   constructor() {
     this.decorators = [];
-    this.component = null;
     this.template = null;
     this.directives = [];
     this.attrs = {
@@ -73,13 +72,12 @@ export class SelectedElementBindings {
     }
   }
   addDirective(directive:DirectiveClass) {
-    this.directives.push(directive);
     if (directive.annotation instanceof TemplateDirective) {
       this.template = directive;
-    } else if (directive.annotation instanceof ComponentDirective) {
-      this.component = directive;
+      this.directives.push(directive);
     } else if (directive.annotation instanceof DecoratorDirective) {
       this.decorators.push(directive);
+      this.directives.push(directive);
     }
   }
 }
