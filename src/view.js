@@ -72,24 +72,24 @@ export class View extends LinkedListItem {
     //    imports resp. in the data that is given to compile()!
     var filters = null;
     var watchAst = this.watchParser.parse(expression, filters, false, context);
-    var watch = this.watchGrp.watch(watchAst, callback);
-    return {
-      remove: watch.remove.bind(watch),
-      check: ()=>{
-        // TODO: This should go into WatchTower!
-        if (watch._record.check()) {
-          watch._dirty = true;
-        }
-        watch.invoke();
-      }
-    };
+    this.watchGrp.watch(watchAst, callback);
   }
   // TODO: Maybe change interface in view: merge evaluate, assign into one function
   // that returns an object that only has the assign method if the expression is assignable
-  assign(expression:string, value=null, context:Object=null) {
+  assign(expression:string, value=null, context:Object=null, notify:boolean=false) {
     this._checkDestroyed();
     var parsedExpr = this.parser.parse(expression);
-    parsedExpr.bind(context || this.executionContext).assign(value);
+    context = context || this.executionContext;
+    parsedExpr.bind(context).assign(value);
+    if (notify) {
+      var object;
+      if (parsedExpr.object) {
+        object = parsedExpr.object.bind(context).eval();
+      } else {
+        object = context;
+      }
+      this.notifyChange(object);
+    }
   }
   isAssignable(expression:string) {
     var parsedExpr = this.parser.parse(expression);

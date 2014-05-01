@@ -133,14 +133,14 @@ export class ViewFactory {
     for (var propName in attrs.init) {
       node[propName] = attrs.init[propName];
     }
-    setupBindAttr(attrs, view, node);
+    setupBidiBinding(view, node, view.executionContext, attrs.bind || {});
     addEvalEventHandlers(node, view, view.executionContext, attrs.on || {});
   }
   _bindDirective(directiveInstance, node, view) {
     var directiveClass = directiveInstance.constructor;
     var annotation = this.annotationProvider(directiveClass, Directive);
     setupDirectiveObserve(view, directiveInstance, annotation.observe || {});
-    setupDirectiveBind(view, node, directiveInstance, annotation.bind || {});
+    setupBidiBinding(view, node, directiveInstance, annotation.bind || {});
     addEvalEventHandlers(node, view, directiveInstance, annotation.on || {});
   }
   _getDirectiveProviders(node, directiveClass) {
@@ -200,62 +200,37 @@ function addEvalEventHandlers(node, view, context, expressions) {
   }
 }
 
-function setupBindAttr(attrs, view, node) {
-  var attrName;
-  if (attrs && attrs.bind) {
-    for (attrName in attrs.bind) {
-      setupBidiBinding({
-        view, node,
-        property: attrName,
-        expression: attrs.bind[attrName],
-        context: view.executionContext,
-        initNodeFromContext: true
-      });
-    }
+function setupBidiBinding(view, source, target, expressionMapping) {
+  for (var sourceExpr in expressionMapping) {
+    setupBinding(view,
+      [{
+        context: source,
+        expression: sourceExpr
+      },{
+        context: target,
+        expression: expressionMapping[sourceExpr]
+      }]
+    );
   }
+
 }
 
-function setupDirectiveBind(view, node, directiveInstance, boundExpressions) {
-  for (var propName in boundExpressions) {
-    setupBidiBinding({
-      view, node,
-      property: propName,
-      expression: boundExpressions[propName],
-      context: directiveInstance,
-      initContextFromNode: true
+function setupBinding(view, contextWithExpressions) {
+  var assignableExpressions = [];
+  contextWithExpressions.forEach(({context, expression}, index) => {
+    assignableExpressions[index] = view.isAssignable(expression);
+    view.watch(expression, function(newValue) {
+      update(newValue, index);
+    }, context);
+  });
+
+  function update(newValue, sourceIndex) {
+    contextWithExpressions.forEach(({context, expression}, index) => {
+      if (assignableExpressions[index] && index !== sourceIndex) {
+        view.assign(expression, newValue, context, true);
+      }
     });
   }
-}
-
-function setupBidiBinding({view, node, property, expression, context,
-    initNodeFromContext = false, initContextFromNode = false }) {
-  if (initNodeFromContext) {
-    node[property] = view.evaluate(expression, context);
-  } else if (initContextFromNode) {
-    view.assign(expression, node[property], context);
-  }
-  var inSync = false;
-  var nodeWatch;
-  if (view.isAssignable(expression)) {
-    nodeWatch = view.watch(property, function(newValue) {
-      if (inSync) {
-        return;
-      }
-      // TODO: Assign should call notifyChange automatically
-      // - maybe pass in a flag
-      // - need to find out the last object in the expression though...
-      view.assign(expression, newValue, context);
-    }, node);
-  }
-  var contextWatch = view.watch(expression, function(newValue) {
-    if (inSync) {
-      return;
-    }
-    node[property] = newValue;
-    inSync = true;
-    view.notifyChange(node);
-    inSync = false;
-  }, context);
 }
 
 function setupDirectiveObserve(view, directiveInstance, observedExpressions) {
