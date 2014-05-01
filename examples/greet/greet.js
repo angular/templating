@@ -13,6 +13,7 @@ export class FirstComponent {
   constructor() {
     this.counter = 0;
     this.user = null;
+    this.userValid = {};
   }
 
   greet(name) {
