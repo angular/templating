@@ -50,7 +50,7 @@ export class ViewFactory {
       [viewProvider, nodeProvider, component]
     );
     var componentInstance = viewInjector.get(component);
-    // TODO: install event handlers for Directive.events properties
+
     var view = viewInjector.get(View);
     this._bindDirective(componentInstance, element, view);
 
@@ -133,14 +133,14 @@ export class ViewFactory {
       node[propName] = attrs.init[propName];
     }
     setupBidiBinding(view, node, view.executionContext, attrs.bind || {});
-    addEvalEventHandlers(node, view, view.executionContext, attrs.on || {});
+    setupEventHandlers(node, view, view.executionContext, attrs.on || {});
   }
   _bindDirective(directiveInstance, node, view) {
     var directiveClass = directiveInstance.constructor;
     var annotation = this.annotationProvider(directiveClass, Directive);
     setupDirectiveObserve(view, directiveInstance, annotation.observe || {});
     setupBidiBinding(view, node, directiveInstance, annotation.bind || {});
-    addEvalEventHandlers(node, view, directiveInstance, annotation.on || {});
+    setupEventHandlers(node, view, directiveInstance, annotation.on || {});
   }
   _getDirectiveProviders(node, directiveClass) {
     @Provide(Node)
@@ -186,7 +186,7 @@ export class BoundViewFactory {
   }
 }
 
-function addEvalEventHandlers(node, view, context, expressions) {
+function setupEventHandlers(node, view, context, expressions) {
   for (var eventName in expressions) {
     node.addEventListener(eventName, createHandler(expressions[eventName]), false);
   }
