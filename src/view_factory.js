@@ -12,18 +12,17 @@ import {AnnotationProvider} from './util/annotation_provider';
 import {AbstractNodeBinder, ElementBinder, NonElementBinder} form './types';
 import {TemplateDirective, ComponentDirective, DecoratorDirective, Directive} from './annotations';
 import {SimpleNodeContainer} from './util/simple_node_container';
-import {Global} from './global';
-import {importFragment} from './util/import_node';
+import {ImportFragment} from './util/import_node';
 
 /*
  * A ViewFactory creates views out of compiled templates.
  */
 export class ViewFactory {
-  @Inject(Injector, AnnotationProvider, Global)
-  constructor(injector:Injector, annotationProvider, global) {
+  @Inject(Injector, AnnotationProvider, ImportFragment)
+  constructor(injector:Injector, annotationProvider, importFragment) {
     this.rootInjector = injector;
     this.annotationProvider = annotationProvider;
-    this.global = global;
+    this.importFragment = importFragment;
   }
   // TODO: Can't have type assertions and destructering params at the same time
   createComponentView({
@@ -81,7 +80,7 @@ export class ViewFactory {
       executionContext = parentView.executionContext;
     }
 
-    var container = importFragment(this.global.document, template.container, parentInjector);
+    var container = this.importFragment(template.container, parentInjector);
 
     @Provide(View)
     @Inject(Injector)
