@@ -19,9 +19,9 @@
   });
 
   ScriptModuleProto.createdCallback = function() {
-    // can't use the src attribute here as
+    // we are using the src property and not the attribute here as
     // we want to get the relative paths from html imports!
-    var moduleUrl = this.src.substring(window.location.href.length);
+    var moduleUrl = getRelativeUrl(this.src, window.location.href);
     var promise = new Promise(function(resolve) {
       require([moduleUrl], function(module) {
         resolve(module);
@@ -38,4 +38,27 @@
     // of <script> tgas when combined with html imports.
     extends: 'script'
   });
+
+  function getRelativeUrl(src, base) {
+    var srcSlashParts = src.split('/');
+    var baseSlashParts = base.split('/');
+    var res = [];
+    for (i=0; i<Math.min(srcSlashParts.length, baseSlashParts.length); i++) {
+      var srcPart = srcSlashParts[i];
+      var basePart = baseSlashParts[i];
+      if (srcPart !== basePart) {
+        break;
+      }
+    }
+    var count = baseSlashParts.length - i - 1;
+    while (count>0) {
+      res.push('..');
+      count--;
+    }
+    while (i<srcSlashParts.length) {
+      res.push(srcSlashParts[i]);
+      i++;
+    }
+    return res.join('/');
+  }
 })();
