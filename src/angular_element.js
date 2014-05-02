@@ -64,6 +64,19 @@ function parseModules(modules, componentName) {
   return {provides, component, directives};
 }
 
+var ngRootViews = [];
+var ngZone = window.zone.fork({
+  afterTask: function () {
+    ngRootViews.forEach((view) => {
+      view.digest();
+    });
+  },
+  onError: function(err) {
+    // TODO(vojta): nice error handling for Tobias
+    console.log(err.stack)
+  }
+});
+
 export function register(doument, name, provides, component, directives, template) {
   // Compile the template only once, using an injector that only contains the
   // modules defined inside of <angular-element>.
@@ -87,40 +100,32 @@ export function register(doument, name, provides, component, directives, templat
     }
     var viewFactory = injector.get(ViewFactory);
     var componentView;
-    if (parentInjector) {
-      createView();
-    }
-    if (!parentInjector) {
-      // Note: We need to create the zone here,
-      // as creating the view will already install
-      // event handlers, ... that the zone needs to intercept.
-      window.zone.fork({
-        afterTask: function () {
-          // TODO: Check if the watchgroup is suspended and not digest then.
-          if (self.ngView) {
-            self.ngView.digest();
-          }
-        },
-        onError: function(err) {
-          // TODO(vojta): nice error handling for Tobias
-          console.log(err.stack)
-        }
-      }).run(createView);
-    }
-    // TODO: Suspend the WatchGroup
-
-    function createView() {
+    this.ngRoot = !parentInjector;
+    ngZone.run(function() {
       self.ngView = viewFactory.createComponentView({
         parentInjector, element:self, component:component.clazz, template: compiledTemplate
       });
-    }
+    });
   };
 
   proto.attachedCallback = function() {
-    // TODO: resume the watchgroup
+    if (this.ngRoot) {
+      ngRootViews.push(this.ngView);
+      this.ngView.digest();
+    } else {
+      // TODO: resume the watchgroup
+    }
   };
 
   proto.detachedCallback = function() {
+    if (this.ngRoot) {
+      var index = ngRootViews.indexOf(this.ngView);
+      if (index !== -1) {
+        ngRootViews.splice(index, 1);
+      }
+    } else {
+      // TODO: suspend the watchgroup
+    }
     // TODO: suspend the watchgroup
   };
 

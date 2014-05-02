@@ -65,21 +65,24 @@ export class View extends LinkedListItem {
   notifyChange(obj) {
     this.rootView.notifyChange(obj);
   }
-  watch(expression:string, callback:Function, context:Object=null) {
+  // TODO: Cannot mix destrucuring arguments with types
+  watch({expression, callback, context=null, collection = false}) {
     this._checkDestroyed();
+    context = context || this.executionContext;
     // TODO: How to get the filters??
     // -> they should be defined in the modules that the template
     //    imports resp. in the data that is given to compile()!
     var filters = null;
-    var watchAst = this.watchParser.parse(expression, filters, false, context);
+    var watchAst = this.watchParser.parse(expression, filters, collection, context);
     this.watchGrp.watch(watchAst, callback);
   }
   // TODO: Maybe change interface in view: merge evaluate, assign into one function
   // that returns an object that only has the assign method if the expression is assignable
-  assign(expression:string, value=null, context:Object=null, notify:boolean=false) {
+  // TODO: Cannot mix destrucuring arguments with types
+  assign({expression, value, context=null, notify=false}) {
     this._checkDestroyed();
-    var parsedExpr = this.parser.parse(expression);
     context = context || this.executionContext;
+    var parsedExpr = this.parser.parse(expression);
     parsedExpr.bind(context).assign(value);
     if (notify) {
       var object;

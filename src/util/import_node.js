@@ -22,6 +22,9 @@ export function ImportFragment() {
     }
     return cloned;
   }
+
+  // TODO: Add createElement(elementName, parameters) as well!
+  // -> rename ImportFragment for this!
 }
 
 export function getImportParameters(element:HTMLElement) {

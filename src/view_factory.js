@@ -50,6 +50,8 @@ export class ViewFactory {
       [viewProvider, nodeProvider, component]
     );
     var componentInstance = viewInjector.get(component);
+    // TODO: Find a nicer place store this and also the directives...
+    element.ngComponent = componentInstance;
 
     var view = viewInjector.get(View);
     this._bindDirective(componentInstance, element, view);
@@ -100,8 +102,8 @@ export class ViewFactory {
       } else {
         element = boundElements[index-1];
         this._bindAttrs(binder.attrs, element, view);
+        var childInjector = viewInjector.createChild(this._getDirectiveProviders(element, binder.decorators));
         binder.decorators.forEach((decorator) => {
-          var childInjector = viewInjector.createChild(this._getDirectiveProviders(element, decorator));
           var directiveInstance = childInjector.get(decorator);
           this._bindDirective(directiveInstance, element, view);
         });
@@ -141,14 +143,15 @@ export class ViewFactory {
     setupDirectiveObserve(view, directiveInstance, annotation.observe || {});
     setupBidiBinding(view, node, directiveInstance, annotation.bind || {});
     setupEventHandlers(node, view, directiveInstance, annotation.on || {});
+    setupDomQueries(node, view, directiveInstance, annotation.query || {});
   }
-  _getDirectiveProviders(node, directiveClass) {
+  _getDirectiveProviders(node, ...directiveClass) {
     @Provide(Node)
     function nodeProvider() {
       return node;
     }
 
-    return [nodeProvider, directiveClass];
+    return [nodeProvider].concat(directiveClass);
   }
   _getTemplateDirectiveProviders(node, template) {
     var self = this;
@@ -216,17 +219,25 @@ function setupBidiBinding(view, source, target, expressionMapping) {
 
 function setupBinding(view, contextWithExpressions) {
   var assignableExpressions = [];
+  var initValue = null;
+  var lastValue;
   contextWithExpressions.forEach(({context, expression}, index) => {
     assignableExpressions[index] = view.isAssignable(expression);
-    view.watch(expression, function(newValue) {
-      update(newValue, index);
-    }, context);
+    initValue = initValue || view.evaluate(expression, context);
+    view.watch({expression, context,
+      callback: (newValue) => update(newValue, index)
+    });
   });
+  update(initValue, -1);
 
   function update(newValue, sourceIndex) {
+    if (newValue === lastValue) {
+      return;
+    }
+    lastValue = newValue;
     contextWithExpressions.forEach(({context, expression}, index) => {
       if (assignableExpressions[index] && index !== sourceIndex) {
-        view.assign(expression, newValue, context, true);
+        view.assign({expression, value:newValue, context, notify:true});
       }
     });
   }
@@ -238,9 +249,44 @@ function setupDirectiveObserve(view, directiveInstance, observedExpressions) {
   }
 
   function initObservedProp(expression, methodName) {
-    view.watch(expression, function(newValue, oldValue) {
-      directiveInstance[methodName](newValue, oldValue);
-    }, directiveInstance);
+    var match = expression.match(/(.*)\[\]$/);
+    var collection = false;
+    if (match) {
+      expression = match[1];
+      collection = true;
+    }
+    view.watch({expression, context:directiveInstance, collection,
+        callback: (...changeData) => directiveInstance[methodName](...changeData)
+    });
+  }
+}
+
+function setupDomQueries(node, view, directiveInstance, queries) {
+  for (var selector in queries) {
+    initQuery(selector, queries[selector]);
+  }
+
+  function initQuery(selector, expression) {
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        refresh(selector, expression);
+      });
+    });
+    observer.observe(node, { childList: true, subtree: true });
+    // TODO: Wait until all children have been upgraded
+    // TODO: Same timing as for the attached callback!
+    window.setTimeout(function() {
+      refresh(selector, expression);
+    },0);
+  }
+
+  function refresh(selector, expression) {
+    // TODO: Make this incremental!
+    var nodes = Array.prototype.slice.call(node.querySelectorAll(selector));
+    nodes = nodes.map((node) => {
+      return node.ngComponent || node;
+    });
+    view.assign({expression, context: directiveInstance, value:nodes, notify:true});
   }
 }
 

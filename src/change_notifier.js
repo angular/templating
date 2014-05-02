@@ -74,6 +74,9 @@ function isNodeDomApi(node, property) {
   if (node.nodeType === Node.TEXT_NODE && property === 'textContent') {
     return false;
   }
+  if (property === 'hidden' || property === 'title') {
+    return false;
+  }
   var cache = isNodeDomApi.cache;
   if (!cache) {
     var propNames = Object.getOwnPropertyNames(document.createElement('span'));
