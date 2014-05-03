@@ -156,7 +156,7 @@ export class ViewFactory {
     for (var propName in attrs.init) {
       node[propName] = attrs.init[propName];
     }
-    setupBidiBinding(view, node, view.executionContext, attrs.bind || {});
+    setupNodeBinding(view, node, view.executionContext, attrs.bind || {});
     setupEventHandlers(node, view, view.executionContext, attrs.on || {});
   }
   _bindDirective(directiveInstance, node, view) {
@@ -165,15 +165,13 @@ export class ViewFactory {
     var directiveClass = directiveInstance.constructor;
     var annotation = this.annotationProvider(directiveClass, Directive);
     setupDirectiveObserve(view, directiveInstance, annotation.observe || {});
-    setupBidiBinding(view, node, directiveInstance, annotation.bind || {});
+    setupNodeBinding(view, node, directiveInstance, annotation.bind || {});
     setupEventHandlers(node, view, directiveInstance, annotation.on || {});
     if (annotation.query) {
       view.attachedCallbacks.push(()=>{
         setupDomQueries(node, view, directiveInstance, annotation.query || []);
       });
     }
-    // TODO: The attached and detached callbacks should be run after a digest of this
-    // view, so they have the initial values from other components...
     if (directiveInstance.attached) {
       view.attachedCallbacks.push(directiveInstance.attached.bind(directiveInstance));
     }
@@ -238,15 +236,18 @@ function setupEventHandlers(node, view, context, expressions) {
   }
 }
 
-function setupBidiBinding(view, source, target, expressionMapping) {
-  for (var sourceExpr in expressionMapping) {
+function setupNodeBinding(view, node, target, expressionMapping) {
+  for (var nodeExpr in expressionMapping) {
+    // The order is important:
+    // A truthy value in the directive/component should overwrite the value
+    // in the node
     setupBinding(view,
       [{
-        context: source,
-        expression: sourceExpr
-      },{
         context: target,
-        expression: expressionMapping[sourceExpr]
+        expression: expressionMapping[nodeExpr]
+      },{
+        context: node,
+        expression: nodeExpr
       }]
     );
   }
@@ -259,6 +260,7 @@ function setupBinding(view, contextWithExpressions) {
   var lastValue;
   contextWithExpressions.forEach(({context, expression}, index) => {
     assignableExpressions[index] = view.isAssignable(expression);
+    // use the first truthy value
     initValue = initValue || view.evaluate(expression, context);
     view.watch({expression, context,
       callback: (newValue) => update(newValue, index)
@@ -298,14 +300,7 @@ function setupDirectiveObserve(view, directiveInstance, observedExpressions) {
 }
 
 function setupDomQueries(node, view, directiveInstance, queries) {
-  if (directiveInstance instanceof ComponentDirective) {
-    afterChildrenUpgrade(()=>{
-      queries.forEach(initQuery);
-    });
-    // TODO
-  } else {
-    queries.forEach(initQuery);
-  }
+  queries.forEach(initQuery);
 
   function initQuery({
       selector = '', decorator = null, expression, collection = true, watch = false
@@ -325,26 +320,22 @@ function setupDomQueries(node, view, directiveInstance, queries) {
   }) {
     var newValue;
     if (selector === '') {
-      var directives = node.ngDirectives || [];
-      newValue = directives.filter((directive) => directive instanceof decorator);
+      newValue = normalizeNode(node);
     } else if (!collection) {
-      var child = normalizeNode(node.querySelector(selector));
-      newValue = normalizeNode(child);
+      newValue = normalizeNode(node.querySelector(selector));
     } else {
       var children = Array.prototype.slice.call(node.querySelectorAll(selector));
       newValue = children.map(normalizeNode);
     }
     view.assign({expression, context: directiveInstance, value:newValue, notify:true});
-  }
 
-  function normalizeNode(node) {
-    return node.ngComponent || node;
-  }
-
-  function afterChildrenUpgrade(callback) {
-    // TODO: Wait until all children have been upgraded
-    // TODO: Same timing as for the attached callback!
-    window.setTimeout(callback, 0);
+    function normalizeNode(node) {
+      if (decorator) {
+        var directives = node.ngDirectives || [];
+        return directives.filter((directive) => directive instanceof decorator);
+      }
+      return node.ngComponent || node;
+    }
   }
 }
 

@@ -55,7 +55,12 @@ export class View extends LinkedListItem {
     }
   }
   _attached() {
-    this.attachedCallbacks.forEach((callback) => callback());
+    // wait until after the first digest loop before calling the attach listeners,
+    // so bindings have been initialized and child views have been
+    // created with an initial version.
+    this.rootView.postEvalQueue.push(()=>{
+      this.attachedCallbacks.forEach((callback) => callback());
+    });
     // TODO: resume the WatchGroup
   }
   _detached() {
@@ -133,6 +138,7 @@ export class RootView extends View {
   constructor(container:NodeContainer, injector:Injector, executionContext:Object = {}) {
     super(null, container, injector, executionContext);
     this.flushQueue = [];
+    this.postEvalQueue = [];
   }
   notifyChange(object) {
     this.changeNotifier.notify(object);
@@ -158,6 +164,9 @@ export class RootView extends View {
       });
       if (debug) {
         console.log('end digest loop');
+      }
+      while (this.postEvalQueue.length) {
+        this.postEvalQueue.shift()();
       }
     } while (count);
 
