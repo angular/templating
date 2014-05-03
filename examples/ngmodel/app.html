@@ -1,0 +1,21 @@
+<link rel="import" href="../templating.html">
+
+<angular-element name="exp-app">
+  <script type="module" is="requirejs-module" src="app"></script>
+  <script type="module" is="requirejs-module" src="ng-model"></script>
+  <script type="module" is="requirejs-module" src="custom-validator"></script>
+
+  <template>
+    <div>
+      <div>
+        Type in 'secret' to make the validation true
+      </div>
+      <input type="url"
+        ng-model
+        bind-ng-model-valid="ngValid"
+        custom-validator>
+      Valid: {{ngValid}}
+    </div>
+  </template>
+</angular-element>
+

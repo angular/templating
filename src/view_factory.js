@@ -24,8 +24,28 @@ export class ViewFactory {
     this.annotationProvider = annotationProvider;
     this.importFragment = importFragment;
   }
+  createComponentView(elementName:string, parentInjector:Injector) {
+    // Important: Use a <template> tag so that the element
+    // is not instantiated right away!
+    var container = document.createElement('template');
+    container.innerHTML = '<'+elementName+'>';
+    var template = {
+      container: container.content,
+      binders: [{
+        nonElementBinders: [],
+        decorators: [],
+        attrs: {
+          init: {},
+          bind: {},
+          on: {}
+        }
+      }]
+    };
+    return this.createChildView({template, parentInjector});
+  }
+  // Called from angular-element
   // TODO: Can't have type assertions and destructering params at the same time
-  createComponentView({
+  _createComponentView({
     element,
     component,
     template,
@@ -46,6 +66,7 @@ export class ViewFactory {
     function nodeProvider() {
       return element;
     }
+
     var viewInjector = (parentInjector||this.rootInjector).createChild(
       [viewProvider, nodeProvider, component]
     );
@@ -91,6 +112,7 @@ export class ViewFactory {
     }
     var viewInjector = parentInjector.createChild([viewProvider]);
     var view = viewInjector.get(View);
+    var attachCallbacks = [];
 
     var boundElements = container.querySelectorAll('.ng-binder');
     template.binders.forEach((binder, index) => {
@@ -102,8 +124,8 @@ export class ViewFactory {
       } else {
         element = boundElements[index-1];
         this._bindAttrs(binder.attrs, element, view);
-        var childInjector = viewInjector.createChild(this._getDirectiveProviders(element, binder.decorators));
         binder.decorators.forEach((decorator) => {
+          var childInjector = viewInjector.createChild(this._getDirectiveProviders(element, decorator));
           var directiveInstance = childInjector.get(decorator);
           this._bindDirective(directiveInstance, element, view);
         });
@@ -138,12 +160,26 @@ export class ViewFactory {
     setupEventHandlers(node, view, view.executionContext, attrs.on || {});
   }
   _bindDirective(directiveInstance, node, view) {
+    node.ngDirectives = node.ngDirectives || [];
+    node.ngDirectives.push(directiveInstance);
     var directiveClass = directiveInstance.constructor;
     var annotation = this.annotationProvider(directiveClass, Directive);
     setupDirectiveObserve(view, directiveInstance, annotation.observe || {});
     setupBidiBinding(view, node, directiveInstance, annotation.bind || {});
     setupEventHandlers(node, view, directiveInstance, annotation.on || {});
-    setupDomQueries(node, view, directiveInstance, annotation.query || {});
+    if (annotation.query) {
+      view.attachedCallbacks.push(()=>{
+        setupDomQueries(node, view, directiveInstance, annotation.query || []);
+      });
+    }
+    // TODO: The attached and detached callbacks should be run after a digest of this
+    // view, so they have the initial values from other components...
+    if (directiveInstance.attached) {
+      view.attachedCallbacks.push(directiveInstance.attached.bind(directiveInstance));
+    }
+    if (directiveInstance.detached) {
+      view.detachedCallbacks.push(directiveInstance.detached.bind(directiveInstance));
+    }
   }
   _getDirectiveProviders(node, ...directiveClass) {
     @Provide(Node)
@@ -262,31 +298,53 @@ function setupDirectiveObserve(view, directiveInstance, observedExpressions) {
 }
 
 function setupDomQueries(node, view, directiveInstance, queries) {
-  for (var selector in queries) {
-    initQuery(selector, queries[selector]);
+  if (directiveInstance instanceof ComponentDirective) {
+    afterChildrenUpgrade(()=>{
+      queries.forEach(initQuery);
+    });
+    // TODO
+  } else {
+    queries.forEach(initQuery);
   }
 
-  function initQuery(selector, expression) {
-    var observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        refresh(selector, expression);
+  function initQuery({
+      selector = '', decorator = null, expression, collection = true, watch = false
+  }) {
+    update({selector, decorator, expression, collection});
+    if (watch) {
+      // TODO: Make this incremental!
+      var observer = new MutationObserver(function() {
+        update({selector, decorator, expression, collection});
       });
-    });
-    observer.observe(node, { childList: true, subtree: true });
+      observer.observe(node, { childList: true, subtree: true });
+    }
+  }
+
+  function update({
+    selector, decorator, expression, collection
+  }) {
+    var newValue;
+    if (selector === '') {
+      var directives = node.ngDirectives || [];
+      newValue = directives.filter((directive) => directive instanceof decorator);
+    } else if (!collection) {
+      var child = normalizeNode(node.querySelector(selector));
+      newValue = normalizeNode(child);
+    } else {
+      var children = Array.prototype.slice.call(node.querySelectorAll(selector));
+      newValue = children.map(normalizeNode);
+    }
+    view.assign({expression, context: directiveInstance, value:newValue, notify:true});
+  }
+
+  function normalizeNode(node) {
+    return node.ngComponent || node;
+  }
+
+  function afterChildrenUpgrade(callback) {
     // TODO: Wait until all children have been upgraded
     // TODO: Same timing as for the attached callback!
-    window.setTimeout(function() {
-      refresh(selector, expression);
-    },0);
-  }
-
-  function refresh(selector, expression) {
-    // TODO: Make this incremental!
-    var nodes = Array.prototype.slice.call(node.querySelectorAll(selector));
-    nodes = nodes.map((node) => {
-      return node.ngComponent || node;
-    });
-    view.assign({expression, context: directiveInstance, value:nodes, notify:true});
+    window.setTimeout(callback, 0);
   }
 }
 

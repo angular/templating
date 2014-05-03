@@ -1,16 +1,11 @@
-<!doctype html>
-<html>
-<head>
-  <link rel="import" href="../templating.html">
-</head>
-<body>
-  <angular-element name="tab-pane">
-    <script type="module" is="requirejs-module" src="tab-pane"></script>
+<link rel="import" href="../templating.html">
 
-    <template>
-        <div bind-hidden="!selected">
-            <content ></content>
-        </div>
-    </template>
-  </angular-element>
-</body>
+<angular-element name="tab-pane">
+  <script type="module" is="requirejs-module" src="tab-pane"></script>
+
+  <template>
+    <div bind-hidden="!selected">
+      <content ></content>
+    </div>
+  </template>
+</angular-element>

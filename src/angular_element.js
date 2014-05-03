@@ -66,7 +66,7 @@ function parseModules(modules, componentName) {
 
 var ngRootViews = [];
 var ngZone = window.zone.fork({
-  afterTask: function () {
+  afterTask: function() {
     ngRootViews.forEach((view) => {
       view.digest();
     });
@@ -77,11 +77,23 @@ var ngZone = window.zone.fork({
   }
 });
 
+function createEmptyComponent(name) {
+  @ComponentDirective({
+      selector: name
+  })
+  class Component {}
+  return {
+    annotation: annotationProvider(Component, ComponentDirective),
+    clazz: Component
+  }
+}
+
 export function register(doument, name, provides, component, directives, template) {
   // Compile the template only once, using an injector that only contains the
   // modules defined inside of <angular-element>.
   // Because of this a template author can overwrite e.g. the symbols to be used for
   // binding.
+  component = component || createEmptyComponent(name);
   var compileInjector = new Injector(provides);
   var compiler = compileInjector.get(Compiler);
   var compiledTemplate = compiler.compileChildNodes(template.content, directives);
@@ -102,19 +114,19 @@ export function register(doument, name, provides, component, directives, templat
     var componentView;
     this.ngRoot = !parentInjector;
     ngZone.run(function() {
-      self.ngView = viewFactory.createComponentView({
+      self.ngView = viewFactory._createComponentView({
         parentInjector, element:self, component:component.clazz, template: compiledTemplate
       });
     });
   };
 
   proto.attachedCallback = function() {
-    if (this.ngRoot) {
-      ngRootViews.push(this.ngView);
-      this.ngView.digest();
-    } else {
-      // TODO: resume the watchgroup
-    }
+    ngZone.run(()=>{
+      if (this.ngRoot) {
+        ngRootViews.push(this.ngView);
+      }
+      this.ngView._attached();
+    });
   };
 
   proto.detachedCallback = function() {
@@ -123,10 +135,8 @@ export function register(doument, name, provides, component, directives, templat
       if (index !== -1) {
         ngRootViews.splice(index, 1);
       }
-    } else {
-      // TODO: suspend the watchgroup
     }
-    // TODO: suspend the watchgroup
+    this.ngView._detached();
   };
 
   document.registerElement(name, {

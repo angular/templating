@@ -20,6 +20,8 @@ export class View extends LinkedListItem {
     super();
     this.injector = injector;
     this.parentView = parentView;
+    this.attachedCallbacks = [];
+    this.detachedCallbacks = [];
     this.executionContext = executionContext;
     if (this.parentView) {
       this.rootView = this.parentView.rootView;
@@ -49,18 +51,29 @@ export class View extends LinkedListItem {
     if (!this.removed) {
       this.removed = true;
       this.nodes.forEach((node) => { this._fragment.appendChild(node); });
+      this._detached();
     }
+  }
+  _attached() {
+    this.attachedCallbacks.forEach((callback) => callback());
+    // TODO: resume the WatchGroup
+  }
+  _detached() {
+    this.detachedCallbacks.forEach((callback) => callback());
+    // TODO: suspend the WatchGroup
   }
   insertBefore(refNode:Node) {
     var parent = refNode.parentNode;
     this._removeIfNeeded();
     parent.insertBefore(this._fragment, refNode);
     this.removed = false;
+    this._attached();
   }
   appendTo(node:Node) {
     this._removeIfNeeded();
     node.appendChild(this._fragment);
     this.removed = false;
+    this._attached();
   }
   notifyChange(obj) {
     this.rootView.notifyChange(obj);

@@ -1,4 +1,3 @@
-import {Provide} from 'di';
 import {ComponentDirective} from 'templating';
 
 @ComponentDirective({

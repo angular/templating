@@ -1,4 +1,3 @@
-import {Provide} from 'di';
 import {ComponentDirective} from 'templating';
 
 @ComponentDirective({
@@ -7,9 +6,12 @@ import {ComponentDirective} from 'templating';
     'tabs': 'tabsChanged'
   },
   shadowDOM: true,
-  query: {
-    'tab-pane': 'tabs'
-  }
+  query: [{
+    selector: 'tab-pane',
+    expression: 'tabs',
+    collection: true,
+    watch: true
+  }]
 })
 export class TabContainer {
   constructor() {
@@ -18,16 +20,17 @@ export class TabContainer {
     // get that child object as current "this", and not our original "this"
     this.select = this.select.bind(this);
   }
-  tabsChanged(tabs) {
-    // select the first tab
-    this.tabs = tabs;
+  selectFirstTab() {
     var oneSelected = false;
-    tabs.forEach((tab) => {
+    this.tabs.forEach((tab) => {
       oneSelected = oneSelected || tab.selected;
     })
-    if (!oneSelected && tabs.length) {
-      this.select(tabs[0]);
+    if (!oneSelected && this.tabs.length) {
+      this.select(this.tabs[0]);
     }
+  }
+  tabsChanged(tabs) {
+    this.selectFirstTab();
   }
   select(tab) {
     if (this.selectedTab) {
