@@ -71,10 +71,17 @@ export class ViewFactory {
       [viewProvider, nodeProvider, component]
     );
     var componentInstance = viewInjector.get(component);
+    var annotation = self.annotationProvider(component, Directive);
+
     // TODO: Find a nicer place store this and also the directives...
     element.ngComponent = componentInstance;
 
     var view = viewInjector.get(View);
+    var shadowRoot;
+    if (annotation.shadowDOM) {
+      shadowRoot = createShadowRoot(element);
+    }
+
     this._bindDirective(componentInstance, element, view);
 
     instantiateTemplate();
@@ -86,9 +93,8 @@ export class ViewFactory {
         template: template,
         executionContext: componentInstance
       });
-      var annotation = self.annotationProvider(component, Directive);
       if (annotation.shadowDOM) {
-        childView.appendTo(createShadowRoot(element));
+        childView.appendTo(shadowRoot);
       } else {
         // TODO: Implement the <content> tag for non shadow DOM!
         element.innerHTML = '';
@@ -154,10 +160,16 @@ export class ViewFactory {
     view
   ) {
     for (var propName in attrs.init) {
-      node[propName] = attrs.init[propName];
+      var initValue = attrs.init[propName];
+      if (initValue) {
+        node[propName] = initValue;
+      }
     }
     setupNodeBinding(view, node, view.executionContext, attrs.bind || {});
     setupEventHandlers(node, view, view.executionContext, attrs.on || {});
+    if (attrs.role) {
+      setupRole(node, view, node, attrs.role);
+    }
   }
   _bindDirective(directiveInstance, node, view) {
     node.ngDirectives = node.ngDirectives || [];
@@ -167,19 +179,18 @@ export class ViewFactory {
     setupDirectiveObserve(view, directiveInstance, annotation.observe || {});
     setupNodeBinding(view, node, directiveInstance, annotation.bind || {});
     setupEventHandlers(node, view, directiveInstance, annotation.on || {});
-    if (annotation.query) {
-      view.attachedCallbacks.push(()=>{
-        setupDomQueries(node, view, directiveInstance, annotation.query || []);
-      });
-    }
+    setupRoleQueries(node, view, directiveInstance, annotation.query || []);
     if (directiveInstance.attached) {
-      view.attachedCallbacks.push(directiveInstance.attached.bind(directiveInstance));
+      view.callbacks.attached.push(directiveInstance.attached.bind(directiveInstance));
     }
     if (directiveInstance.detached) {
-      view.detachedCallbacks.push(directiveInstance.detached.bind(directiveInstance));
+      view.callbacks.detached.push(directiveInstance.detached.bind(directiveInstance));
     }
     if (directiveInstance.moved) {
-      view.movedCallbacks.push(directiveInstance.moved.bind(directiveInstance));
+      view.callbacks.moved.push(directiveInstance.moved.bind(directiveInstance));
+    }
+    if (annotation.role) {
+      setupRole(node, view, directiveInstance, annotation.role);
     }
   }
   _getDirectiveProviders(node, ...directiveClass) {
@@ -302,43 +313,55 @@ function setupDirectiveObserve(view, directiveInstance, observedExpressions) {
   }
 }
 
-function setupDomQueries(node, view, directiveInstance, queries) {
-  queries.forEach(initQuery);
+function setupRole(node, view, target, role) {
+  var roles = node.ngRoles = node.ngRoles || [];
+  roles.push({
+    role: role,
+    target: target
+  });
+  node.classList.add('ng-role-'+role);
+  view.containedRoles.push(role);
+}
 
-  function initQuery({
-      selector = '', decorator = null, expression, collection = true, watch = false
-  }) {
-    update({selector, decorator, expression, collection});
-    if (watch) {
-      // TODO: Make this incremental!
-      var observer = new MutationObserver(function() {
-        update({selector, decorator, expression, collection});
+function setupRoleQueries(node, view, directiveInstance, queryExpressions) {
+  var hasQueries = false;
+  var queries = {};
+  for (var role in queryExpressions) {
+    var expression = queryExpressions[role];
+    var match = role.match(/(:shadow\s*)?(.*?)(\[\])?$/);
+    var collection = !!match[3];
+    role = match[2];
+    var shadow = !!match[1];
+    queries[role] = initQuery(role, expression, collection, shadow);
+    hasQueries = true;
+  }
+  if (hasQueries) {
+    node.addEventListener('ngInvalidateRoles', (event) => {
+      event.detail.roles.forEach((role) => {
+        var query = queries[role];
+        if (query) {
+          view.rootView.invalidRoleQueries.push(query);
+        }
       });
-      observer.observe(node, { childList: true, subtree: true });
-    }
+    });
   }
 
-  function update({
-    selector, decorator, expression, collection
-  }) {
-    var newValue;
-    if (selector === '') {
-      newValue = normalizeNode(node);
-    } else if (!collection) {
-      newValue = normalizeNode(node.querySelector(selector));
-    } else {
-      var children = Array.prototype.slice.call(node.querySelectorAll(selector));
-      newValue = children.map(normalizeNode);
+  function initQuery(role, expression, collection, shadow) {
+    var root = node;
+    if (shadow) {
+      root = node.shadowRoot;
     }
-    view.assign({expression, context: directiveInstance, value:newValue, notify:true});
-
-    function normalizeNode(node) {
-      if (decorator) {
-        var directives = node.ngDirectives || [];
-        return directives.filter((directive) => directive instanceof decorator);
-      }
-      return node.ngComponent || node;
-    }
+    var childNodes = root.getElementsByClassName('ng-role-'+role);
+    var query = {
+      node: node,
+      childNodes: childNodes,
+      role: role,
+      collection: collection,
+      directive: directiveInstance,
+      expression: expression
+    };
+    view.rootView.invalidRoleQueries.push(query);
+    return query;
   }
 }
 

@@ -63,19 +63,22 @@ export class NonElementSelector {
         initAttrsCandidates[this._toCamelCase(attrName)] = attrValue;
       }
     }
-    attrs.init = {};
+    if (attrs['ng-role']) {
+      binder.attrs.role = attrs['ng-role'];
+    }
+    binder.attrs.init = {};
     // fill attrs.init with the attribute values for attributes
     // that are bound via bind- or are bound via Directive.bind
     for (var attrName in attrs.bind) {
       if (attrName in initAttrsCandidates) {
-        attrs.init[attrName] = initAttrsCandidates[attrName];
+        binder.attrs.init[attrName] = initAttrsCandidates[attrName];
       }
     }
     binder.directives.forEach((directive) => {
       var bindAttrs = directive.annotation.bind;
       for (var attrName in bindAttrs) {
         if (attrName in initAttrsCandidates) {
-          attrs.init[attrName] = initAttrsCandidates[attrName];
+          binder.attrs.init[attrName] = initAttrsCandidates[attrName];
         }
       }
     });

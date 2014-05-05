@@ -63,7 +63,8 @@ export class SelectedElementBindings {
     this.attrs = {
       init: {},
       bind: {},
-      on: {}
+      on: {},
+      role: null
     };
   }
   addDirectives(directiveClasses:ArrayOfDirectiveClass){

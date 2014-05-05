@@ -5,11 +5,9 @@ import {ComponentDirective} from 'templating';
   bind: {
     'src': 'src'
   },
-  query: [{
-    selector: '::shadow #video',
-    expression: 'video',
-    collection: false
-  }],
+  query: {
+    ':shadow video': 'video'
+  },
   shadowDOM: true
 })
 export class VideoPlayer {

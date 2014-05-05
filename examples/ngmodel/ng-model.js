@@ -10,11 +10,9 @@ import {Validator} from './validator';
   observe: {
     'value': 'validate'
   },
-  query: [{
-    decorator: Validator,
-    expression: 'validators',
-    collection: true
-  }]
+  query: {
+    'validator[]': 'validators'
+  }
 })
 export class NgModel {
   constructor() {

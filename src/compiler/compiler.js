@@ -55,7 +55,8 @@ class CompileElement {
     element,
     attrs,
     decorators,
-    component
+    component,
+    roles
   }) {
     this.element = element;
     this.attrs = attrs || {
@@ -66,6 +67,7 @@ class CompileElement {
     this.decorators = decorators || [];
     this.component = component || null;
     this.nonElementBinders = [];
+    this.roles = roles || [];
   }
   hasBindings() {
     // Note: don't check attrs.init, as they don't define
@@ -74,6 +76,9 @@ class CompileElement {
       return true;
     }
     for (var prop in this.attrs.on) {
+      return true;
+    }
+    if (this.attrs.role) {
       return true;
     }
     if (this.component || this.decorators.length || this.nonElementBinders.length) {

@@ -6,7 +6,8 @@ import {ComponentDirective} from 'templating';
     'selected': 'selected',
     'title': 'title'
   },
-  shadowDOM: true
+  shadowDOM: true,
+  role: 'tabpane'
 })
 export class TabPane {
   constructor(node:Node) {

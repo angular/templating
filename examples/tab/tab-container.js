@@ -6,12 +6,9 @@ import {ComponentDirective} from 'templating';
     'tabs': 'tabsChanged'
   },
   shadowDOM: true,
-  query: [{
-    selector: 'tab-pane',
-    expression: 'tabs',
-    collection: true,
-    watch: true
-  }]
+  query: {
+    'tabpane[]': 'tabs'
+  }
 })
 export class TabContainer {
   constructor() {

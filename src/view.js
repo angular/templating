@@ -21,9 +21,12 @@ export class View extends LinkedListItem {
     this.injector = injector;
     this.parentView = parentView;
     this.childViews = [];
-    this.attachedCallbacks = [];
-    this.detachedCallbacks = [];
-    this.movedCallbacks = [];
+    this.callbacks = {
+      attached: [],
+      detached: [],
+      moved: []
+    };
+    this.containedRoles = [];
     this.executionContext = executionContext;
     if (this.parentView) {
       this.parentView.childViews.push(this);
@@ -62,13 +65,25 @@ export class View extends LinkedListItem {
     this.removed = false;
     this._notifyAttach = true;
     this.rootView._scheduleAttachDetachNotification();
+    this._invalidateParentRoleQueries();
     // TODO: Enable the WatchGroup again
   }
   _afterRemove() {
     this.removed = true;
     this._notifyDetach = true;
     this.rootView._scheduleAttachDetachNotification();
+    this._invalidateParentRoleQueries();
     // TODO: Disable the WatchGroup
+  }
+  _invalidateParentRoleQueries() {
+    if (this.containedRoles.length) {
+      var firstNode = this.nodes[0];
+      firstNode.dispatchEvent(new CustomEvent('ngInvalidateRoles', {
+        bubbles: true,
+        cancelable: true,
+        detail: { roles: this.containedRoles }
+      }));
+    }
   }
   insertBefore(refNode:Node) {
     var parent = refNode.parentNode;
@@ -130,7 +145,7 @@ export class View extends LinkedListItem {
         this.parentView.childViews.splice(index, 1);
       }
       if (this._notifyDetach) {
-        this.detachedCallbacks.forEach((callback) => callback());
+        this.callbacks.detached.forEach((callback) => callback());
       }
     }
     this.destroyed = true;
@@ -146,6 +161,7 @@ export class RootView extends View {
   constructor(container:NodeContainer, injector:Injector, executionContext:Object = {}) {
     super(null, container, injector, executionContext);
     this.flushQueue = [];
+    this.invalidRoleQueries = [];
   }
   notifyChange(object) {
     this.changeNotifier.notify(object);
@@ -158,10 +174,19 @@ export class RootView extends View {
       return false;
     }
     this._attachDetachNotifyScheduled = false;
-    walkView(this, null);
+    var callbacks = [];
+    walkView(this, null, callbacks);
+    // call the callbacks bottom up, i.e. in reverse order,
+    // so the parents know that their children are already up to date
+    for (var i=callbacks.length-1; i>=0; i--) {
+      callbacks[i]();
+    }
+
     return true;
 
-    function walkView(view, defaultAction) {
+    // TODO: Maybe call the callbacks bottom up,
+    // after collecting what work to do for which view?
+    function walkView(view, defaultAction, callbacks) {
       var action;
       if (!view.removed && defaultAction) {
         action = defaultAction;
@@ -175,14 +200,36 @@ export class RootView extends View {
       view._notifyDetach = false;
       view._notifyAttach = false;
       if (action) {
-        var callbacks = view[action+'Callbacks'];
-        callbacks.forEach((cb) => cb());
+        var viewCallbacks = view.callbacks[action];
+        callbacks.push(...viewCallbacks.map((cb) => cb.bind(view)));
       }
       if (!view.removed) {
         view.childViews.forEach((childView) => {
-          walkView(childView, action);
+          walkView(childView, action, callbacks);
         });
       }
+    }
+  }
+  _revalidateRoleQueries() {
+    while (this.invalidRoleQueries.length) {
+      var query = this.invalidRoleQueries.shift();
+      var nodes = Array.prototype.slice.call(query.childNodes);
+      if (query.node.classList.contains('ng-role-'+query.role)) {
+        nodes.push(query.node);
+      }
+      var result = [];
+      for (var i=0, ii=nodes.length; i<ii; i++) {
+        var node = nodes[i];
+        node.ngRoles.forEach((entry) => {
+          if (entry.role === query.role) {
+            result.push(entry.target);
+          }
+        });
+      }
+      if (!query.collection) {
+        result = result.length ? result[0] : null;
+      }
+      this.assign({expression:query.expression, value:result, context:query.directive});
     }
   }
   digest() {
@@ -204,6 +251,7 @@ export class RootView extends View {
           console.log('...', arguments);
         }
       });
+      this._revalidateRoleQueries();
       this._invokeAttachDetachNotifications();
       if (debug) {
         console.log('end digest loop');

@@ -14,7 +14,7 @@ export function registerAngularElement(document) {
 
     // Wait until the custom elements for child <script type="module"> elements have been upgraded
     // We assume that they are in the same template, i.e. the browser should upgrade them in the same turn.
-    window.setTimeout(run.bind(this), 0);
+    waitForChildElementUpgrade(run.bind(this))
 
     function run() {
       var moduleEls = Array.prototype.slice.call(this.querySelectorAll('script[type="module"]'));
@@ -121,22 +121,28 @@ export function register(doument, name, provides, component, directives, templat
   };
 
   proto.attachedCallback = function() {
-    ngZone.run(()=>{
-      if (this.ngRoot) {
-        ngRootViews.push(this.ngView);
-      }
-      this.ngView._afterInsert();
+    ngZone.run( ()=> {
+      waitForChildElementUpgrade(()=>{
+        if (this.ngRoot) {
+          ngRootViews.push(this.ngView);
+        }
+        this.ngView._afterInsert();
+      });
     });
   };
 
   proto.detachedCallback = function() {
-    if (this.ngRoot) {
-      var index = ngRootViews.indexOf(this.ngView);
-      if (index !== -1) {
-        ngRootViews.splice(index, 1);
-      }
-    }
-    this.ngView._afterRemove();
+    ngZone.run( ()=> {
+      waitForChildElementUpgrade(()=>{
+        if (this.ngRoot) {
+          var index = ngRootViews.indexOf(this.ngView);
+          if (index !== -1) {
+            ngRootViews.splice(index, 1);
+          }
+        }
+        this.ngView._afterRemove();
+      });
+    });
   };
 
   document.registerElement(name, {
@@ -144,3 +150,8 @@ export function register(doument, name, provides, component, directives, templat
   });
 }
 
+// TODO: We need to find a better way here,
+// as otherwise we get FOUC!
+function waitForChildElementUpgrade(callback) {
+  window.setTimeout(callback, 0);
+}

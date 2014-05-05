@@ -4,4 +4,7 @@ import {ComponentDirective} from 'templating';
   selector: 'app'
 })
 export class App {
+    constructor() {
+        this.route = null;
+    }
 }
