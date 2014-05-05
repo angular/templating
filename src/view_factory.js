@@ -178,6 +178,9 @@ export class ViewFactory {
     if (directiveInstance.detached) {
       view.detachedCallbacks.push(directiveInstance.detached.bind(directiveInstance));
     }
+    if (directiveInstance.moved) {
+      view.movedCallbacks.push(directiveInstance.moved.bind(directiveInstance));
+    }
   }
   _getDirectiveProviders(node, ...directiveClass) {
     @Provide(Node)

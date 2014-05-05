@@ -125,7 +125,7 @@ export function register(doument, name, provides, component, directives, templat
       if (this.ngRoot) {
         ngRootViews.push(this.ngView);
       }
-      this.ngView._attached();
+      this.ngView._afterInsert();
     });
   };
 
@@ -136,7 +136,7 @@ export function register(doument, name, provides, component, directives, templat
         ngRootViews.splice(index, 1);
       }
     }
-    this.ngView._detached();
+    this.ngView._afterRemove();
   };
 
   document.registerElement(name, {

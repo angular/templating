@@ -20,10 +20,13 @@ export class View extends LinkedListItem {
     super();
     this.injector = injector;
     this.parentView = parentView;
+    this.childViews = [];
     this.attachedCallbacks = [];
     this.detachedCallbacks = [];
+    this.movedCallbacks = [];
     this.executionContext = executionContext;
     if (this.parentView) {
+      this.parentView.childViews.push(this);
       this.rootView = this.parentView.rootView;
       this.watchGrp = this.parentView.watchGrp.newGroup(this.executionContext);
     } else {
@@ -45,40 +48,38 @@ export class View extends LinkedListItem {
       this._fragment = document.createDocumentFragment();
       this.removed = false;
     }
+    this._notifyAttach = false;
+    this._notifyDetach = false;
   }
   _removeIfNeeded() {
     this._checkDestroyed();
     if (!this.removed) {
-      this.removed = true;
       this.nodes.forEach((node) => { this._fragment.appendChild(node); });
-      this._detached();
+      this._afterRemove();
     }
   }
-  _attached() {
-    // wait until after the first digest loop before calling the attach listeners,
-    // so bindings have been initialized and child views have been
-    // created with an initial version.
-    this.rootView.postEvalQueue.push(()=>{
-      this.attachedCallbacks.forEach((callback) => callback());
-    });
-    // TODO: resume the WatchGroup
+  _afterInsert() {
+    this.removed = false;
+    this._notifyAttach = true;
+    this.rootView._scheduleAttachDetachNotification();
+    // TODO: Enable the WatchGroup again
   }
-  _detached() {
-    this.detachedCallbacks.forEach((callback) => callback());
-    // TODO: suspend the WatchGroup
+  _afterRemove() {
+    this.removed = true;
+    this._notifyDetach = true;
+    this.rootView._scheduleAttachDetachNotification();
+    // TODO: Disable the WatchGroup
   }
   insertBefore(refNode:Node) {
     var parent = refNode.parentNode;
     this._removeIfNeeded();
     parent.insertBefore(this._fragment, refNode);
-    this.removed = false;
-    this._attached();
+    this._afterInsert();
   }
   appendTo(node:Node) {
     this._removeIfNeeded();
     node.appendChild(this._fragment);
-    this.removed = false;
-    this._attached();
+    this._afterInsert();
   }
   notifyChange(obj) {
     this.rootView.notifyChange(obj);
@@ -124,6 +125,13 @@ export class View extends LinkedListItem {
   destroy() {
     if (this.rootView !== this) {
       this.watchGrp.remove();
+      var index = this.parentView.childViews.indexOf(this);
+      if (index !== -1) {
+        this.parentView.childViews.splice(index, 1);
+      }
+      if (this._notifyDetach) {
+        this.detachedCallbacks.forEach((callback) => callback());
+      }
     }
     this.destroyed = true;
   }
@@ -138,10 +146,44 @@ export class RootView extends View {
   constructor(container:NodeContainer, injector:Injector, executionContext:Object = {}) {
     super(null, container, injector, executionContext);
     this.flushQueue = [];
-    this.postEvalQueue = [];
   }
   notifyChange(object) {
     this.changeNotifier.notify(object);
+  }
+  _scheduleAttachDetachNotification() {
+    this._attachDetachNotifyScheduled = true;
+  }
+  _invokeAttachDetachNotifications() {
+    if (!this._attachDetachNotifyScheduled) {
+      return false;
+    }
+    this._attachDetachNotifyScheduled = false;
+    walkView(this, null);
+    return true;
+
+    function walkView(view, defaultAction) {
+      var action;
+      if (!view.removed && defaultAction) {
+        action = defaultAction;
+      } else if (!view.removed && view._notifyDetach && view._notifyAttach) {
+        action = 'moved';
+      } else if (view.removed && view._notifyDetach) {
+        action = 'detached';
+      } else if (!view.removed && view._notifyAttach) {
+        action = 'attached';
+      }
+      view._notifyDetach = false;
+      view._notifyAttach = false;
+      if (action) {
+        var callbacks = view[action+'Callbacks'];
+        callbacks.forEach((cb) => cb());
+      }
+      if (!view.removed) {
+        view.childViews.forEach((childView) => {
+          walkView(childView, action);
+        });
+      }
+    }
   }
   digest() {
     // TODO: Make the TTL configurable!
@@ -162,11 +204,9 @@ export class RootView extends View {
           console.log('...', arguments);
         }
       });
+      this._invokeAttachDetachNotifications();
       if (debug) {
         console.log('end digest loop');
-      }
-      while (this.postEvalQueue.length) {
-        this.postEvalQueue.shift()();
       }
     } while (count);
 

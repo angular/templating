@@ -7,7 +7,14 @@ import {ComponentDirective} from 'templating';
 })
 export class Route1 {
   @Inject(App)
-  constructor(app) {
+  constructor(app, node:Node) {
     this.app = app;
+    this.node = node;
+  }
+  attached() {
+    console.log('attached. size:', this.node.getBoundingClientRect());
+  }
+  detached() {
+    console.log('detached');
   }
 }

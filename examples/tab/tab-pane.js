@@ -9,7 +9,17 @@ import {ComponentDirective} from 'templating';
   shadowDOM: true
 })
 export class TabPane {
-  constructor() {
+  constructor(node:Node) {
     this.selected = false;
+    this.node = node;
+  }
+  attached() {
+    console.log('attached', this.title, 'height:', this.node.getBoundingClientRect().height);
+  }
+  detached() {
+    console.log('detached', this.title);
+  }
+  moved() {
+    console.log('moved', this.title);
   }
 }
