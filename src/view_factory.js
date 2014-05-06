@@ -135,7 +135,6 @@ export class ViewFactory {
           var directiveInstance = childInjector.get(decorator);
           this._bindDirective(directiveInstance, element, view);
         });
-        view.notifyChange(element);
       }
       binder.nonElementBinders.forEach((nodeBinder) => {
         var node = element.childNodes[nodeBinder.indexInParent];
@@ -148,7 +147,6 @@ export class ViewFactory {
           var directiveInstance = childInjector.get(template.directive);
           this._bindDirective(directiveInstance, node, view);
         }
-        view.notifyChange(node);
       });
     });
 

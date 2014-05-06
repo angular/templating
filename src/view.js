@@ -8,7 +8,7 @@ import {Parser} from 'expressionist';
 import { GetterCache, DirtyCheckingChangeDetector } from 'watchtower';
 import { WatchGroup, RootWatchGroup} from 'watchtower';
 
-import { NodeAwareChangeNotifier } from './change_notifier';
+import { ObserverSelector } from './observer_selector';
 
 /*
  * View represents a DOM with bound Directives.
@@ -34,9 +34,9 @@ export class View extends LinkedListItem {
       this.watchGrp = this.parentView.watchGrp.newGroup(this.executionContext);
     } else {
       this.rootView = this;
-      this.changeNotifier = injector.get(NodeAwareChangeNotifier);
+      this.observerSelector = injector.get(ObserverSelector);
       // TODO: Refactor this setup, use DI
-      this.detector = new DirtyCheckingChangeDetector(new GetterCache({}), this.changeNotifier);
+      this.detector = new DirtyCheckingChangeDetector(new GetterCache({}), this.observerSelector);
       this.watchGrp = new RootWatchGroup(this.detector, this.executionContext);
     }
     this.parser = injector.get(Parser);
@@ -96,9 +96,6 @@ export class View extends LinkedListItem {
     node.appendChild(this._fragment);
     this._afterInsert();
   }
-  notifyChange(obj) {
-    this.rootView.notifyChange(obj);
-  }
   // TODO: Cannot mix destrucuring arguments with types
   watch({expression, callback, context=null, collection = false}) {
     this._checkDestroyed();
@@ -118,15 +115,6 @@ export class View extends LinkedListItem {
     context = context || this.executionContext;
     var parsedExpr = this.parser.parse(expression);
     parsedExpr.bind(context).assign(value);
-    if (notify) {
-      var object;
-      if (parsedExpr.object) {
-        object = parsedExpr.object.bind(context).eval();
-      } else {
-        object = context;
-      }
-      this.notifyChange(object);
-    }
   }
   isAssignable(expression:string) {
     var parsedExpr = this.parser.parse(expression);
@@ -163,9 +151,7 @@ export class RootView extends View {
     this.flushQueue = [];
     this.invalidRoleQueries = [];
   }
-  notifyChange(object) {
-    this.changeNotifier.notify(object);
-  }
+
   _scheduleAttachDetachNotification() {
     this._attachDetachNotifyScheduled = true;
   }
@@ -234,7 +220,7 @@ export class RootView extends View {
   }
   digest() {
     // TODO: Make the TTL configurable!
-    var ttl = 5, count;
+    var ttl = 10, count;
     var debug = false;
     do {
       if (ttl == 0) {

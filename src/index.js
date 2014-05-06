@@ -13,7 +13,7 @@ export {
 } from './view_factory';
 export {
   ChangeEventConfig
-} from './change_notifier';
+} from './observer_selector';
 
 import {registerAngularElement} from './angular_element';
 registerAngularElement(window.document);
