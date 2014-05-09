@@ -1,9 +1,5 @@
-import {Inject} from 'di'
-
-export function SelectorConfig() {
-  return {
-    interpolationRegex: /{{(.*?)}}/g,
-    bindAttrRegex: /bind-(.+)/,
-    eventAttrRegex: /on-(.+)/,
-  };
-}
+export var SelectorConfig = {
+  interpolationRegex: /{{(.*?)}}/g,
+  bindAttrRegex: /bind-(.+)/,
+  eventAttrRegex: /on-(.+)/,
+};

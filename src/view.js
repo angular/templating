@@ -1,6 +1,6 @@
 import {NodeContainer} from './types';
 import {LinkedList, LinkedListItem} from './util/linked_list';
-import {Injector} from 'di';
+import {Injector, Inject} from 'di';
 
 import {WatchParser, Parser} from 'expressionist';
 import {Parser} from 'expressionist';
@@ -14,6 +14,7 @@ import { NgNode, ArrayOfNgNode } from './ng_node';
  * Views are added to the ViewPort by the template directives
  * such as ng-if and ng-repeat.
  */
+@Inject
 export class View extends LinkedListItem {
   constructor(parentView:View, container:NodeContainer, injector:Injector, executionContext:Object = {}) {
     super();

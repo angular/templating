@@ -1,13 +1,14 @@
-import {Provide} from 'di';
+import {Provide, Inject} from 'di';
 import {ChangeEventConfig} from 'templating';
 import {XTagsEventConfig} from './xtags_event_config';
 
 // config for DI
+@Inject
 @Provide(ChangeEventConfig)
 export function AppChangeEventConfig() {
   var res = [];
-  res.push(...ChangeEventConfig());
-  res.push(...XTagsEventConfig());
+  res.push(...ChangeEventConfig);
+  res.push(...XTagsEventConfig);
   return res;
 }
 
