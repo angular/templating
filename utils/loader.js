@@ -22,7 +22,7 @@ function patchFn(delegate) {
     if (depsIndex >= 0) {
       var deps = args[depsIndex];
       deps = deps.map(function(depName) {
-        if (depName.endsWith('.html')) {
+        if (depName.endsWith('.html') && depName.indexOf('!') == -1) {
           depName = REQJS_PLUGIN_NAME+'!' + depName.substring(0, depName.length - 5);
         }
         return depName;

@@ -8,7 +8,9 @@ export function ModuleLoader(global) {
     return new global.Promise(function(resolve, reject) {
       global.require(moduleNames, function(...modules) {
         resolve(modules);
-      });
+      }, function(err){
+	    	reject(err);
+	    });
     });
   }
 }

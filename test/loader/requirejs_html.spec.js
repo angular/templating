@@ -17,4 +17,13 @@ describe('requirejs-html', ()=>{
     });
   });
 
+  it('should ignore html files with explicit loader plugins', (done)=>{
+    inject(ModuleLoader, (loadModules)=>{
+      loadModules(['test/loader/aloader!test/loader/atemplate.html']).then(function(data) {
+        expect(data[0]).toBe('test content');
+        done();
+      });
+    });
+  });
+
 });
