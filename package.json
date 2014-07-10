@@ -38,7 +38,6 @@
     "requirejs": "^2.1.11",
     "through2": "^0.4.1",
     "gulp-util": "~2.2.14",
-    "jsdom": "~0.10.5",
     "run-sequence": "^0.3.6",
     "protractor": "~1.0.0"
   },
