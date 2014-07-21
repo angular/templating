@@ -50,6 +50,12 @@ export function mixinCustomElementDi({type, providers = [], callbacks, rootInjec
   }
 
   function attached() {
+    if (this.ngInjectorFactory) {
+      // If within an Angular template, the ViewFactory
+      // will take care of appending the nodeInjector at the right place,
+      // and manual changes afterwards are not allowed.
+      return;
+    }
     var injector = this.ngData.injector;
     var parentNode = this.parentNode,
         previousSibling = this.previousSibling;
@@ -72,6 +78,12 @@ export function mixinCustomElementDi({type, providers = [], callbacks, rootInjec
   }
 
   function detached() {
+    if (this.ngInjectorFactory) {
+      // If within an Angular template, the ViewFactory
+      // will take care of appending the nodeInjector at the right place,
+      // and manual changes afterwards are not allowed.
+      return;
+    }
     // Guard against:
     // - detach with immediate attach
     // - detach for children of a detached element

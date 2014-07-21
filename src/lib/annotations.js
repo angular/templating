@@ -96,9 +96,16 @@ export class ImplicitScope {
 
 }
 
-// Annotation that enables the diAttached and diDetached
+// Annotation that enables the diAttached and diDetached callback
 export class AttachAware extends Queryable {
   constructor() {
     super('attachAware');
+  }
+}
+
+// Annotation that enables the domMoved callback
+export class DomMovedAware extends Queryable {
+  constructor() {
+    super('domMovedAware');
   }
 }

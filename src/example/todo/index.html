@@ -1,5 +1,5 @@
 <!doctype html>
-<html ng-config="templating">
+<html ng-config="templating,todo-width">
 <head>
   <script type="text/javascript" src="/bower_components/platform/platform.js"></script>
 
@@ -22,7 +22,7 @@
 </div>
 <div ng-repeat bind-ng-repeat="todos" class="tst-todo">
     <input type="checkbox" on-click="removeTodo(row)" class="tst-todo-done">
-    <span class="tst-todo-title">{{row.title}}</span>
+    <span class="tst-todo-title" todo-width>{{row.title}}</span>
 </div>
 
 <template>
