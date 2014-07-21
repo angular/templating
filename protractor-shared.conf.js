@@ -19,6 +19,6 @@ exports.config = {
   jasmineNodeOpts: {
     showColors: false,
     includeStackTrace: true,
-    isVerbose: true
+    isVerbose: false
   }
 };
