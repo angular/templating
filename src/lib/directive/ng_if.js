@@ -23,7 +23,7 @@ export class NgIf {
     }
     if (value) {
       this.view = this.viewFactory.createView();
-      this.viewPort.append(this.view);
+      this.view.appendTo(this.viewPort);
     }
   }
 }

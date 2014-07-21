@@ -33,12 +33,18 @@ export class ViewFactory {
     providers = [],
     viewPort
   }) {
+    @Provide(View)
+    @Queryable('view')
+    function ViewProvider(nodeInjector:NodeInjector) {
+      return new View([element], nodeInjector, viewPort);
+    }
+    var localProviders = [...providers, ViewProvider];
     var annotation = getAnnotation(component, Directive);
     if (!element) {
       element = document.createElement(annotation.selector);
     }
-    var nodeInjector = this._createComponent({element, component, providers, parentNodeInjector: viewPort._anchorInjector});
-    return new View([element], nodeInjector);
+    var nodeInjector = this._createComponent({element, component, localProviders, parentNodeInjector: viewPort._anchorInjector});
+    return nodeInjector.get(View);
   }
   _createComponent({
     element,
@@ -89,11 +95,18 @@ export class ViewFactory {
   createChildView({template, providers = [], viewPort, executionContext = null}) {
     var localProviders = [...providers, ...childWatchGroupProviders()];
     var childData = this._initTemplate({
-      template, providers: localProviders, executionContext, parentNodeInjector: viewPort._anchorInjector
+      template, providers: localProviders, executionContext, parentNodeInjector: viewPort._anchorInjector,
+      viewPort: viewPort
     });
-    return new View(childData.container.childNodes, childData.injector);
+    return childData.injector.get(View);
   }
-  _initTemplate({template, providers, parentNodeInjector, isShadowRoot = false, executionContext = null}) {
+  _initTemplate({template, providers, parentNodeInjector, isShadowRoot = false, executionContext = null, viewPort = null}) {
+    @Provide(View)
+    @Queryable('view')
+    function ViewProvider(nodeInjector:NodeInjector) {
+      return new View(container.childNodes, nodeInjector, viewPort);
+    }
+
     var localProviders = [...providers];
     if (executionContext) {
       localProviders.push(valueProvider(EXECUTION_CONTEXT_TOKEN, executionContext));
@@ -106,6 +119,9 @@ export class ViewFactory {
     } else {
       // Note: This will create custom elements.
       container = document.importNode(template.container, true);
+    }
+    if (viewPort) {
+      localProviders.push(ViewProvider);
     }
     var viewInjector = parentNodeInjector.createChild({node:null, providers: localProviders, isShadowRoot: isShadowRoot});
 
@@ -143,7 +159,7 @@ export class ViewFactory {
             element,
             component: binder.component,
             providers: localProviders,
-            parentInjector
+            parentNodeInjector: parentInjector
           });
         } else {
           var template = binder.template;
@@ -239,6 +255,7 @@ export class ViewFactory {
 
     @Provide(ViewPort)
     @Inject(NodeInjector)
+    @Queryable('viewPort')
     function viewPortProvider(nodeInjector) {
       return new ViewPort(node, nodeInjector);
     }

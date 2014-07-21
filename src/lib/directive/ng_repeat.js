@@ -52,7 +52,7 @@ export class NgRepeat {
       if (lastView) {
         view.insertAfterView(lastView);
       } else {
-        self.viewPort.append(view);
+        view.appendTo(self.viewPort);
       }
       self.views.push(view);
     }

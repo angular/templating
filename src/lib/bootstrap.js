@@ -8,6 +8,7 @@ import {ViewFactory} from './view_factory';
 import {AttachAwareListener} from './di/injector_queries';
 import {Digest} from './digest';
 import {valueProvider} from './util/misc';
+import {FlushViews} from './view';
 
 export class NgZone {
   constructor() {
@@ -38,12 +39,18 @@ export function bootstrap() {
   // as we want everything that is created to be within NgZone.run...
   var ngZone = new NgZone();
   return ngZone.run(() => {
-    var providers = [...rootWatchGroupProviders(), valueProvider(NgZone, ngZone), AttachAwareListener];
+    var providers = [
+      ...rootWatchGroupProviders(),
+      valueProvider(NgZone, ngZone),
+      AttachAwareListener,
+      FlushViews
+    ];
     var rootInjector = new RootInjector({providers, node:document});
 
     ngZone.afterTask(rootInjector.get(Digest));
     rootInjector.get(startNgApp);
     rootInjector.get(registerNgElement);
+    rootInjector.get(FlushViews);
     return rootInjector;
   });
 }
@@ -67,4 +74,3 @@ export function startNgApp(componentLoader, documentReady, ngZone, viewFactory, 
     });
   });
 }
-
