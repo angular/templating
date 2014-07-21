@@ -1,0 +1,30 @@
+<!doctype html>
+<html ng-config="templating">
+<head>
+  <script type="text/javascript" src="/bower_components/platform/platform.js"></script>
+
+  <link rel="import" href="../platform.html">
+  <link rel="import" href="../templating.html">
+</head>
+<body>
+
+<template ng-if="true">
+<div>
+    Total todos:
+    <span class="tst-todo-count">{{todos.length}}</span>
+</div>
+<div>
+    <label>
+        New Todo:
+        <input type="text" bind-value="newTodoTitle" class="tst-todo-new">
+    </label>
+    <button on-click="addTodo()" class="tst-todo-add">Add</button>
+</div>
+<div ng-repeat bind-ng-repeat="todos" class="tst-todo">
+    <input type="checkbox" on-click="removeTodo(row)" class="tst-todo-done">
+    <span class="tst-todo-title">{{row.title}}</span>
+</div>
+
+<template>
+</body>
+</html>
