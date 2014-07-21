@@ -31,6 +31,10 @@ export class View {
     this.injector.insertAfter(refView.injector);
     this._insertAfterNode(refView._nodes[refView._nodes.length-1]);
   }
+  appendTo(viewPort:ViewPort) {
+    this._insertAfterNode(viewPort._anchorNode);
+    this.injector.appendTo(viewPort._anchorInjector);
+  }
   _removeIfNeeded() {
     if (!this._removed) {
       this._removed = true;
@@ -66,9 +70,5 @@ export class ViewPort {
   constructor(anchorNode:HTMLElement, anchorInjector) {
     this._anchorNode = anchorNode;
     this._anchorInjector = anchorInjector;
-  }
-  append(view:View) {
-    view._insertAfterNode(this._anchorNode);
-    view.injector.appendTo(this._anchorInjector);
   }
 }
