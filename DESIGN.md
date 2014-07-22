@@ -1,3 +1,5 @@
+([google doc version of this document](https://docs.google.com/document/d/1xg6y9tBY7U-qOcYlhAEd89kMPIGXWVs1xsgc0zC1Hv8/edit#heading=h.107lx1rh2rqj) with commenting enabled)
+
 # Design decisions in templating
 
 Templating in AngularJS 2.x is based on the same concepts as AngularJS 1.x: dependency injection, directives and data binding.
@@ -100,7 +102,7 @@ Why use strings as roles for queryables?
 - for `ngModel` and validators: To not need a common base class for all validators
 - to prevent cyclic type references: In `src/examples/tab` the component `TabContainer` queries for all child `TabPane`s, but `TabPane` uses the type `TabContainer` as well.
 
-## Don't use promises verywhere
+## Don't use promises everywhere
 
 When using promises a request to get the promise value is always executed at the end of the turn, even if the promise is already resolved. However, instantiating Views synchronously is e.g. important for a custom element when a user calls `document.createElement('some-ng-custom-element')`.
 
