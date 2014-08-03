@@ -18,14 +18,14 @@ Controllers from AngularJS 1.x are no more supported. They allowed to add functi
 
 ## Use the `<template>` tag
 
-* Fur custom elements, a `<template>` tag is required to prevent their immediate instantiation.
+* For custom elements, a `<template>` tag is required to prevent their immediate instantiation.
 * When a template has multiple root elements grouping them into a `<template>` tag is a simpler way compared to the `-start` and `-end` suffixes in AngularJS 1.x
 * When template directives are nested, their order is defined by nesting multiple `<template>` tags with a single template directive on each one. This is also simpler compared to the directive priority in AngularJS 1.x
 
 Note: If a template directive should contain a single root element, the template tag can be omitted. E.g. `<div ng-if="...">`
 
 
-## Make is easy to consume any custom element
+## Make it easy to consume any custom element
 
 TODO add details
 * bind-, {{}}, on-
@@ -94,7 +94,7 @@ Querying the required directive instances and working with them directly is much
 
 TODO add details / reword
 
-Why not allow to query child directive using css selectors?
+Why not allow querying child directives using css selectors?
 * an element can have multiple directives associated, need to know which one to return
 * performance: if the elements that are queryable are known in advance, queries can be implemented in a simpler and more peformant way
 
@@ -187,7 +187,7 @@ Benchmarks:
     * for `input.value` there is no difference
     * at least on Firefox (not in Chrome) there is a significant difference for adding/removing css classes: [benchmark](http://jsperf.com/attached-detached-nonstructural-dom-manip)
     * there is a difference when adding/removing nodes: [benchmark](http://jsperf.com/attached-detached-dom-manip)
-* Chrome (and maybe other browsers as well) coalesce layouts and paints that happen quickly after each other (e.g. in parralel `setTimeout(0)`). See [this](http://plnkr.co/edit/MzE5M4Ocz8LjSij5LsvA?p=preview) benchmark that updates 4 regions on the screen and look at the layout and paint events in the DevTools timeline. So using `requestAnimationFrame` to prevent paints / layouts is not always required!
+* Chrome (and maybe other browsers as well) coalesce layouts and paints that happen quickly after each other (e.g. in parallel `setTimeout(0)`). See [this](http://plnkr.co/edit/MzE5M4Ocz8LjSij5LsvA?p=preview) benchmark that updates 4 regions on the screen and look at the layout and paint events in the DevTools timeline. So using `requestAnimationFrame` to prevent paints / layouts is not always required!
 
 Note: in flush phase we only buffer structural changes, but not property changes to individual elements:
 
