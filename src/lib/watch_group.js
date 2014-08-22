@@ -1,4 +1,4 @@
-import {WatchParser, Parser} from 'expressionist';
+import {WatchParser} from './watch_parser';
 import {Parser} from 'expressionist';
 
 import { GetterCache } from 'watchtower';
